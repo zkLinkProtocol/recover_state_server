@@ -47,12 +47,12 @@ This will create a binary file in the `target/release` directory.
 ### Configure the Environment Variables
 Your need to modify the following configuration:
 
-1. `CLIENT_WEB3_URL` for `CHAIN_1` and `CHAIN_2`
+1. `CLIENT_WEB3_URL` for `CHAIN_1` and `CHAIN_2`: the url of the rpc node of the corresponding chain.
 2. `CONTRACT_BLOCK_HEIGHT` for `CHAIN_1` and `CHAIN_2`: the block height of the zklink contract depolyment.
 3. `CONTRACT_ADDR` for `CHAIN_1` and `CHAIN_2`: the contract address of zklink contract.
 4. `CONTRACT_GENESIS_TX_HASH` for `CHAIN_1` and `CHAIN_2`: the transaction hash of the zklink contract depolyment.
 5. `FULLY_ON_CHAIN` for `CHAIN_1` and `CHAIN_2`: it means whether the data is fully on-chain.
-6. `DATABASE_URL`
+6. `DATABASE_URL`: the default is local.
 
 ### Recover ZkLink state
 
