@@ -19,6 +19,7 @@ anyhow = "1.0"
 structopt = "0.3.20"
 serde = "1.0.137"
 bigdecimal = { version = "0.3.0"}
+tokio = { version = "1.0", features = ["full"] }
 
 zklink_storage = { path = "storage" }
 zklink_types = { path = "zklink-circuit/common_types", version = "1.0" }

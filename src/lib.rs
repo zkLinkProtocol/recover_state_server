@@ -7,6 +7,7 @@ use recover_state_config::RecoverStateConfig;
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_types::{AccountId, SubAccountId, TokenId, ZkLinkAddress};
 use crate::utils::{convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
+pub use server::run_server;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 enum AccountQuery {

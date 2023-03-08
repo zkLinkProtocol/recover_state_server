@@ -57,7 +57,7 @@ async fn generate_proof_task(
     Ok(response)
 }
 
-async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
+pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let server_data = ServerData::new(config);
 
