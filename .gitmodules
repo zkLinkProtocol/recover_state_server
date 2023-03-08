@@ -1,0 +1,3 @@
+[submodule "zklink-circuit"]
+	path = zklink-circuit
+	url = git@github.com:zkLinkProtocol/zklink-circuit.git

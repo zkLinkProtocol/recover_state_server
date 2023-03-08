@@ -1,0 +1,22 @@
+[package]
+name = "zklink_state"
+version = "1.0.0"
+edition = "2021"
+authors = ["N Labs Team<nevermore@zklink.org>"]
+homepage = "https://zk.link/"
+repository = "https://github.com/zkLinkProtocol/zklink-periphery"
+license = "Apache-2.0"
+keywords = ["blockchain", "zklink"]
+categories = ["cryptography"]
+publish = false # We don't want to publish our binaries.
+
+[dependencies]
+zklink_crypto = { path = "../zklink-circuit/crypto", version = "1.0" }
+zklink_utils = { path = "../zklink-circuit/utils", version = "1.0" }
+zklink_types = { path = "../zklink-circuit/common_types", version = "1.0" }
+zklink_circuit = { path = "../zklink-circuit/circuit", version = "1.0" }
+
+num = { version = "0.4.0", features = ["serde"] }
+anyhow = "1.0"
+serde_json = "1.0"
+chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }

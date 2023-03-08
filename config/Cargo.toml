@@ -1,0 +1,21 @@
+[package]
+name = "recover_state_config"
+version = "0.1.0"
+edition = "2021"
+authors = ["N Labs Team<nevermore@zklink.org>"]
+homepage = "https://zk.link/"
+repository = "https://github.com/zkLinkProtocol/zklink-periphery"
+license = "Apache-2.0"
+keywords = ["blockchain", "zklink"]
+categories = ["cryptography"]
+publish = false # We don't want to publish our binaries.
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+zklink_types = { path = "../zklink-circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink-circuit/utils", version = "1.0" }
+
+serde = { version = "1.0.137", features = ["derive"] }
+serde_json = "1.0"
+envy = "0.4"
