@@ -1,9 +1,33 @@
+use tracing::info;
 use recover_state_config::RecoverStateConfig;
+use zklink_basic_types::{ChainId, SubAccountId};
+use zklink_crypto::proof::EncodedSingleProof;
+use zklink_types::{AccountId, ZkLinkAddress, TokenId};
 use zklink_storage::ConnectionPool;
 use zklink_types::block::StoredBlockInfo;
+use zklink_utils::BigUintSerdeWrapper;
 use crate::exit_proof::create_exit_proof;
 
-struct ExodusProver{
+#[derive(Serialize, Debug)]
+struct ExitProofData {
+    pub exit_info: ExitInfo,
+    amount: BigUintSerdeWrapper,
+    proof: EncodedSingleProof,
+}
+
+#[derive(Serialize, Debug)]
+pub struct ExitInfo {
+    #[serde(skip)]
+    pub chain_id: ChainId,
+    pub account_address: ZkLinkAddress,
+    pub account_id: AccountId,
+    pub sub_account_id: SubAccountId,
+    pub l1_target_token: TokenId,
+    pub l2_source_token: TokenId,
+}
+
+#[derive(Clone)]
+pub struct ExodusProver{
     config: RecoverStateConfig,
     conn_pool: ConnectionPool
 }
@@ -12,19 +36,21 @@ impl ExodusProver {
     pub fn new(config: RecoverStateConfig) -> Self {
         let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
         Self{
+            config,
             conn_pool
         }
     }
 
-    pub async fn create_proof(&self) -> (StoredBlockInfo, ExitProofData){
+    pub async fn create_proof(&self, mut exit_info: ExitInfo) -> anyhow::Result<(StoredBlockInfo, ExitProofData)>{
         let mut storage = self.conn_pool
             .access_storage()
             .await
             .expect("Storage access failed");
 
+        let timer = std::time::Instant::now();
         let l1_target_token = storage
             .tokens_schema()
-            .get_token(l1_target_token)
+            .get_token(*exit_info.l1_target_token as i32)
             .await
             .expect("Db access fail")
             .expect(
@@ -34,21 +60,23 @@ impl ExodusProver {
             .token_id;
         let l2_source_token = storage
             .tokens_schema()
-            .get_token(l2_source_token)
+            .get_token(*exit_info.l2_source_token as i32)
             .await
             .expect("Db access fail")
             .expect(
                 "Token not found.",
             )
             .token_id;
-        let address = storage
+
+        exit_info.account_address = storage
             .chain()
             .account_schema()
-            .account_by_id(account_id as i64)
+            .account_by_id(*exit_info.account_id as i64)
             .await
             .expect("DB access fail")
             .expect("Account not found in the db")
-            .address;
+            .address
+            .into();
 
         let last_executed_block_number = storage
             .chain()
@@ -70,19 +98,10 @@ impl ExodusProver {
             .block_schema()
             .get_block(last_executed_block_number)
             .await
-            .expect("Failed to get last verified confirmed block").unwrap();
+            .expect("Failed to get last verified confirmed block")
+            .expect("Block should be existed");
 
-        vlog::info!("Restored state from db: {} s", timer.elapsed().as_secs());
-        let stored_block_info = (
-            last_executed_block.block_number,
-            last_executed_block.number_of_processed_prior_ops(ChainId(chain_id)),
-            last_executed_block
-                .get_processable_operations_hash_of_chain(ChainId(chain_id)),
-            last_executed_block.timestamp,
-            last_executed_block.get_eth_encoded_root(),
-            last_executed_block.block_commitment,
-            last_executed_block.sync_hash,
-        );
+        info!("Restored state from db: {} s", timer.elapsed().as_secs());
         let (proof, amount) = create_exit_proof(
             &self.config,
             accounts,
@@ -95,15 +114,12 @@ impl ExodusProver {
         )
             .expect("Failed to generate exit proof");
 
+        let stored_block_info = last_executed_block.stored_block_info(exit_info.chain_id);
         let proof_data = ExitProofData {
-            l2_source_token: l2_source_token.into(),
-            l1_target_token: l1_target_token.into(),
-            account_id: AccountId(account_id),
-            account_address: address.into(),
+            exit_info,
             amount: amount.into(),
-            sub_account_id: SubAccountId(sub_account_id),
             proof,
-            chain_id: ChainId(chain_id)
         };
+        Ok((stored_block_info, proof_data))
     }
 }

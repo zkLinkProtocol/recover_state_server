@@ -4,6 +4,7 @@ use std::fs::File;
 use anyhow::format_err;
 use num::BigUint;
 use std::time::Instant;
+use tracing::info;
 use recover_state_config::RecoverStateConfig;
 use zklink_basic_types::{ChainId, SubAccountId};
 use zklink_circuit::exit_circuit::create_exit_circuit_with_public_input;
@@ -59,12 +60,12 @@ pub fn create_exit_proof(
     let commitment = exit_circuit
         .pub_data_commitment
         .expect("Witness should contract commitment");
-    vlog::info!("Proof commitment: {:?}", commitment);
+    info!("Proof commitment: {:?}", commitment);
 
     let proof = gen_verified_proof_for_exit_circuit(&config, exit_circuit)
         .map_err(|e| format_err!("Failed to generate proof: {}", e))?;
 
-    vlog::info!("Exit proof created: {} s", timer.elapsed().as_secs());
+    info!("Exit proof created: {} s", timer.elapsed().as_secs());
     Ok((proof.serialize_single_proof(), withdraw_amount))
 }
 
@@ -78,7 +79,7 @@ pub fn gen_verified_proof_for_exit_circuit<C: Circuit<Engine> + Clone>(
         crate::fs_utils::get_exodus_verification_key_path(&config.runtime.key_dir)
     )?)?;
 
-    vlog::info!("Proof for circuit started");
+    info!("Proof for circuit started");
 
     let hints = transpile(circuit.clone())?;
     let setup = setup(circuit.clone(), &hints)?;
@@ -102,6 +103,6 @@ pub fn gen_verified_proof_for_exit_circuit<C: Circuit<Engine> + Clone>(
     let valid = verify::<_, _, RollingKeccakTranscript<Fr>>(&proof, &vk, None)?;
     anyhow::ensure!(valid, "proof for exit is invalid");
 
-    vlog::info!("Proof for circuit successful");
+    info!("Proof for circuit successful");
     Ok(proof.into())
 }
