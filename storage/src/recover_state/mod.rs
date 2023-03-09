@@ -9,12 +9,10 @@ use self::records::{
     NewBlockEvent, NewRollupOpsBlock, NewStorageState, StoredBlockEvent,
     StoredRollupOpsBlock, StoredStorageState,
 };
-
 use crate::chain::operations::OperationsSchema;
 use crate::{chain::state::StateSchema};
 use crate::{QueryResult, StorageProcessor};
 use crate::chain::operations::records::StoredAggregatedOperation;
-use crate::recover_state::records::StoredExitProof;
 
 pub mod records;
 
@@ -159,7 +157,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             .await?;
 
         metrics::histogram!(
-            "sql.recover_state.init_last_watched_block_number",
+            "sql.recover_state.insert_last_watched_block_number",
             start.elapsed()
         );
         Ok(())
@@ -334,25 +332,5 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         transaction.commit().await?;
         metrics::histogram!("sql.recover_state.update_block_events", start.elapsed());
         Ok(())
-    }
-
-    pub async fn load_exit_proof(
-        &mut self,
-        account_id: i64,
-        sub_account_id: i16,
-        token_id: i32
-    ) -> QueryResult<StoredExitProof> {
-        let start = Instant::now();
-
-        let stored_exit_proof = sqlx::query_as!(
-            StoredExitProof,
-            "SELECT * FROM exit_proofs WHERE account_id=$1 AND sub_account_id=$2 AND token_id=$3",
-            account_id, sub_account_id, token_id
-        )
-            .fetch_one(self.0.conn())
-            .await?;
-
-        metrics::histogram!("sql.recover_state.update_block_events", start.elapsed());
-        Ok(stored_exit_proof)
     }
 }

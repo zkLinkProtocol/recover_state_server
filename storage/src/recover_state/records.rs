@@ -55,14 +55,3 @@ pub struct StoredBlockEvent {
     pub block_num: i64,
     pub contract_version: i16,
 }
-
-
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct StoredExitProof {
-    pub account_id: i64,
-    pub sub_account_id: i16,
-    pub token_id: i32,
-    pub proof: Value,
-    pub created_at: Option<DateTime<Utc>>,
-    pub finished_at: Option<DateTime<Utc>>,
-}

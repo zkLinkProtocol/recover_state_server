@@ -7,7 +7,6 @@ use structopt::StructOpt;
 use tracing::info;
 use zklink_basic_types::{ChainId, SubAccountId};
 use zklink_crypto::proof::EncodedSingleProof;
-use zklink_prover::exit_proof::create_exit_proof;
 use zklink_storage::ConnectionPool;
 use zklink_utils::BigUintSerdeWrapper;
 use zklink_types::params::MAX_CHAIN_ID;
@@ -47,7 +46,7 @@ async fn main() {
     let opt = Opt::from_args();
     assert!(opt.chain_id <= *MAX_CHAIN_ID);
 
-    info!("Construct exit info.");
+    info!("Construct exit info");
     let exit_info = ExitInfo{
         chain_id: opt.account_id.into(),
         account_address: Default::default(),
@@ -57,11 +56,16 @@ async fn main() {
         l2_source_token: opt.l2_source_token.into(),
     };
     let recover_state_config = RecoverStateConfig::from_env();
-    let prover = ExodusProver::new(recover_state_config);
-    let (stored_block_info, proof_data) = prover
-        .create_proof(exit_info)
-        .await
-        .expect("Failed to create proof");
+    let prover = ExodusProver::new(recover_state_config).await;
+
+    info!("Start proving");
+    let timer = Instant::now();
+    let proof_data = prover
+        .create_exit_proof(exit_info)
+        .expect("Failed to create exit proof");
+    info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
+
+    let stored_block_info = prover.stored_block_info;
 
     println!("\n\n");
     println!("==========================");

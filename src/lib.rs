@@ -60,18 +60,18 @@ impl ServerData {
 
     pub(crate) async fn get_proof(
         &self,
-        account_query: AccountQuery,
-        sub_account_id: SubAccountId,
-        token_id: TokenId
+        _account_query: AccountQuery,
+        _sub_account_id: SubAccountId,
+        _token_id: TokenId
     ) -> actix_web::Result<Option<Vec<u8>>>{
         todo!()
     }
 
     pub(crate) async fn generate_proof_task(
         &self,
-        account_query: AccountQuery,
-        sub_account_id: SubAccountId,
-        token_id: TokenId
+        _account_query: AccountQuery,
+        _sub_account_id: SubAccountId,
+        _token_id: TokenId
     ) -> actix_web::Result<Option<Vec<u8>>>{
         todo!()
     }

@@ -27,7 +27,7 @@ use crate::SETUP_MIN_POW2;
 
 pub fn create_exit_proof(
     config: &RecoverStateConfig,
-    accounts: AccountMap,
+    circuit_account_tree: &CircuitAccountTree,
     account_id: AccountId,
     sub_account_id: SubAccountId,
     l2_source_token: TokenId,
@@ -36,20 +36,9 @@ pub fn create_exit_proof(
     total_chain_num: usize
 ) -> Result<(EncodedSingleProof, BigUint), anyhow::Error> {
     let timer = Instant::now();
-    let mut circuit_account_tree =
-        CircuitAccountTree::new(zklink_crypto::params::account_tree_depth());
-
-    let mut _target_account = None;
-    for (id, account) in accounts {
-        if id == account_id {
-            _target_account = Some(account.clone());
-        }
-        circuit_account_tree.insert(*id, CircuitAccount::from(account));
-    }
-
     let (exit_circuit,withdraw_amount) =
         create_exit_circuit_with_public_input(
-            &mut circuit_account_tree,
+            circuit_account_tree,
             account_id,
             sub_account_id,
             l2_source_token,
@@ -57,6 +46,7 @@ pub fn create_exit_proof(
             chain_id,
             total_chain_num,
         );
+    info!("Exit witness generated: {} s", timer.elapsed().as_secs());
     let commitment = exit_circuit
         .pub_data_commitment
         .expect("Witness should contract commitment");

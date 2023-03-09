@@ -396,13 +396,15 @@ CREATE TABLE recover_state_rollup_ops
 
 CREATE TABLE exit_proofs
 (
+    chain_id smallint NOT NULL,
     account_id bigserial NOT NULL,
     sub_account_id smallint NOT NULL,
-    token_id integer NOT NULL,
-    proof jsonb  NOT NULL,
+    l1_target_token integer NOT NULL,
+    l2_source_token integer NOT NULL,
+    proof jsonb,
     created_at timestamp with time zone,
     finished_at timestamp with time zone,
 
-    PRIMARY KEY (account_id, sub_account_id, token_id)
+    PRIMARY KEY (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token)
 );
 
