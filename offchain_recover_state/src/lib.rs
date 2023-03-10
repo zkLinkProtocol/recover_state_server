@@ -26,10 +26,12 @@ pub fn get_fully_on_chain_zklink_contract(config: &RecoverStateConfig) -> (u64, 
         .iter()
         .find(|chain| !chain.chain.is_commit_compressed_blocks)
         .unwrap();
-    let deploy_block_number = uncompress_chain_config.contracts.deployment_block;
-    let zklink_contract: impl ZkLinkContract = match uncompress_chain_config.chain.chain_type{
-        ChainType::EVM => ZkLinkEvmContract::new(uncompress_chain_config.clone()),
-        ChainType::STARKNET => panic!("Not currently supported!")
-    };
-    (deploy_block_number, zklink_contract)
+    let deploy_block_number = uncompress_chain_config.contract.deployment_block;
+    (
+        deploy_block_number,
+        match uncompress_chain_config.chain.chain_type{
+            ChainType::EVM => ZkLinkEvmContract::new(uncompress_chain_config.clone()),
+            ChainType::STARKNET => panic!("Not currently supported!")
+        }
+    )
 }

@@ -8,6 +8,7 @@ mod database;
 mod layer1;
 mod api;
 
+#[derive(Debug, Clone)]
 pub struct RecoverStateConfig{
     pub runtime: RuntimeConfig,
     pub api: ApiConfig,

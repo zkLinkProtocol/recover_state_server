@@ -70,8 +70,7 @@ async fn main() {
         std::process::exit(0);
     }
 
-    // 100_000
-    let (token_sender, token_receiver) = mpsc::channel(100000);
+    let (token_sender, token_receiver) = mpsc::channel(100_000);
     driver.download_registered_tokens(token_sender).await;
     driver.recover_state(&mut interactor, token_receiver).await;
 }

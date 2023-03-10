@@ -125,8 +125,8 @@ where
         }
         Self {
             update_token_events,
-            contract_upgraded_blocks: config.upgrade_eth_blocks.clone(),
-            init_contract_version: config.init_contract_version,
+            contract_upgraded_blocks: Default::default(),
+            init_contract_version: Default::default(),
             zklink_contract,
             rollup_events: events_state,
             tree_state,
@@ -144,9 +144,10 @@ where
             .await
             .expect("Failed to get current block number");
         while let Some((chain_id, mut updating_event)) = self.update_token_events.pop(){
+            let token_sender = token_sender.clone();
             tokio::spawn(async move {
                 loop {
-                    match updating_event.update_token_events(token_sender.clone()).await
+                    match updating_event.update_token_events(&token_sender).await
                     {
                         Ok(last_sync_block_number) =>
                             if last_sync_block_number + VIEW_BLOCKS_STEP > cur_block_number {
@@ -180,7 +181,7 @@ where
             .find(|chain| !chain.chain.is_commit_compressed_blocks)
             .unwrap();
         let genesis_transaction = self.zklink_contract
-            .get_transaction(full_pubdata_chain_config.contracts.genesis_tx_hash)
+            .get_transaction(full_pubdata_chain_config.contract.genesis_tx_hash)
             .await
             .unwrap()
             .expect("Cant get zkLink genesis transaction");
@@ -233,13 +234,13 @@ where
         // Init last watched block number for database
         let chain_id = full_pubdata_chain_config.chain.chain_id;
         interactor.init_block_events_state(chain_id, last_watched_block_number).await;
-        for chain_config in config.multi_chains_configs
+        for chain_config in config.layer1
             .chain_configs
             .iter()
         {
             interactor.init_token_event_progress(
                 chain_config.chain.chain_id,
-                chain_config.contracts.deployment_block.into()
+                chain_config.contract.deployment_block.into()
             ).await;
         }
         // Init genesis tree state for database

@@ -11,7 +11,7 @@ use zklink_storage::ConnectionPool;
 use zklink_utils::BigUintSerdeWrapper;
 use zklink_types::params::MAX_CHAIN_ID;
 use recover_state_config::{DBConfig, RecoverStateConfig};
-use zklink_prover::exodus_prover::ExitInfo;
+use zklink_prover::exit_type::ExitInfo;
 use zklink_prover::{ExodusProver, run_exodus_prover};
 
 #[derive(StructOpt)]
@@ -84,7 +84,7 @@ async fn main() {
                 .expect("Failed to create exit proof");
             info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
 
-            let stored_block_info = prover.stored_block_info;
+            let stored_block_info = prover.last_executed_block.stored_block_info(exit_info.chain_id);
 
             println!("\n\n");
             println!("==========================");

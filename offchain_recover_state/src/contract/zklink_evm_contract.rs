@@ -1,14 +1,13 @@
 use anyhow::{ensure, format_err};
 use async_trait::async_trait;
+use ethers::abi::Address;
 use ethers::contract::Contract;
 use ethers::prelude::{Filter, Http, Log, Middleware, Provider, Transaction};
 use ethers::core::types::BlockNumber as EthBlockNumber;
 use zklink_types::{Account, BlockNumber, ChainId, H256};
-use zklink_blockchain::eth::contract::{load_abi, new_provider_with_url, ZKLINK_JSON};
-use zklink_blockchain::eth::ZkLinkAddressWrapper;
 use recover_state_config::Layer1Config;
 use crate::contract::{BlockChain, LogInfo, TransactionInfo, ZkLinkContract, ZkLinkContractVersion};
-use crate::contract::utils::get_genesis_account;
+use crate::contract::utils::{get_genesis_account, load_abi, new_provider_with_url, ZKLINK_JSON};
 
 const FUNC_NAME_HASH_LENGTH: usize = 4;
 
@@ -24,7 +23,7 @@ impl ZkLinkEvmContract {
     pub fn new(config: Layer1Config) -> ZkLinkEvmContract {
         let abi = load_abi(ZKLINK_JSON);
         let client = new_provider_with_url(&config.client.web3_url());
-        let contract_address: ZkLinkAddressWrapper = config.contracts.contract_addr.clone().into();
+        let contract_address = Address::from_slice(config.contract.address.as_bytes());
         ZkLinkEvmContract {
             chain_id: config.chain.chain_id,
             contract: Contract::new(contract_address, abi, client.into()),

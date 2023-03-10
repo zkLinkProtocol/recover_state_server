@@ -1,7 +1,7 @@
 use std::future::Future;
 use std::time::Duration;
 use anyhow::format_err;
-use backoff::retry_notify;
+use backoff::future::retry_notify;
 use tracing::warn;
 
 /// Repeats the function execution on the exponential backoff principle.
@@ -22,12 +22,9 @@ pub async fn with_retries<I, E, Fn, Fut>(operation: Fn) -> anyhow::Result<I>
 
     retry_notify(get_backoff(), operation, notify)
         .await
-        .map_err(|e| {
-            format_err!(
-                    "Prover can't reach server, for the max elapsed time of the backoff: {}",
-                    e
-                )
-        })
+        .map_err(|e|
+            format_err!("Process exit task, for the max elapsed time of the backoff: {}",e)
+        )
 }
 
 /// Returns default prover options for backoff configuration.

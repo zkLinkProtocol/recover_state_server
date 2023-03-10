@@ -1,4 +1,5 @@
 use ethers::abi::{decode, ParamType, Token};
+use tracing::info;
 use zklink_types::{AccountId, BlockNumber, H256};
 use super::version::ZkLinkContractVersion;
 use crate::rollup_ops::RollupOpsBlock;

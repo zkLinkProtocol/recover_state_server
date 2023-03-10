@@ -10,6 +10,7 @@ mod contract_config;
 mod client_config;
 mod chain_type;
 
+#[derive(Clone, Debug)]
 pub struct MultiChainConfigs {
     pub chain_ids: Vec<ChainId>,
     pub chain_configs: Vec<Layer1Config>,
@@ -28,9 +29,10 @@ impl MultiChainConfigs {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Layer1Config{
     pub chain: ChainConfig,
-    pub contracts: ContractConfig,
+    pub contract: ContractConfig,
     pub client: ClientConfig,
 }
 
@@ -38,7 +40,7 @@ impl Layer1Config {
     pub fn from_env(chain_id: u8) -> Self{
         Self{
             chain: ChainConfig::from_env(chain_id),
-            contracts: ContractConfig::from_env(chain_id),
+            contract: ContractConfig::from_env(chain_id),
             client: ClientConfig::from_env(chain_id),
         }
     }

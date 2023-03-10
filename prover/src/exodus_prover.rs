@@ -1,93 +1,19 @@
-use std::fmt::Formatter;
-use tracing::info;
 use recover_state_config::RecoverStateConfig;
-use zklink_basic_types::{ChainId, SubAccountId};
 use zklink_crypto::circuit::account::CircuitAccount;
 use zklink_crypto::circuit::CircuitAccountTree;
 use zklink_crypto::params::account_tree_depth;
-use zklink_crypto::proof::EncodedSingleProof;
-use zklink_types::{AccountId, ZkLinkAddress, TokenId, AccountMap};
-use zklink_storage::{ConnectionPool, QueryResult};
-use zklink_storage::recover_state::records::{StoredExitInfo, StoredExitProof};
-use zklink_types::block::StoredBlockInfo;
-use zklink_utils::BigUintSerdeWrapper;
+use zklink_storage::ConnectionPool;
+use zklink_types::block::Block;
 use crate::exit_proof::create_exit_proof;
-
-#[derive(Serialize, Debug)]
-pub struct ExitProofData {
-    pub exit_info: ExitInfo,
-    amount: BigUintSerdeWrapper,
-    proof: EncodedSingleProof,
-}
-
-impl From<ExitProofData> for StoredExitProof  {
-    fn from(value: ExitProofData) -> Self {
-        Self{
-            chain_id: *value.exit_info.chain_id as i16,
-            account_id: *value.exit_info.account_id as i64,
-            sub_account_id: *value.exit_info.sub_account_id as i16,
-            l1_target_token: *value.exit_info.l1_target_token as i32,
-            l2_source_token: *value.exit_info.l2_source_token as i32,
-            proof: Some(serde_json::to_value(value.proof).unwrap()),
-            created_at: None,
-            finished_at: None,
-        }
-    }
-}
-
-#[derive(Serialize, Debug, Clone)]
-pub struct ExitInfo {
-    #[serde(skip)]
-    pub chain_id: ChainId,
-    pub account_address: ZkLinkAddress,
-    pub account_id: AccountId,
-    pub sub_account_id: SubAccountId,
-    pub l1_target_token: TokenId,
-    pub l2_source_token: TokenId,
-}
-
-impl From<&StoredExitProof> for ExitInfo {
-    fn from(value: &StoredExitProof) -> Self {
-        Self{
-            chain_id: value.chain_id.into(),
-            account_address: Default::default(),
-            account_id: value.account_id.into(),
-            sub_account_id: value.sub_account_id.into(),
-            l1_target_token: value.l1_target_token.into(),
-            l2_source_token: value.l2_source_token.into(),
-        }
-    }
-}
-
-impl From<&ExitInfo> for StoredExitInfo {
-    fn from(value: &ExitInfo) -> Self {
-        Self{
-            chain_id: *value.chain_id as i16,
-            account_id: *value.account_id as i64,
-            sub_account_id: *value.sub_account_id as i16,
-            l1_target_token: *value.l1_target_token as i32,
-            l2_source_token: *value.l2_source_token as i32,
-        }
-    }
-}
-
-impl std::fmt::Display for ExitInfo {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-         write!(
-             f, "(chain_id:{}, account_address:{}, account_id:{}, \
-             sub_account_id:{}, l1_target_token:{}, l2_source_token:{})",
-             self.chain_id, self.account_address, self.account_id,
-             self.sub_account_id, self.l1_target_token, self.l2_source_token
-         )
-    }
-}
+use crate::exit_type::ExitProofData;
+use crate::ExitInfo;
 
 #[derive(Clone)]
 pub struct ExodusProver{
     config: RecoverStateConfig,
     conn_pool: ConnectionPool,
     circuit_account_tree: CircuitAccountTree,
-    pub stored_block_info: StoredBlockInfo,
+    pub last_executed_block: Block,
 }
 
 impl ExodusProver {
@@ -103,6 +29,12 @@ impl ExodusProver {
             .await
             .expect("Storage access failed");
         // loads circuit account tree
+        let last_executed_block_number = storage
+            .chain()
+            .block_schema()
+            .get_last_verified_confirmed_block()
+            .await
+            .expect("Failed to load last verified confirmed block number");
         let mut circuit_account_tree = CircuitAccountTree::new(account_tree_depth());
         for (id, account) in storage.chain()
             .state_schema()
@@ -127,23 +59,12 @@ impl ExodusProver {
             .await
             .expect("Failed to get last verified confirmed block")
             .expect("Block should be existed");
-        let stored_block_info = last_executed_block.stored_block_info(exit_info.chain_id);
-
+        drop(storage);
         Self{
             config,
             conn_pool,
             circuit_account_tree,
-            stored_block_info,
-        }
-    }
-
-    pub async fn exist_available_workers(&self) -> bool {
-        match self.running_tasks_num().await{
-            Ok(num) => num < self.max_workers_num,
-            Err(e) => {
-                info!("Failed to get running tasks num: {}", e);
-                false
-            }
+            last_executed_block,
         }
     }
 
@@ -154,16 +75,6 @@ impl ExodusProver {
             .await?;
         let running_task_num = storage.prover_schema()
             .count_running_tasks()
-            .await?;
-        Ok(running_task_num as u32)
-    }
-
-    pub async fn load_not_start_tasks(&self) -> anyhow::Result<u32> {
-        let mut storage = self.conn_pool
-            .access_storage()
-            .await?;
-        let running_task_num = storage.prover_schema()
-            .load_running_tasks()
             .await?;
         Ok(running_task_num as u32)
     }
@@ -181,12 +92,12 @@ impl ExodusProver {
                     && t.created_at.is_none()
                     && t.finished_at.is_none()
                 );
-                t.into()
+                (&t).into()
             });
         Ok(task)
     }
 
-    pub async fn cancel_this_task(&self, exit_info: ExitInfo) -> anyhow::Result<()> {
+    pub async fn cancel_this_task(&self, exit_info: &ExitInfo) -> anyhow::Result<()> {
         let mut storage = self.conn_pool
             .access_storage()
             .await?;
@@ -252,7 +163,7 @@ impl ExodusProver {
         Ok(proof_data)
     }
 
-    pub(crate) async fn store_exit_proof(&self, proof: ExitProofData) -> anyhow::Result<()>{
+    pub(crate) async fn store_exit_proof(&self, proof: &ExitProofData) -> anyhow::Result<()>{
         let mut storage = self.conn_pool
             .access_storage()
             .await?;

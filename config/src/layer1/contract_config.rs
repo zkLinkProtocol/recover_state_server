@@ -11,7 +11,7 @@ pub struct ContractConfig {
     /// The block number of contracts deployed.
     pub deployment_block: u64,
     /// The zkLink main contract address
-    pub contract_addr: ZkLinkAddress,
+    pub address: ZkLinkAddress,
     /// The zkLink contract deployed tx hash, used for recover data
     pub genesis_tx_hash: H256,
 }
@@ -30,7 +30,7 @@ mod tests {
     fn expected_config() -> ContractConfig {
         ContractConfig {
             deployment_block: 10000,
-            contract_addr: "0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55".parse().unwrap(),
+            address: "0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55".parse().unwrap(),
             genesis_tx_hash:  "0xb99ebfea46cbe05a21cd80fe5597d97b204befc52a16303f579c607dc1ac2e2e".parse().unwrap(),
         }
     }

@@ -8,10 +8,9 @@ use tracing::info;
 use recover_state_config::RecoverStateConfig;
 use zklink_basic_types::{ChainId, SubAccountId};
 use zklink_circuit::exit_circuit::create_exit_circuit_with_public_input;
-use zklink_crypto::circuit::account::CircuitAccount;
 use zklink_crypto::circuit::CircuitAccountTree;
 use zklink_crypto::proof::EncodedSingleProof;
-use zklink_types::{AccountId, AccountMap, TokenId};
+use zklink_types::{AccountId, TokenId};
 use zklink_crypto::bellman::plonk::better_cs::{
     keys::VerificationKey, verifier::verify,
 };
@@ -20,7 +19,6 @@ use zklink_crypto::bellman::plonk::{
     prove_by_steps, setup, transpile,
 };
 use zklink_crypto::franklin_crypto::bellman::Circuit;
-use zklink_crypto::params::RECURSIVE_CIRCUIT_VK_TREE_DEPTH;
 use zklink_crypto::proof::SingleProof;
 use zklink_crypto::{Engine, Fr};
 use crate::SETUP_MIN_POW2;
