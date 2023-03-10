@@ -219,11 +219,7 @@ impl ZkLinkState {
     }
 
     pub fn get_account(&self, account_id: AccountId) -> Option<Account> {
-        let start = std::time::Instant::now();
-
-        let account = self.balance_tree.get(*account_id).cloned();
-
-        account
+        self.balance_tree.get(*account_id).cloned()
     }
 
     pub fn chunks_for_tx(&self, franklin_tx: &ZkLinkTx) -> usize {

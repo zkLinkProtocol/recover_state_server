@@ -26,6 +26,8 @@ zklink_types = { path = "zklink-circuit/common_types", version = "1.0" }
 zklink_crypto = { path = "zklink-circuit/crypto", version = "1.0" }
 zklink_utils = { path = "zklink-circuit/utils", version = "1.0" }
 recover_state_config = { path = "config", version = "0.1.0" }
+zklink_prover = { path = "prover", version = "1.0.0" }
+offchain_recover_state = { path = "offchain_recover_state", version = "0.1.0" }
 tracing = {version= "0.1", features = ["log"]}
 tracing-subscriber = "0.3"
 
