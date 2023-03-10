@@ -12,7 +12,7 @@ use zklink_utils::BigUintSerdeWrapper;
 use zklink_types::params::MAX_CHAIN_ID;
 use recover_state_config::{DBConfig, RecoverStateConfig};
 use zklink_prover::exodus_prover::ExitInfo;
-use zklink_prover::ExodusProver;
+use zklink_prover::{ExodusProver, run_exodus_prover};
 
 #[derive(StructOpt)]
 #[structopt(
@@ -20,22 +20,29 @@ use zklink_prover::ExodusProver;
     author = "N Labs",
     rename_all = "snake_case"
 )]
-struct Opt {
-    /// Chain to withdraw - "1"
-    #[structopt(short = "c", long = "chain")]
-    chain_id: u8,
-    /// Account id of the account
-    #[structopt(long)]
-    account_id: u32,
-    /// SubAccount id of the account
-    #[structopt(long)]
-    sub_account_id: u8,
-    /// Target token to withdraw - token id of "USDT"
-    #[structopt(long)]
-    l1_target_token: u16,
-    /// Source token to withdraw - token id of "USD"
-    #[structopt(long)]
-    l2_source_token: u16,
+enum Opt {
+    /// Runs prover tasks module(Running programmer)
+    #[structopt(name = "tasks")]
+    Tasks,
+    /// Generates a single proof based on the specified exit information(Command tool)
+    #[structopt(name = "single")]
+    Single {
+        /// Chain to withdraw - "1"
+        #[structopt(short = "c", long = "chain-id")]
+        chain_id: u8,
+        /// Account id of the account - "0"(can't be negative or 1)
+        #[structopt(short = "a", long = "account-id")]
+        account_id: u32,
+        /// SubAccount id of the account - "0"
+        #[structopt(short = "s", long = "sub-account-id")]
+        sub_account_id: u8,
+        /// Target token to withdraw - token id of "USDT"
+        #[structopt(short = "l1", long = "l1-target-token")]
+        l1_target_token: u16,
+        /// Source token to withdraw - token id of "USD"
+        #[structopt(short = "l2", long = "l2-source-token")]
+        l2_source_token: u16,
+    },
 }
 
 #[tokio::main]
@@ -44,47 +51,61 @@ async fn main() {
     dotenvy::dotenv().expect(".env file not found");
 
     let opt = Opt::from_args();
-    assert!(opt.chain_id <= *MAX_CHAIN_ID);
-
-    info!("Construct exit info");
-    let exit_info = ExitInfo{
-        chain_id: opt.account_id.into(),
-        account_address: Default::default(),
-        account_id: opt.chain_id.into(),
-        sub_account_id: opt.sub_account_id.into(),
-        l1_target_token: opt.l1_target_token.into(),
-        l2_source_token: opt.l2_source_token.into(),
-    };
     let recover_state_config = RecoverStateConfig::from_env();
-    let prover = ExodusProver::new(recover_state_config).await;
 
-    info!("Start proving");
-    let timer = Instant::now();
-    let proof_data = prover
-        .create_exit_proof(exit_info)
-        .expect("Failed to create exit proof");
-    info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
+    match opt{
+        Opt::Tasks => {
+            info!("Run the task mode of exodus prover for exit proof tasks!");
+            run_exodus_prover(recover_state_config).await;
+        }
+        Opt::Single {
+            chain_id,
+            account_id,
+            sub_account_id,
+            l1_target_token,
+            l2_source_token
+        } => {
+            info!("Run the command mode of exodus command for generating single exit proof!");
+            info!("Construct exit info");
+            let exit_info = ExitInfo{
+                chain_id: account_id.into(),
+                account_address: Default::default(),
+                account_id: chain_id.into(),
+                sub_account_id: sub_account_id.into(),
+                l1_target_token: l1_target_token.into(),
+                l2_source_token: l2_source_token.into(),
+            };
+            let prover = ExodusProver::new(recover_state_config).await;
 
-    let stored_block_info = prover.stored_block_info;
+            info!("Start proving");
+            let timer = Instant::now();
+            let proof_data = prover
+                .create_exit_proof(exit_info)
+                .expect("Failed to create exit proof");
+            info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
 
-    println!("\n\n");
-    println!("==========================");
-    println!("Generating proof completed!");
-    println!("Below you can see the input data for the exit transaction on ZkLink contract");
-    println!(
-        "Look up the manuals of your desired smart wallet in order to know how to sign \
-        and send this transaction to the blockchain of {:?}", proof_data.exit_info.chain_id
-    );
-    println!("==========================");
+            let stored_block_info = prover.stored_block_info;
 
-    println!("Exit transaction inputs:");
+            println!("\n\n");
+            println!("==========================");
+            println!("Generating proof completed!");
+            println!("Below you can see the input data for the exit transaction on ZkLink contract");
+            println!(
+                "Look up the manuals of your desired smart wallet in order to know how to sign \
+                and send this transaction to the blockchain of {:?}", proof_data.exit_info.chain_id
+            );
+            println!("==========================");
 
-    println!(
-        "store_block_info: {}",
-        serde_json::to_string_pretty(&stored_block_info).expect("proof data serialize")
-    );
-    println!(
-        "exit_proof_data: {}",
-        serde_json::to_string_pretty(&proof_data).expect("proof data serialize")
-    );
+            println!("Exit transaction inputs:");
+
+            println!(
+                "store_block_info: {}",
+                serde_json::to_string_pretty(&stored_block_info).expect("proof data serialize")
+            );
+            println!(
+                "exit_proof_data: {}",
+                serde_json::to_string_pretty(&proof_data).expect("proof data serialize")
+            );
+        }
+    }
 }
