@@ -18,7 +18,7 @@ pub struct ContractConfig {
 
 impl ContractConfig {
     pub fn from_env(chain_id: u8) -> Self {
-        envy_load!("contracts", format!("CHAIN_{}_CONTRACTS_", chain_id))
+        envy_load!("contract", format!("CHAIN_{}_CONTRACT_", chain_id))
     }
 }
 
@@ -38,9 +38,9 @@ mod tests {
     #[test]
     fn from_env() {
         let config = r#"
-            CHAIN_1_CONTRACTS_DEPLOYMENT_BLOCK="10000"
-            CHAIN_1_CONTRACTS_CONTRACT_ADDR="0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55"
-            CHAIN_1_CONTRACTS_GENESIS_TX_HASH="0xb99ebfea46cbe05a21cd80fe5597d97b204befc52a16303f579c607dc1ac2e2e"
+            CHAIN_1_CONTRACT_DEPLOYMENT_BLOCK="10000"
+            CHAIN_1_CONTRACT_CONTRACT_ADDR="0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55"
+            CHAIN_1_CONTRACT_GENESIS_TX_HASH="0xb99ebfea46cbe05a21cd80fe5597d97b204befc52a16303f579c607dc1ac2e2e"
         "#;
         set_env(config);
 

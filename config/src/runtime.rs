@@ -12,6 +12,6 @@ pub struct RuntimeConfig {
 
 impl RuntimeConfig {
     pub fn from_env() -> Self {
-        envy_load!("runtime", "API_CONFIG_")
+        envy_load!("runtime", "RUNTIME_CONFIG_")
     }
 }

@@ -11,7 +11,7 @@ pub struct ApiConfig{
 
 impl ApiConfig {
     pub fn from_env() -> Self {
-        envy_load!("api", "RUNTIME_CONFIG_")
+        envy_load!("api", "API_CONFIG_")
     }
 
     pub fn bind_addr(&self) -> SocketAddr {
