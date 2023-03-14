@@ -1,6 +1,6 @@
 use ethers::abi::ethabi;
 use ethers::prelude::{Address, Transaction};
-use zklink_crypto::params::{INPUT_DATA_ADDRESS_BYTES_WIDTH, INPUT_DATA_ROOT_HASH_BYTES_WIDTH};
+use zklink_crypto::params::{INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH, INPUT_DATA_ETH_UINT_BYTES_WIDTH, INPUT_DATA_ROOT_HASH_BYTES_WIDTH};
 use zklink_types::{Account, ZkLinkOp, ZkLinkAddress};
 use std::str::FromStr;
 use ethers::abi::Abi;
@@ -50,7 +50,7 @@ pub fn new_provider_with_url(url: &str) -> Provider<Http>{
 /// ```
 pub fn get_genesis_account(genesis_transaction: &Transaction) -> anyhow::Result<Account> {
     const ENCODED_INIT_PARAMETERS_WIDTH: usize =
-        6 * INPUT_DATA_ADDRESS_BYTES_WIDTH + INPUT_DATA_ROOT_HASH_BYTES_WIDTH * 3 + 4 + 32;
+        6 * INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH + INPUT_DATA_ROOT_HASH_BYTES_WIDTH * 3 + 2 * INPUT_DATA_ETH_UINT_BYTES_WIDTH;
 
     let input_data = genesis_transaction.input_data()?;
 
@@ -60,7 +60,7 @@ pub fn get_genesis_account(genesis_transaction: &Transaction) -> anyhow::Result<
     // so we can simply cut the parameters bytes from the end of input array,
     // and then decode them to access required data.
     let encoded_init_parameters =
-        input_data[ENCODED_INIT_PARAMETERS_WIDTH..].to_vec();
+        input_data[input_data.len() - ENCODED_INIT_PARAMETERS_WIDTH..].to_vec();
 
     let init_parameters_types = vec![
         ethabi::ParamType::Address, // Verifier contract address
