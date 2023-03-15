@@ -160,6 +160,7 @@ impl RollUpEvents {
         for log in logs {
             let topic = log.topics()[0];
 
+            // Because the layer1 contract design(The layer2 block number recorded by the block log is not sequential) is currently useless
             // Remove reverted committed blocks first
             if topic == reverted_topic {
                 const U256_SIZE: usize = 32;
