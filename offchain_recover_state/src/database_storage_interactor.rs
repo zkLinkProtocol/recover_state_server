@@ -2,11 +2,13 @@ use std::collections::HashMap;
 // Built-in deps
 use chrono::{DateTime, NaiveDateTime, Utc};
 use ethers::prelude::H256;
+use num::One;
 // Workspace deps
 use zklink_storage::{recover_state::records::{NewRollupOpsBlock}, StorageProcessor};
 use zklink_crypto::convert::FeConvert;
+use zklink_crypto::params::{USD_SYMBOL, USD_TOKEN_ID};
 use zklink_types::{AccountId, {block::Block, AccountUpdate}, ChainId, TokenId, Token, BlockNumber};
-use zklink_storage::chain::operations::records::StoredAggregatedOperation;
+use zklink_storage::chain::operations::records::{AggType, StoredAggregatedOperation};
 use zklink_storage::tokens::records::{DbToken, DbTokenOfChain};
 // Local deps
 use crate::storage_interactor::StoredTreeState;
@@ -15,7 +17,6 @@ use crate::{
     events::BlockEvent,
     events_state::RollUpEvents,
     rollup_ops::RollupOpsBlock,
-    aggregated_commit_op::BlocksCommitOperation,
     storage_interactor::{
         block_event_into_stored_block_event, stored_block_event_into_block_event,
         stored_ops_block_into_ops_block, StorageInteractor,
@@ -84,11 +85,9 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         let mut ops = Vec::with_capacity(blocks.len());
 
         for block in blocks {
-            println!("block.timestamp: {:?}", block.timestamp);
             let timestamp = block.timestamp.map(|timestamp|
                 DateTime::from_utc(NaiveDateTime::from_timestamp_millis(timestamp as i64).unwrap(), Utc)
             );
-            println!("timestamp: {:?}", timestamp);
 
             ops.push(NewRollupOpsBlock {
                 block_num: block.block_num,
@@ -117,7 +116,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         let block_number = *block.block_number;
         let commit_aggregated_operation = StoredAggregatedOperation {
             id: 0,
-            action_type: BlocksCommitOperation::ACTION_TYPE,
+            action_type: AggType::CommitBlocks,
             from_block: block_number.into(),
             to_block: block_number.into(),
             created_at: Utc::now(),
@@ -125,7 +124,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         };
         let execute_aggregated_operation = StoredAggregatedOperation {
             id: 0,
-            action_type: BlocksCommitOperation::ACTION_TYPE,
+            action_type: AggType::ExecuteBlocks,
             from_block: block_number.into(),
             to_block: block_number.into(),
             created_at: Utc::now(),
@@ -171,6 +170,18 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         chain_id: ChainId,
         last_watched_block_number: u64,
     ) {
+        // add USD token to token_price table
+        self.storage.tokens_schema()
+            .store_token_price(DbToken {
+                token_id: USD_TOKEN_ID as i32,
+                symbol: String::from(USD_SYMBOL),
+                price_id: "".to_string(),
+                usd_price: One::one(),
+                last_update_time: Utc::now(),
+            })
+            .await
+            .expect("failed to add USD token");
+
         self.storage
             .recover_schema()
             .update_last_watched_block_number(*chain_id as i16, "token", last_watched_block_number as i64)

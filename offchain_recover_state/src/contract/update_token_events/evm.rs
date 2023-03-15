@@ -1,9 +1,8 @@
 use async_trait::async_trait;
 use ethers::contract::Contract;
-use ethers::prelude::{Address, Http, Provider};
-use zklink_types::{ChainId, Token};
+use ethers::prelude::{Address, Http, Middleware, Provider};
+use zklink_types::ChainId;
 use ethers::core::types::BlockNumber as EthBlockNumber;
-use tokio::sync::mpsc::Sender;
 use recover_state_config::Layer1Config;
 use zklink_storage::ConnectionPool;
 use super::UpdateTokenEvents;
@@ -44,8 +43,21 @@ impl EvmTokenEvents {
 
 #[async_trait]
 impl UpdateTokenEvents for EvmTokenEvents {
-    async fn update_token_events(&mut self, token_sender: &Sender<Token>) -> anyhow::Result<u64> {
-        let from = self.last_sync_block_number;
+    fn reached_latest_block(&self, latest_block: u64) -> bool {
+        self.last_sync_block_number + VIEW_BLOCKS_STEP > latest_block
+    }
+
+    async fn block_number(&self) -> anyhow::Result<u64>{
+        let block_number = self.contract
+            .client()
+            .get_block_number()
+            .await?
+            .as_u64();
+        Ok(block_number)
+    }
+
+    async fn update_token_events(&mut self) -> anyhow::Result<u64> {
+        let from = self.last_sync_block_number + 1;
         let to = self.last_sync_block_number + VIEW_BLOCKS_STEP;
         let events: Vec<NewToken> = self.contract
             .event_for_name("NewToken")?
@@ -61,16 +73,7 @@ impl UpdateTokenEvents for EvmTokenEvents {
         interactor.store_tokens(&events, self.chain_id).await;
         interactor.update_token_event_progress(self.chain_id,to).await;
 
-        for event in events{
-            token_sender.send(
-                Token{
-                    id: event.id.into(),
-                    chains: vec![self.chain_id]
-                }
-            ).await?;
-        }
         self.last_sync_block_number = to;
-
         Ok(to)
     }
 }

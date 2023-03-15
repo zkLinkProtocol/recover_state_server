@@ -24,6 +24,7 @@ ethers = "2.0.0"
 reqwest = "0.11.14"
 dotenvy = "0.15.1"
 itertools = "0.10.3"
+futures = "0.3.5"
 num = { version = "0.4", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
@@ -40,5 +41,3 @@ zklink_storage = { path = "../storage", version = "1.0" }
 
 [dev-dependencies]
 jsonrpc-core = "14.0.0"
-#db_test_macro = { path = "../../lib/storage/db_test_macro" }
-futures = "0.3.5"

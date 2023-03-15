@@ -4,14 +4,13 @@ use zklink_crypto::Fr;
 use zklink_types::{Account, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, H256, Token, ZkLinkAddress};
 
 // Local deps
-use crate::{error, events_state::RollUpEvents, rollup_ops::RollupOpsBlock, storage_interactor::StorageInteractor, tree_state::TreeState, VIEW_BLOCKS_STEP};
+use crate::{error, events_state::RollUpEvents, PRC_REQUEST_FREQUENT_ERROR_SETS, rollup_ops::RollupOpsBlock, storage_interactor::StorageInteractor, tree_state::TreeState};
 
 use std::marker::PhantomData;
 use std::time::Duration;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use zklink_crypto::convert::FeConvert;
-use zklink_crypto::params::{FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID};
+use zklink_crypto::params::{FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID, USD_TOKEN_ID};
 use recover_state_config::{ChainType, RecoverStateConfig};
 use zklink_storage::ConnectionPool;
 use crate::contract::update_token_events::{EvmTokenEvents, UpdateTokenEvents};
@@ -101,11 +100,7 @@ where
         connection_pool: ConnectionPool,
     ) -> Self {
         let mut storage = connection_pool.access_storage().await.unwrap();
-        let mut tree_state = TreeState::new();
-        tree_state.state.token_by_id = storage.tokens_schema()
-            .load_tokens_from_db()
-            .await
-            .expect("reload token from db failed");
+        let tree_state = TreeState::new();
 
         let mut events_state = RollUpEvents::default();
         events_state.last_watched_block_number = storage.recover_schema()
@@ -138,42 +133,48 @@ where
         }
     }
 
-    pub async fn download_registered_tokens(&mut self, token_sender: Sender<Token>) {
-        let cur_block_number = self.zklink_contract
-            .block_number()
-            .await
-            .expect("Failed to get current block number");
+    pub async fn download_registered_tokens(&mut self) {
+        let mut updates = Vec::new();
         while let Some((chain_id, mut updating_event)) = self.update_token_events.pop(){
-            let token_sender = token_sender.clone();
-            tokio::spawn(async move {
+            updates.push(tokio::spawn(async move {
+                info!("Starting {:?} update token events", chain_id);
+                let cur_block_number = updating_event.block_number()
+                    .await
+                    .expect("Failed to get current block number");
+
                 loop {
-                    match updating_event.update_token_events(&token_sender).await
-                    {
-                        Ok(last_sync_block_number) =>
-                            if last_sync_block_number + VIEW_BLOCKS_STEP > cur_block_number {
-                                info!("The update token events of {:?} client has completed!", chain_id);
-                                break
-                            } else {
-                                info!("updating token events to block number:{}", last_sync_block_number);
-                                continue
-                            },
-                        Err(err) => error!("Failed to update token events: {}", err)
+                    if !updating_event.reached_latest_block(cur_block_number) {
+                        match updating_event.update_token_events().await {
+                            Ok(last_sync_block_number) => {
+                                info!("{:?} updating token events to block number:{}", chain_id, last_sync_block_number);
+                            }
+                            Err(err) => {
+                                if PRC_REQUEST_FREQUENT_ERROR_SETS.iter().any(|e|err.to_string().contains(e)) {
+                                    warn!(
+                                        "Rate limit was reached, as reported by {:?} node. \
+                                        Entering the sleep mode(30s)", chain_id
+                                    );
+                                    tokio::time::sleep(Duration::from_secs(30)).await;
+                                } else {
+                                    error!("{:?} failed to update token events: {}", chain_id, err);
+                                }
+                            }
+                        }
+                    } else {
+                        info!("The update token events of {:?} client has completed!", chain_id);
+                        break;
                     }
                 }
-            });
+            }));
         }
-        info!("Let the updating token event run for a while, so that subsequent transactions can be executed.");
-        tokio::time::sleep(Duration::from_secs(10)).await;
+        futures::future::try_join_all(updates)
+            .await
+            .expect("Failed to download registered tokens");
     }
 
     /// Sets the 'genesis' state.
     /// Tree with inserted genesis account will be created.
     /// Used when restore driver is restarted.
-    ///
-    /// # Arguments
-    ///
-    /// * `governance_contract_genesis_tx_hash` - Governance contract creation tx hash
-    ///
     pub async fn set_genesis_state(&mut self, interactor: &mut I, config: RecoverStateConfig) {
         let full_pubdata_chain_config = config.layer1
             .chain_configs
@@ -196,7 +197,7 @@ where
         let genesis_fee_account = self.zklink_contract
             .get_genesis_account(genesis_transaction)
             .expect("Cant get genesis account address");
-        info!("genesis fee account address: {:?}", genesis_fee_account.address);
+        info!("genesis fee account address: {}", genesis_fee_account.address.to_string());
 
         // Init basic accounts.
         let mut account_map = AccountMap::default();
@@ -216,12 +217,14 @@ where
         account_map.insert(GLOBAL_ASSET_ACCOUNT_ID, global_asset_account);
 
         // Init state tree
-        let tree_state = TreeState::load(
+        let mut tree_state = TreeState::load(
             BlockNumber(0),
             account_map,
             AccountId(0),
         );
+        tree_state.state.register_token(Token{ id: USD_TOKEN_ID.into(), chains: vec![] });
         let state_root = tree_state.root_hash();
+        // add USD token
         info!("Genesis tree root: {:?}", state_root);
         debug!("Genesis accounts: {:?}", tree_state.get_accounts());
         let root_hash = H256::from_slice(&state_root.to_bytes());
@@ -246,11 +249,11 @@ where
         // Init genesis tree state for database
         interactor.save_genesis_tree_state(&account_updates).await;
 
-        info!("Saved genesis tree state\n");
         self.tree_state = tree_state;
+        info!("Saved genesis tree state\n");
     }
 
-    /// Stops states from storage
+    /// Loads states from storage
     pub async fn load_state_from_storage(&mut self, interactor: &mut I) -> bool {
         info!("Loading state from storage");
         let state = interactor.get_storage_state().await;
@@ -258,44 +261,44 @@ where
             self.zklink_contract.layer2_chain_id()
         ).await;
         let tree_state = interactor.get_tree_state().await;
-        println!("account_map: {:?}", tree_state.account_map);
         self.tree_state = TreeState::load(
             tree_state.last_block_number,
             tree_state.account_map,
             tree_state.fee_acc_id,
         );
+        self.tree_state.state.token_by_id = interactor.load_tokens().await;
         let new_ops_blocks = match state {
             StorageUpdateState::Events => self.load_op_from_events_and_save_op(interactor).await,
             StorageUpdateState::Operations => interactor.get_ops_blocks_from_storage().await,
             StorageUpdateState::None => vec![]
         };
+        info!("Continue Block[{:?}]", self.tree_state.state.block_number);
         self.update_tree_state(interactor, new_ops_blocks).await;
 
         let total_verified_blocks = self.zklink_contract.get_total_verified_blocks().await.unwrap();
         let last_verified_block = self.tree_state.state.block_number;
         info!(
-            "State has been loaded\nProcessed {:?} blocks on contract\nRoot hash: {:?}\n",
+            "State has been loaded, current block[{:?}] root hash: {}",
             last_verified_block, self.tree_state.root_hash()
+        );
+        info!(
+            "Processed: {:?}, total verified: {:?}, remaining: {:?}",
+            *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
         );
 
         self.finite_mode && (total_verified_blocks == *last_verified_block)
     }
 
     /// Activates states updates
-    pub async fn recover_state(&mut self, interactor: &mut I, mut token_receiver: Receiver<Token>) {
+    pub async fn recover_state(&mut self, interactor: &mut I) {
         let mut last_watched_block = self.rollup_events.last_watched_block_number;
         let mut final_hash_was_found = false;
+
+        // Loads the tokens of all chain.
+        self.tree_state.state.token_by_id = interactor.load_tokens().await;
+
         loop {
             info!("Last watched layer1 block: {:?}", last_watched_block);
-            // Receive tokens generated by updating token events.
-            while let Ok(token) = token_receiver.try_recv(){
-                self.tree_state.state
-                    .token_by_id
-                    .entry(token.id)
-                    .or_insert(token.clone())
-                    .chains
-                    .extend(token.chains);
-            }
 
             // Update events
             if self.exist_events_state(interactor).await {
@@ -306,16 +309,23 @@ where
                     // Update tree
                     self.update_tree_state(interactor, new_ops_blocks).await;
 
-                    let total_verified_blocks = self.zklink_contract.get_total_verified_blocks().await.unwrap();
                     let last_verified_block = self.tree_state.state.block_number;
+                    info!(
+                        "State updated, current block[{:?}] root hash: {}",
+                        last_verified_block, self.tree_state.root_hash()
+                    );
 
-                    // // We must update the Layer1 stats table to match the actual stored state
-                    // // to keep the `state_keeper` consistent with the `sender`.
-                    // interactor.update_eth_state().await;
+                    let total_verified_blocks = match self.zklink_contract.get_total_verified_blocks().await {
+                        Ok(total_verified_blocks) => total_verified_blocks,
+                        Err(err) => {
+                            error!("Failed to get total_verified_blocks: {}", err);
+                            continue;
+                        }
+                    };
 
                     info!(
-                        "State updated\nProcessed {:?} blocks of total {:?} verified on contract\nRoot hash: {:?}\n",
-                        last_verified_block, total_verified_blocks, self.tree_state.root_hash()
+                        "Processed: {:?}, total verified: {:?}, remaining: {:?}",
+                        *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
                     );
 
                     // If there is an expected root hash, check if current root hash matches the observed
@@ -335,7 +345,7 @@ where
                     if self.finite_mode && *last_verified_block == total_verified_blocks {
                         // Check if the final hash was found and panic otherwise.
                         if self.final_hash.is_some() && !final_hash_was_found {
-                            panic!("Final hash was not met during the state restoring process");
+                            panic!("Final hash was not met during the recover state process");
                         }
 
                         // We've restored all the blocks, our job is done.
@@ -388,13 +398,18 @@ where
     /// * `new_ops_blocks` - the new Rollup operations blocks
     ///
     async fn update_tree_state(&mut self, interactor: &mut I, new_ops_blocks: Vec<RollupOpsBlock>) {
+        let mut blocks_and_updates = Vec::with_capacity(new_ops_blocks.len());
         for op_block in new_ops_blocks {
             let (block, acc_updates) = self
                 .tree_state
                 .apply_ops_block(&op_block)
-                .expect("Updating tree state: cant update tree from operations");
+                .expect(&format!("Applying {:?} tree state: cant update tree from operations", op_block.block_num));
+            blocks_and_updates.push((block, acc_updates));
+        }
+        // To ensure collective update
+        for (block, accounts_updated) in blocks_and_updates{
             interactor
-                .update_tree_state(block, &acc_updates)
+                .update_tree_state(block, &accounts_updated)
                 .await;
         }
 

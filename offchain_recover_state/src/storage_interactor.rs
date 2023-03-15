@@ -49,6 +49,12 @@ pub trait StorageInteractor {
     ///
     async fn update_tree_state(&mut self, block: Block, accounts_updated: &[(AccountId, AccountUpdate, H256)]);
 
+    /// Init the progress of syncing token events.
+    /// # Arguments
+    ///
+    /// * `chain_id` - the chain id of syncing token events
+    /// * `last_watched_block_number` - the original block height of syncing token events
+    ///
     async fn init_token_event_progress(&mut self, chain_id: ChainId, last_block_number: BlockNumber);
 
     /// Update the progress of syncing token events.

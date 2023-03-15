@@ -106,7 +106,7 @@ impl ZkLinkContract for ZkLinkEvmContract {
             .client()
             .get_logs(&filter)
             .await
-            .map_err(|e| format_err!("No new logs: {}", e))?;
+            .map_err(|e| format_err!("Get logs: {}", e))?;
 
         Ok(result)
     }
@@ -128,7 +128,7 @@ impl ZkLinkContract for ZkLinkEvmContract {
             .client()
             .get_logs(&filter)
             .await
-            .map_err(|e| format_err!("No new logs: {}", e))?;
+            .map_err(|e| format_err!("Get logs: {}", e))?;
         Ok(result)
     }
 }

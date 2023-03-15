@@ -1,13 +1,18 @@
 use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
+use tracing::info;
 use zklink_crypto::Fr;
 use zklink_state::{
     handler::TxHandler,
     state::{OpSuccess, ZkLinkState},
 };
+use zklink_crypto::convert::FeConvert;
 use zklink_types::block::{Block, ExecutedTx};
 use zklink_types::operations::ZkLinkOp;
-use zklink_types::{AccountId, AccountMap, ZkLinkAddress, BlockNumber, H256, Account, AccountUpdate, Deposit, Transfer, Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching};
+use zklink_types::{
+    AccountId, AccountMap, ZkLinkAddress, BlockNumber, H256, Account, AccountUpdate, Deposit, Transfer,
+    Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching
+};
 use zklink_state::state::TransferOutcome;
 
 /// Rollup accounts states
@@ -63,6 +68,12 @@ impl TreeState {
         &mut self,
         ops_block: &RollupOpsBlock,
     ) -> Result<(Block, Vec<(AccountId, AccountUpdate, H256)>), anyhow::Error> {
+        info!("Applying ops_block[{:?}]", ops_block.block_num);
+        assert_eq!(self.state.block_number + 1, ops_block.block_num);
+        assert_eq!(
+            ops_block.previous_block_root_hash, H256::from_slice(&self.root_hash().to_bytes()),
+            "There was an error in processing the last block[{:?}] ", ops_block.block_num - 1
+        );
         let operations = ops_block.ops.clone();
 
         let mut accounts_updated = Vec::new();
@@ -71,11 +82,12 @@ impl TreeState {
 
         for operation in operations {
             match operation {
-                ZkLinkOp::Deposit(mut op) => {
-                    let updates =
-                        <ZkLinkState as TxHandler<Deposit>>::apply_op(&mut self.state, &mut op)
-                            .map_err(|e| format_err!("Deposit fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                ZkLinkOp::Deposit(op) => {
+                    let mut op = <ZkLinkState as TxHandler<Deposit>>::create_op(&self.state, op.tx)
+                        .map_err(|e| format_err!("Create Deposit fail: {}", e))?;
+                    let updates = <ZkLinkState as TxHandler<Deposit>>::apply_op(&mut self.state, &mut op)
+                        .map_err(|e| format_err!("Apply Deposit fail: {}", e))?;
+                    let tx_result = OpSuccess { updates, executed_op: op.into()};
                     
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -175,11 +187,14 @@ impl TreeState {
                         &mut ops,
                     );
                 }
-                ZkLinkOp::FullExit(mut op) => {
+                ZkLinkOp::FullExit(op) => {
+                    let mut op =
+                        <ZkLinkState as TxHandler<FullExit>>::create_op(&mut self.state, op.tx)
+                            .map_err(|e| format_err!("Create FullExit fail: {}", e))?;
                     let updates =
                         <ZkLinkState as TxHandler<FullExit>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("FullExit fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                    let tx_result = OpSuccess { updates, executed_op: op.into()};
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -207,36 +222,8 @@ impl TreeState {
                     );
                 }
                 ZkLinkOp::OrderMatching(mut op) => {
-                    // let submitter = self
-                    //     .state
-                    //     .get_account(op.tx.submitter)
-                    //     .ok_or_else(|| format_err!("OrderMatching Fail: Nonexistent submitter account"))?;
-                    // let account_0 = self
-                    //     .state
-                    //     .get_account(op.tx.maker.account_id)
-                    //     .ok_or_else(|| format_err!("OrderMatching Fail: Nonexistent account"))?;
-                    // let account_1 = self
-                    //     .state
-                    //     .get_account(op.tx.maker.account_id)
-                    //     .ok_or_else(|| format_err!("OrderMatching Fail: Nonexistent account"))?;
-                    // let recipient_0 = self
-                    //     .state
-                    //     .get_account(op.recipients.0)
-                    //     .ok_or_else(|| format_err!("OrderMatching Fail: Nonexistent account"))?;
-                    // let recipient_1 = self
-                    //     .state
-                    //     .get_account(op.recipients.1)
-                    //     .ok_or_else(|| format_err!("OrderMatching Fail: Nonexistent account"))?;
-                    // 
-                    // op.tx.submitter_address = submitter.address;
-                    // op.tx.orders.0.nonce = account_0.nonce;
-                    // op.tx.orders.0.recipient_address = recipient_0.address;
-                    // op.tx.orders.1.nonce = account_1.nonce;
-                    // op.tx.orders.1.recipient_address = recipient_1.address;
-                    // op.tx.nonce = submitter.nonce;
-
                     let updates =
-                        <ZkLinkState as TxHandler<OrderMatching>>::apply_op(&mut self.state, &mut op)
+                        <ZkLinkState as TxHandler<OrderMatching>>::unsafe_apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("OrderMatching fail: {}", e))?;
                     let tx_result = OpSuccess { updates, executed_op: (*op).into()};
 
@@ -277,7 +264,7 @@ impl TreeState {
 
         let block = Block::new_from_available_block_sizes(
             ops_block.block_num,
-            self.state.root_hash(),
+            self.root_hash(),
             ops_block.fee_account,
             ops,
             *available_block_chunk_sizes.first().unwrap(),
@@ -322,9 +309,6 @@ impl TreeState {
             .map(|update|(update.0, update.1, H256::from_slice(tx_hash.as_ref())))
             .collect::<Vec<_>>();
         accounts_updated.append(&mut updates);
-        // if matches!(executed_op, ZkLinkOp::Deposit | ZkLinkOp::FullExit){
-        //     self.current_unprocessed_priority_op += 1;
-        // }
 
         let block_index = current_op_block_index;
         let exec_result = ExecutedTx {

@@ -1,10 +1,8 @@
 use dotenvy::dotenv;
 use structopt::StructOpt;
-use tokio::sync::mpsc;
 use tracing::info;
 use zklink_crypto::convert::FeConvert;
 use zklink_storage::ConnectionPool;
-use offchain_recover_state::contract::ZkLinkEvmContract;
 use offchain_recover_state::{database_storage_interactor::DatabaseStorageInteractor, END_BLOCK_OFFSET, get_fully_on_chain_zklink_contract, VIEW_BLOCKS_STEP};
 use offchain_recover_state::data_restore_driver::RecoverStateDriver;
 use offchain_recover_state::log::init;
@@ -66,11 +64,14 @@ async fn main() {
         driver.set_genesis_state(&mut interactor, config).await;
     }
 
+    // Process token events
+    driver.download_registered_tokens().await;
+
+    // Continue with recover_state as before
     if opt.continue_mode && driver.load_state_from_storage(&mut interactor).await {
         std::process::exit(0);
     }
 
-    let (token_sender, token_receiver) = mpsc::channel(100_000);
-    driver.download_registered_tokens(token_sender).await;
-    driver.recover_state(&mut interactor, token_receiver).await;
+    // Process block events
+    driver.recover_state(&mut interactor).await;
 }
