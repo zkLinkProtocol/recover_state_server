@@ -21,7 +21,7 @@ impl TxHandler<FullExit> for ZkLinkState {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             ZkLinkTx::check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
-        assert!(is_required, "Source token or target token is mismatching");
+        assert!(is_required, "Source token or target token is mismatching in creating FullExitOp");
 
         let user_token = Self::get_actual_token_by_sub_account(tx.sub_account_id, tx.l2_source_token);
         // If exit address not equal to exit account address, for example, account A full exit account B

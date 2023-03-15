@@ -89,17 +89,20 @@ impl ZkLinkState {
         }
     }
 
-
     pub fn register_token(&mut self, token: Token) {
-       self.token_by_id.insert(token.id, token);
+        self.token_by_id
+            .entry(token.id)
+            .or_insert(Token{ id: token.id, chains: vec![] })
+            .chains
+            .extend(token.chains);
     }
 
     pub fn ensure_token_supported(&self, token_id: &TokenId) -> Result<(), Error>{
         anyhow::ensure!(
-                self.is_token_supported(token_id),
-                "Token {:?} does not exist.",
-                token_id
-            );
+            self.is_token_supported(token_id),
+            "Token {:?} does not exist.",
+            token_id
+        );
         Ok(())
     }
 
@@ -115,8 +118,7 @@ impl ZkLinkState {
     pub fn assert_token_supported(&self, token_id: &TokenId) -> () {
         assert!(
             self.is_token_supported(token_id),
-            "Token {:?} does not exist.",
-            token_id
+            "{:?} does not exist", token_id
         );
     }
 
@@ -125,7 +127,7 @@ impl ZkLinkState {
             self.is_token_of_chain_supported(token_id, chain_id),
             "Token {:?} does not exist on target chain {:?}.",
             token_id, chain_id
-            );
+        );
     }
 
     pub fn check_token_supported(&self, token: &TokenId, chain_id: &ChainId) -> Result<(), Error>{

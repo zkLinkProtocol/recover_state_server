@@ -19,7 +19,7 @@ impl TxHandler<Withdraw> for ZkLinkState {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             ZkLinkTx::check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
-        ensure!(is_required, "source token or target token is mismatching");
+        ensure!(is_required, "Source token or target token is mismatching in creating WithdrawOp");
 
         // Check account
         let pk = tx.verify_signature().ok_or(format_err!("Invalid l2 signature"))?;
