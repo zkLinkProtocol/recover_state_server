@@ -2,7 +2,6 @@
 use std::cmp::Ordering;
 // External imports
 use num::bigint::ToBigInt;
-use zklink_basic_types::H256;
 // Workspace imports
 use zklink_types::{PubKeyHash, SlotId, SubAccountId, TokenId, AccountId, AccountUpdate, Nonce, ZkLinkAddress};
 // Local imports
@@ -91,8 +90,8 @@ impl Into<(AccountId, AccountUpdate)> for StorageAccountDiff {
                 },
             ),
             StorageAccountDiff::ChangeOrderNonce(upd) => {
-                let order_info_old: (i64, BigDecimal, H256) = serde_json::from_str(upd.old_order_nonce.as_str().unwrap()).unwrap();
-                let order_info_new: (i64, BigDecimal, H256) = serde_json::from_str(upd.new_order_nonce.as_str().unwrap()).unwrap();
+                let order_info_old: (i64, BigDecimal) = serde_json::from_str(upd.old_order_nonce.as_str().unwrap()).unwrap();
+                let order_info_new: (i64, BigDecimal) = serde_json::from_str(upd.new_order_nonce.as_str().unwrap()).unwrap();
                 (
                     AccountId(upd.account_id as u32),
                     AccountUpdate::UpdateTidyOrder {

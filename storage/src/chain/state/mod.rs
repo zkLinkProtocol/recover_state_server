@@ -409,7 +409,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                         .await?;
                 }
                 StorageAccountDiff::ChangeOrderNonce(upd) => {
-                    let new_order_nonce: (i64, BigDecimal, H256) =
+                    let new_order_nonce: (i64, BigDecimal) =
                         serde_json::from_str(upd.new_order_nonce.as_str().unwrap()).unwrap();
                     sqlx::query!(
                         r#"

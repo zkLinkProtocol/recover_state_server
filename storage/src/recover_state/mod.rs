@@ -1,5 +1,6 @@
 // Built-in deps
 use std::time::Instant;
+use tracing::info;
 use zklink_basic_types::{AccountId, BlockNumber, ChainId};
 use zklink_types::{AccountUpdate, H256};
 // External imports
@@ -41,7 +42,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             .await?;
         // The state is expected to be updated, so it's necessary
         // to do it here.
-        for block_number in commit_op.from_block..commit_op.to_block {
+        for block_number in commit_op.from_block..commit_op.to_block + 1 {
             StateSchema(&mut transaction)
                 .apply_state_update(block_number.into())
                 .await?;
@@ -164,6 +165,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
     }
 
     fn new_storage_state(&self, state: impl ToString) -> NewStorageState {
+        info!("Enter {:?} storage state", state.to_string());
         NewStorageState {
             storage_state: state.to_string(),
         }
