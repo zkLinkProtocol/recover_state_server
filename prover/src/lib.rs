@@ -52,6 +52,7 @@ async fn process_task(
     });
 
     let result = result_receiver.await.unwrap();
+    // Ensure that the tasks being run have a result(store or cancel)
     let op = || async {
          match result.as_ref(){
             Ok(exit_proof_data) => {
