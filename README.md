@@ -9,9 +9,9 @@ The Rust Implementation of the ZkLink exodus server and prover.
     - [Create the Database](#create-the-database)
     - [Build the Project](#build-the-project)
     - [Configure the Environment Variables](#configure-the-environment-variables)
-    - [Recover the Database](#recover-the-database)
-    - [Start the Server](#start-the-server)
-    - [Start the Prover](#start-the-prover)
+    - [Recover the Database](#recover-ZkLink-state)
+    - [Start the Server](#start-the-exodus-server)
+    - [Start the Prover](#start-the-exodus-prover)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -55,31 +55,26 @@ Your need to modify the following configuration:
 6. `DATABASE_URL`: the default is local.
 
 ### Recover ZkLink state
-
 To recover the database, run the following command:
 ```
 ./target/release/exduos_server --recover
 ```
-
 This command will take several hours to complete. Please be patient and wait until the command finishes.
 
 ### Start the exodus Server
-
 To start the server, run the following command:
 ```
 ./target/release/exduos_server --server
 ```
-### Start the exodus Prover
 
+### Start the exodus Prover
 To start the prover and generate a proof for the server to receive a create proof command, run the following command:
 ```
 ./target/release/exduos_prover
 ```
 
 ## Contributing
-
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
 
 ## License
-
 This project is licensed under the [MIT License](LICENSE).
