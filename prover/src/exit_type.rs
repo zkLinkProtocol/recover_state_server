@@ -1,3 +1,4 @@
+use num::bigint::ToBigInt;
 use serde::{Deserialize, Serialize};
 use zklink_basic_types::{AccountId, ChainId, SubAccountId, TokenId};
 use zklink_crypto::proof::EncodedSingleProof;
@@ -5,11 +6,11 @@ use zklink_storage::prover::records::{StoredExitInfo, StoredExitProof};
 use zklink_types::ZkLinkAddress;
 use zklink_utils::BigUintSerdeWrapper;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ExitProofData {
     pub exit_info: ExitInfo,
-    pub amount: BigUintSerdeWrapper,
-    pub proof: EncodedSingleProof,
+    pub amount: Option<BigUintSerdeWrapper>,
+    pub proof: Option<EncodedSingleProof>,
 }
 
 impl From<&ExitProofData> for StoredExitProof  {
@@ -20,14 +21,25 @@ impl From<&ExitProofData> for StoredExitProof  {
             sub_account_id: *value.exit_info.sub_account_id as i16,
             l1_target_token: *value.exit_info.l1_target_token as i32,
             l2_source_token: *value.exit_info.l2_source_token as i32,
-            proof: Some(serde_json::to_value(value.proof.clone()).unwrap()),
+            amount: value.amount.as_ref().map(|amount|amount.0.to_bigint().unwrap().into()),
+            proof: value.proof.clone().map(|proof|serde_json::to_value(proof).unwrap()),
             created_at: None,
             finished_at: None,
         }
     }
 }
 
-#[derive(Serialize, Deserialize,Debug, Clone)]
+impl From<StoredExitProof> for ExitProofData  {
+    fn from(value: StoredExitProof) -> Self {
+        Self{
+            exit_info: (&value).into(),
+            proof: value.proof.map(|proof|serde_json::from_value(proof).unwrap()),
+            amount: value.amount.map(|amount|amount.to_bigint().unwrap().into()),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExitInfo {
     pub chain_id: ChainId,
     pub account_address: ZkLinkAddress,

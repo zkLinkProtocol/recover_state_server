@@ -401,7 +401,8 @@ CREATE TABLE exit_proofs
     sub_account_id smallint NOT NULL,
     l1_target_token integer NOT NULL,
     l2_source_token integer NOT NULL,
-    proof jsonb,
+    proof jsonb, -- the proof of exodus exit
+    amount numeric, -- the amount of exodus exit in chain_id
     created_at timestamp with time zone,
     finished_at timestamp with time zone,
 

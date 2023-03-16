@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use sqlx::FromRow;
 use serde::{Serialize, Deserialize};
+use sqlx::types::BigDecimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct StoredExitProof {
@@ -11,6 +12,7 @@ pub struct StoredExitProof {
     pub l1_target_token: i32,
     pub l2_source_token: i32,
     pub proof: Option<Value>,
+    pub amount: Option<BigDecimal>,
     pub created_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
 }

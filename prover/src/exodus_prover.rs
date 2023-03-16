@@ -23,7 +23,7 @@ impl ExodusProver {
             .access_storage()
             .await
             .expect("Storage access failed");
-        // Process
+        // Process unfinished tasks before the last shutdown.
         storage.prover_schema()
             .process_unfinished_tasks()
             .await
@@ -157,8 +157,8 @@ impl ExodusProver {
 
         let proof_data = ExitProofData {
             exit_info,
-            amount: amount.into(),
-            proof,
+            amount: Some(amount.into()),
+            proof: Some(proof),
         };
         Ok(proof_data)
     }
