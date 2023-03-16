@@ -16,6 +16,7 @@ struct ServerOpt {
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().expect(".env file not found");
     tracing_subscriber::fmt::init();
 
     let opt = ServerOpt::from_args();
