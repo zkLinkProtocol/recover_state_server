@@ -1,16 +1,10 @@
 //! Generate exit proof for exodus mode given account and token
 //! correct verified state should be present in the db (could be restored using `data-restore` module)
 
-use serde::Serialize;
 use std::time::Instant;
 use structopt::StructOpt;
 use tracing::info;
-use zklink_basic_types::{ChainId, SubAccountId};
-use zklink_crypto::proof::EncodedSingleProof;
-use zklink_storage::ConnectionPool;
-use zklink_utils::BigUintSerdeWrapper;
-use zklink_types::params::MAX_CHAIN_ID;
-use recover_state_config::{DBConfig, RecoverStateConfig};
+use recover_state_config::RecoverStateConfig;
 use zklink_prover::exit_type::ExitInfo;
 use zklink_prover::{ExodusProver, run_exodus_prover};
 
@@ -23,40 +17,44 @@ use zklink_prover::{ExodusProver, run_exodus_prover};
 enum Opt {
     /// Runs prover tasks module(Running programmer)
     #[structopt(name = "tasks")]
-    Tasks,
+    Tasks{
+        /// The number of workers required to run
+        #[structopt(short = "w", long = "workers_num")]
+        workers_num: Option<usize>,
+    },
     /// Generates a single proof based on the specified exit information(Command tool)
     #[structopt(name = "single")]
     Single {
         /// Chain to withdraw - "1"
-        #[structopt(short = "c", long = "chain-id")]
+        #[structopt(short = "c", long = "chain_id")]
         chain_id: u8,
         /// Account id of the account - "0"(can't be negative or 1)
-        #[structopt(short = "a", long = "account-id")]
+        #[structopt(short = "i", long = "account_id")]
         account_id: u32,
         /// SubAccount id of the account - "0"
         #[structopt(short = "s", long = "sub-account-id")]
         sub_account_id: u8,
-        /// Target token to withdraw - token id of "USDT"
-        #[structopt(short = "l1", long = "l1-target-token")]
+        /// Target token to withdraw to layer1 - token id of "USDT"
+        #[structopt(long = "l1_target_token")]
         l1_target_token: u16,
-        /// Source token to withdraw - token id of "USD"
-        #[structopt(short = "l2", long = "l2-source-token")]
+        /// Source token to withdraw from layer2 - token id of "USD"
+        #[structopt(long = "l2_source_token")]
         l2_source_token: u16,
     },
 }
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
     dotenvy::dotenv().expect(".env file not found");
+    tracing_subscriber::fmt::init();
 
     let opt = Opt::from_args();
     let recover_state_config = RecoverStateConfig::from_env();
 
     match opt{
-        Opt::Tasks => {
+        Opt::Tasks{ workers_num } => {
             info!("Run the task mode of exodus prover for exit proof tasks!");
-            run_exodus_prover(recover_state_config).await;
+            run_exodus_prover(recover_state_config, workers_num).await;
         }
         Opt::Single {
             chain_id,
@@ -84,7 +82,7 @@ async fn main() {
                 .expect("Failed to create exit proof");
             info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
 
-            let stored_block_info = prover.last_executed_block.stored_block_info(exit_info.chain_id);
+            let stored_block_info = prover.last_executed_block.stored_block_info(chain_id.into());
 
             println!("\n\n");
             println!("==========================");

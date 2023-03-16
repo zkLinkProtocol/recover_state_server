@@ -7,6 +7,8 @@ use crate::envy_load;
 pub struct ApiConfig{
     /// Port to which the API server is listening.
     pub server_http_port: u16,
+    /// Work threads num which the API server is listening.
+    pub workers_num: usize,
 }
 
 impl ApiConfig {
