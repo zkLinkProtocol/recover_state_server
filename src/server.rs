@@ -108,14 +108,8 @@ async fn generate_proof_tasks_by_token(
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_info.into_inner();
-    let Some(token_info) = data.get_ref()
-        .token_by_id
-        .get(&exit_info.token_id) else {
-        return Ok(HttpResponse::NotFound().body("Token not found"))
-    };
-
     data.get_ref()
-        .generate_proof_tasks(exit_info, token_info)
+        .generate_proof_tasks(exit_info)
         .await?;
     Ok(HttpResponse::Ok().finish())
 }

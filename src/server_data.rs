@@ -18,9 +18,10 @@ use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_interna
 pub struct ServerData {
     conn_pool: ConnectionPool,
     contracts: HashMap<ChainId, ZkLinkAddress>,
+
     last_block_info: Block,
-    pub(crate) token_by_id: HashMap<TokenId, Token>,
-    pub(crate) usdx_tokens: HashMap<TokenId, Token>,
+    token_by_id: HashMap<TokenId, Token>,
+    usdx_tokens: HashMap<TokenId, Token>,
     account_id_by_address: HashMap<ZkLinkAddress, AccountId>,
     accounts: AccountMap,
 }
@@ -191,11 +192,14 @@ impl ServerData {
     pub(crate) async fn generate_proof_tasks(
         &self,
         exit_info: BatchExitInfo,
-        token_info: &Token,
     ) -> actix_web::Result<()>{
         let Some(&id) = self.account_id_by_address
             .get(&exit_info.address) else {
             return Err(actix_web::error::ErrorNotFound("Account not found"))
+        };
+        let Some(token_info) = self.token_by_id
+            .get(&exit_info.token_id) else {
+            return Err(actix_web::error::ErrorNotFound("Token not found"))
         };
 
         let mut storage = self.access_storage().await?;
