@@ -18,6 +18,7 @@ async fn get_token(
 ) -> actix_web::Result<HttpResponse> {
     let token_id = token_id.into_inner();
     let response = match data.get_ref()
+        .acquired_tokens
         .get_token(token_id)
         .await?
     {
@@ -34,7 +35,8 @@ async fn get_stored_block_info(
 ) -> actix_web::Result<HttpResponse> {
     let chain_id = chain_id.into_inner();
     let response = match data.get_ref()
-        .get_stored_block_info(chain_id)
+        .recovered_state
+        .stored_block_info(chain_id)
     {
         Some(contracts) => HttpResponse::Ok().json(contracts),
         None => HttpResponse::NotFound().body("The Chain not found")
@@ -49,6 +51,7 @@ async fn get_balances(
 ) -> actix_web::Result<HttpResponse> {
     let account_address = account_address.into_inner();
     let response = match data.get_ref()
+        .recovered_state
         .get_balances_by_cache(account_address)
         .await?
     {
