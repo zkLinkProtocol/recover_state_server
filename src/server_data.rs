@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, info};
@@ -7,8 +8,9 @@ use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::prover::records::StoredExitInfo;
-use zklink_types::{AccountMap, ChainId, Token, TokenId, ZkLinkAddress};
+use zklink_types::{AccountId, AccountMap, ChainId, Token, TokenId, ZkLinkAddress};
 use zklink_types::block::{Block, StoredBlockInfo};
+use zklink_types::utils::{recover_raw_token, recover_sub_account_by_token};
 use crate::response::TokenInfo;
 use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
 
@@ -19,7 +21,8 @@ pub struct ServerData {
     last_block_info: Block,
     pub(crate) token_by_id: HashMap<TokenId, Token>,
     pub(crate) usdx_tokens: HashMap<TokenId, Token>,
-    _accounts: AccountMap,
+    account_id_by_address: HashMap<ZkLinkAddress, AccountId>,
+    accounts: AccountMap,
 }
 
 impl ServerData {
@@ -32,6 +35,7 @@ impl ServerData {
             .iter()
             .map(|c|(c.chain.chain_id, c.contract.address.clone()))
             .collect();
+
         info!("Loading accounts state....");
         let timer = Instant::now();
         let last_executed_block_number = storage
@@ -50,12 +54,6 @@ impl ServerData {
         info!("End to load accounts state");
 
         // loads the stored block info of last executed block.
-        let last_executed_block_number = storage
-            .chain()
-            .block_schema()
-            .get_last_verified_confirmed_block()
-            .await
-            .expect("Failed to load last verified confirmed block number");
         let last_executed_block = storage
             .chain()
             .block_schema()
@@ -76,15 +74,21 @@ impl ServerData {
                 { Some((token_id, token.clone())) } else { None}
             )
             .collect();
-
         drop(storage);
+
+        let account_id_by_address = accounts
+            .iter()
+            .map(|(id, acc)|(acc.address.clone(), *id))
+            .collect();
+
         Self{
             conn_pool,
             contracts,
-            _accounts: accounts,
             last_block_info: last_executed_block,
             token_by_id,
-            usdx_tokens
+            usdx_tokens,
+            account_id_by_address,
+            accounts,
         }
     }
 
@@ -95,7 +99,7 @@ impl ServerData {
             .map_err(convert_to_actix_internal_error)
     }
 
-    pub(crate) async fn get_balances(&self, account_address: ZkLinkAddress) -> actix_web::Result<Option<SubAccountBalances>>{
+    pub(crate) async fn get_balances_by_storage(&self, account_address: ZkLinkAddress) -> actix_web::Result<Option<SubAccountBalances>>{
         let mut storage = self.access_storage().await?;
         let Some(StorageAccount{id, ..}) = storage.chain()
             .account_schema()
@@ -112,6 +116,27 @@ impl ServerData {
             .map_err(convert_to_actix_internal_error)?;
 
         Ok(Some(convert_balance_resp(balances)))
+    }
+
+    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> actix_web::Result<Option<SubAccountBalances>>{
+        let Some(&id) = self.account_id_by_address
+            .get(&account_address) else {
+            return Ok(None)
+        };
+        let balances = self.accounts
+            .get(&id)
+            .expect("Account should be exist")
+            .get_existing_token_balances();
+
+        let mut resp: SubAccountBalances = HashMap::new();
+        for (&token_id, balance) in balances.iter() {
+            let sub_account_id = recover_sub_account_by_token(token_id);
+            let real_token_id = recover_raw_token(token_id);
+            resp.entry(sub_account_id)
+                .or_default()
+                .insert(real_token_id, balance.reserve0.clone());
+        }
+        Ok(Some(resp))
     }
 
     pub(crate) async fn get_proof(
@@ -131,17 +156,17 @@ impl ServerData {
         &self,
         exit_info: BatchExitInfo
     ) -> actix_web::Result<Option<Vec<ExitProofData>>>{
-        let mut storage = self.access_storage().await?;
-        let Some(StorageAccount{id, ..}) = storage.chain()
-            .account_schema()
-            .account_by_address(exit_info.address.as_bytes())
-            .await
-            .map_err(convert_to_actix_internal_error)? else
-        {
+        let Some(&id) = self.account_id_by_address
+            .get(&exit_info.address) else {
             return Ok(None)
         };
+        let mut storage = self.access_storage().await?;
         let proof = storage.prover_schema()
-            .get_proofs(id, *exit_info.sub_account_id as i16, *exit_info.token_id as i32)
+            .get_proofs(
+                *id as i64,
+                *exit_info.sub_account_id as i16,
+                *exit_info.token_id as i32
+            )
             .await
             .map_err(convert_to_actix_internal_error)?;
         let exit_data = proof
@@ -168,21 +193,18 @@ impl ServerData {
         exit_info: BatchExitInfo,
         token_info: &Token,
     ) -> actix_web::Result<()>{
-        let mut storage = self.access_storage().await?;
-        let Some(StorageAccount{id, ..}) = storage.chain()
-            .account_schema()
-            .account_by_address(exit_info.address.as_bytes())
-            .await
-            .map_err(convert_to_actix_internal_error)? else
-        {
-            return Ok(())
+        let Some(&id) = self.account_id_by_address
+            .get(&exit_info.address) else {
+            return Err(actix_web::error::ErrorNotFound("Account not found"))
         };
+
+        let mut storage = self.access_storage().await?;
         if *exit_info.token_id != USD_TOKEN_ID {
             for &chain_id in &token_info.chains{
                 storage.prover_schema()
                     .insert_exit_task(StoredExitInfo{
                         chain_id: *chain_id as i16,
-                        account_id: id,
+                        account_id: id.into(),
                         sub_account_id: *exit_info.sub_account_id as i16,
                         l1_target_token: *exit_info.token_id as i32,
                         l2_source_token: *exit_info.token_id as i32,
@@ -196,7 +218,7 @@ impl ServerData {
                     storage.prover_schema()
                         .insert_exit_task(StoredExitInfo {
                             chain_id: *chain_id as i16,
-                            account_id: id,
+                            account_id: id.into(),
                             sub_account_id: *exit_info.sub_account_id as i16,
                             l1_target_token: *token_id as i32,
                             l2_source_token: *exit_info.token_id as i32,
@@ -211,7 +233,9 @@ impl ServerData {
     }
 
     pub(crate) async fn get_token(&self, token_id: TokenId) -> actix_web::Result<Option<TokenInfo>>{
-        let Some(token) = self.token_by_id.get(&token_id).cloned() else {
+        let Some(token) = self.token_by_id
+            .get(&token_id)
+            .cloned() else {
             return  Ok(None)
         };
 
@@ -233,8 +257,10 @@ impl ServerData {
         self.contracts.clone()
     }
 
-    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> StoredBlockInfo {
-        self.last_block_info
-            .stored_block_info(chain_id)
+    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Option<StoredBlockInfo> {
+        if !self.contracts.contains_key(&chain_id) {
+            return None
+        }
+        Some(self.last_block_info.stored_block_info(chain_id))
     }
 }

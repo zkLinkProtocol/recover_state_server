@@ -1,5 +1,4 @@
 use actix_web::{web, App, HttpResponse, HttpServer};
-use tracing::info;
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::ExitInfo;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
@@ -29,10 +28,18 @@ async fn get_token(
 }
 
 /// Get the ZkLink contract addresses of all blockchain.
-async fn get_stored_block_info(chain_id: web::Json<ChainId>, data: web::Data<ServerData>) -> actix_web::Result<HttpResponse> {
+async fn get_stored_block_info(
+    chain_id: web::Json<ChainId>,
+    data: web::Data<ServerData>
+) -> actix_web::Result<HttpResponse> {
     let chain_id = chain_id.into_inner();
-    let contracts = data.get_ref().get_stored_block_info(chain_id);
-    Ok(HttpResponse::Ok().json(contracts))
+    let response = match data.get_ref()
+        .get_stored_block_info(chain_id)
+    {
+        Some(contracts) => HttpResponse::Ok().json(contracts),
+        None => HttpResponse::NotFound().body("The Chain not found")
+    };
+    Ok(response)
 }
 
 /// Get balances fo all token by ZkLinkAddress
@@ -40,10 +47,9 @@ async fn get_balances(
     account_address: web::Json<ZkLinkAddress>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    info!("Call get_balance api");
     let account_address = account_address.into_inner();
     let response = match data.get_ref()
-        .get_balances(account_address)
+        .get_balances_by_cache(account_address)
         .await?
     {
         Some(balances) => HttpResponse::Ok().json(balances),
@@ -57,7 +63,6 @@ async fn get_proof_by_info(
     exit_info: web::Json<ExitInfo>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    info!("Call get_proof_by_info api");
     let exit_info = exit_info.into_inner();
     let response = match data.get_ref()
         .get_proof(exit_info)
@@ -74,7 +79,6 @@ async fn get_proofs_by_token(
     exit_info: web::Json<BatchExitInfo>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    info!("Call get_proofs_by_token api");
     let exit_info = exit_info.into_inner();
     let response = match data.get_ref()
         .get_proofs(exit_info)
@@ -91,16 +95,11 @@ async fn generate_proof_task_by_info(
     exit_info: web::Json<ExitInfo>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    info!("Call generate_proof_task api");
     let exit_info = exit_info.into_inner();
-    let response = match data.get_ref()
+    data.get_ref()
         .generate_proof_task(exit_info)
-        .await
-    {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(e) => HttpResponse::InternalServerError().body(format!("{}", e)),
-    };
-    Ok(response)
+        .await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
 /// Request to generate batch proofs of all blockchain for the specified token.
@@ -108,20 +107,17 @@ async fn generate_proof_tasks_by_token(
     exit_info: web::Json<BatchExitInfo>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    info!("Call generate_proof_task api");
     let exit_info = exit_info.into_inner();
-    let Some(token_info) = data.get_ref().token_by_id.get(&exit_info.token_id) else {
+    let Some(token_info) = data.get_ref()
+        .token_by_id
+        .get(&exit_info.token_id) else {
         return Ok(HttpResponse::NotFound().body("Token not found"))
     };
 
-    let response = match data.get_ref()
+    data.get_ref()
         .generate_proof_tasks(exit_info, token_info)
-        .await
-    {
-        Ok(_) => HttpResponse::Ok().finish(),
-        Err(e) => HttpResponse::InternalServerError().body(format!("{}", e)),
-    };
-    Ok(response)
+        .await?;
+    Ok(HttpResponse::Ok().finish())
 }
 
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
