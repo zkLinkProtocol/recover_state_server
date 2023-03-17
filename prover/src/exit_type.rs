@@ -6,7 +6,7 @@ use zklink_storage::prover::records::{StoredExitInfo, StoredExitProof};
 use zklink_types::ZkLinkAddress;
 use zklink_utils::BigUintSerdeWrapper;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExitProofData {
     pub exit_info: ExitInfo,
     pub amount: Option<BigUintSerdeWrapper>,

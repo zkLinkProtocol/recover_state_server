@@ -2,20 +2,34 @@ use actix_web::{web, App, HttpResponse, HttpServer};
 use tracing::info;
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::ExitInfo;
-use zklink_types::{ChainId, ZkLinkAddress};
+use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 use crate::ServerData;
 use crate::utils::BatchExitInfo;
 
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_contracts(data: web::Data<ServerData>) -> actix_web::Result<HttpResponse> {
-    info!("Call get_contracts api");
     let contracts = data.get_ref().get_contracts();
     Ok(HttpResponse::Ok().json(contracts))
 }
 
+/// Get token info(supported chains, token's contract addresses) by token_id
+async fn get_token(
+    token_id : web::Json<TokenId>,
+    data: web::Data<ServerData>,
+) -> actix_web::Result<HttpResponse> {
+    let token_id = token_id.into_inner();
+    let response = match data.get_ref()
+        .get_token(token_id)
+        .await?
+    {
+        Some(token) => HttpResponse::Ok().json(token),
+        None => HttpResponse::NotFound().body("Token not found"),
+    };
+    Ok(response)
+}
+
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_stored_block_info(chain_id: web::Json<ChainId>, data: web::Data<ServerData>) -> actix_web::Result<HttpResponse> {
-    info!("Call get_contracts api");
     let chain_id = chain_id.into_inner();
     let contracts = data.get_ref().get_stored_block_info(chain_id);
     Ok(HttpResponse::Ok().json(contracts))
@@ -119,8 +133,10 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
         App::new()
             .app_data(web::Data::new(server_data.clone()))
             .route("/get_contracts", web::get().to(get_contracts))
+            .route("/get_token", web::post().to(get_token))
             .route("/get_stored_block_info", web::post().to(get_stored_block_info))
             .route("/get_balances", web::post().to(get_balances))
+
             .route("/get_proof_by_info", web::post().to(get_proof_by_info))
             .route("/get_proofs_by_token", web::post().to(get_proofs_by_token))
             .route("/generate_proof_task_by_info", web::post().to(generate_proof_task_by_info))

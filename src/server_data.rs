@@ -9,6 +9,7 @@ use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::prover::records::StoredExitInfo;
 use zklink_types::{AccountMap, ChainId, Token, TokenId, ZkLinkAddress};
 use zklink_types::block::{Block, StoredBlockInfo};
+use crate::response::TokenInfo;
 use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
 
 #[derive(Clone)]
@@ -207,6 +208,25 @@ impl ServerData {
         }
 
         Ok(())
+    }
+
+    pub(crate) async fn get_token(&self, token_id: TokenId) -> actix_web::Result<Option<TokenInfo>>{
+        let Some(token) = self.token_by_id.get(&token_id).cloned() else {
+            return  Ok(None)
+        };
+
+        let mut storage = self.access_storage().await?;
+        let mut token_info = TokenInfo::new(token.id);
+        for chain_id in token.chains{
+            let db_token = storage.tokens_schema()
+                .get_chain_token(*token.id as i32, *chain_id as i16)
+                .await
+                .map_err(convert_to_actix_internal_error)?
+                .expect("Failed to get chain token");
+            token_info.insert_token_address(chain_id, db_token.address.into())
+        }
+
+        Ok(Some(token_info))
     }
 
     pub(crate) fn get_contracts(&self) -> HashMap<ChainId, ZkLinkAddress>{
