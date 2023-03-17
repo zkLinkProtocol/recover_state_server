@@ -73,8 +73,5 @@ To start the prover and generate a proof for the server to receive a create proo
 ./target/release/exduos_prover
 ```
 
-## Contributing
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
-
 ## License
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License - see the `LICENSE` file for details.
