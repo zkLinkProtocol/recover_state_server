@@ -1,7 +1,8 @@
 use std::cmp::min;
 use anyhow::{ensure, format_err};
 use zklink_crypto::params::{GLOBAL_ASSET_ACCOUNT_ID};
-use zklink_types::{AccountUpdate, AccountUpdates, ForcedExit, ForcedExitOp, PubKeyHash, SubAccountId, Nonce, ZkLinkTx};
+use zklink_types::{AccountUpdate, AccountUpdates, ForcedExit, ForcedExitOp, PubKeyHash, SubAccountId, Nonce};
+use zklink_types::utils::check_source_token_and_target_token;
 
 use crate::{
     handler::TxHandler,
@@ -21,7 +22,7 @@ impl TxHandler<ForcedExit> for ZkLinkState {
 
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
-            ZkLinkTx::check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
+            check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
         ensure!(is_required, "Source token or target token is mismatching in creating ForcedExitOp");
 
         // Check fee token exist

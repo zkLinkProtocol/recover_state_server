@@ -1,5 +1,6 @@
 use zklink_crypto::params::{GLOBAL_ASSET_ACCOUNT_ID};
-use zklink_types::{Account, AccountUpdate, AccountUpdates, Deposit, DepositOp, Nonce, SubAccountId, ZkLinkTx};
+use zklink_types::{Account, AccountUpdate, AccountUpdates, Deposit, DepositOp, Nonce, SubAccountId};
+use zklink_types::utils::check_source_token_and_target_token;
 
 use crate::{
     handler::TxHandler, state::ZkLinkState,
@@ -18,7 +19,7 @@ impl TxHandler<Deposit> for ZkLinkState {
 
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_source_token_after_mapping) =
-            ZkLinkTx::check_source_token_and_target_token(tx.l2_target_token, tx.l1_source_token);
+            check_source_token_and_target_token(tx.l2_target_token, tx.l1_source_token);
         assert!(is_required, "Source token or target token is mismatching in creating DepositOp");
 
         let account_id = self.get_account_by_address(&tx.to)
