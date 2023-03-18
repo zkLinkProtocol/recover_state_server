@@ -106,51 +106,57 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Cant update rollup operations");
     }
 
-    async fn update_tree_state(&mut self, block: Block, accounts_updated: &[(AccountId, AccountUpdate, H256)]) {
+    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>) {
+        let new_state = self.storage.recover_schema().new_storage_state("None");
         let mut transaction = self
             .storage
             .start_transaction()
             .await
             .expect("Failed initializing a DB transaction");
+        for (block, accounts_updated) in blocks_and_updates {
+            let block_number = *block.block_number;
+            let commit_aggregated_operation = StoredAggregatedOperation {
+                id: 0,
+                action_type: AggType::CommitBlocks,
+                from_block: block_number.into(),
+                to_block: block_number.into(),
+                created_at: Utc::now(),
+                confirmed: true
+            };
+            let execute_aggregated_operation = StoredAggregatedOperation {
+                id: 0,
+                action_type: AggType::ExecuteBlocks,
+                from_block: block_number.into(),
+                to_block: block_number.into(),
+                created_at: Utc::now(),
+                confirmed: true
+            };
 
-        let block_number = *block.block_number;
-        let commit_aggregated_operation = StoredAggregatedOperation {
-            id: 0,
-            action_type: AggType::CommitBlocks,
-            from_block: block_number.into(),
-            to_block: block_number.into(),
-            created_at: Utc::now(),
-            confirmed: true
-        };
-        let execute_aggregated_operation = StoredAggregatedOperation {
-            id: 0,
-            action_type: AggType::ExecuteBlocks,
-            from_block: block_number.into(),
-            to_block: block_number.into(),
-            created_at: Utc::now(),
-            confirmed: true
-        };
+            transaction
+                .chain()
+                .state_schema()
+                .commit_state_update(block.block_number, &accounts_updated)
+                .await
+                .expect("Cant execute verify operation");
 
-        transaction
-            .chain()
-            .state_schema()
-            .commit_state_update(block.block_number, &accounts_updated)
-            .await
-            .expect("Cant execute verify operation");
+            transaction
+                .recover_schema()
+                .save_block_operations(&commit_aggregated_operation, &execute_aggregated_operation)
+                .await
+                .expect("Cant execute verify operation");
 
+            transaction
+                .chain()
+                .block_schema()
+                .save_block(block)
+                .await
+                .expect("Unable to save block");
+        }
         transaction
             .recover_schema()
-            .save_block_operations(&commit_aggregated_operation, &execute_aggregated_operation)
+            .update_storage_state(new_state)
             .await
-            .expect("Cant execute verify operation");
-
-        transaction
-            .chain()
-            .block_schema()
-            .save_block(block)
-            .await
-            .expect("Unable to save block");
-
+            .expect("Unable to update storage state");
         transaction
             .commit()
             .await

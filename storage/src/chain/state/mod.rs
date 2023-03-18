@@ -14,7 +14,7 @@ use crate::chain::{
 };
 use crate::diff::StorageAccountDiff;
 use crate::{QueryResult, StorageProcessor};
-use zklink_types::block::{Block, FailedExecutedTx};
+use zklink_types::block::FailedExecutedTx;
 
 /// State schema is capable of managing... well, the state of the chain.
 ///
@@ -193,56 +193,6 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             .save_block_failed_transactions(block_number, failed_txs)
             .await
             .expect("worker must commit the op into db");
-
-        transaction
-            .commit()
-            .await
-            .expect("Unable to commit DB transaction");
-        Ok(())
-    }
-
-    pub async fn commit_block(
-        &mut self,
-        block: Block,
-        accounts_updated: Vec<(AccountId, AccountUpdate, H256)>,
-        account_types: Vec<(AccountId, AccountType, ChainId)>
-    ) -> QueryResult<()> {
-        let block_number = block.block_number;
-        let mut transaction = self.0.start_transaction().await.expect("Failed initializing a DB transaction");
-        transaction
-            .chain()
-            .state_schema()
-            .commit_state_update(
-                block.block_number,
-                accounts_updated.as_slice(),
-            )
-            .await
-            .expect("worker must commit the pending block into db");
-
-        info!("Commit block #{}", block.block_number);
-
-        transaction
-            .chain()
-            .block_schema()
-            .save_block(block)
-            .await
-            .expect("worker must commit the op into db");
-
-        transaction
-            .chain()
-            .state_schema()
-            .apply_state_update(block_number)
-            .await
-            .expect("worker must apply the updates into db");
-
-        // update account types known inside the block
-        transaction
-            .chain()
-            .state_schema()
-            .apply_account_type_updates(account_types)
-            .await
-            .expect("worker must apply the updates into db");
-
 
         transaction
             .commit()

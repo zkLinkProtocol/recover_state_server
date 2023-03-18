@@ -55,27 +55,28 @@ impl StorageInteractor for InMemoryStorageInteractor {
         self.storage_state = StorageUpdateState::Operations
     }
 
-    async fn update_tree_state(&mut self, block: Block, accounts_updated: &[(AccountId, AccountUpdate, H256)]){
-        let commit_op = Operation {
-            action: Action::Commit,
-            block: block.clone(),
-            id: None,
-        };
+    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>) {
+        for (block, accounts_updated) in blocks_and_updates {
+            let commit_op = Operation {
+                action: Action::Commit,
+                block: block.clone(),
+                id: None,
+            };
 
-        let verify_op = Operation {
-            action: Action::Verify {
-                proof: Box::new(Default::default()),
-            },
-            block: block.clone(),
-            id: None,
-        };
+            let verify_op = Operation {
+                action: Action::Verify {
+                    proof: Box::new(Default::default()),
+                },
+                block: block.clone(),
+                id: None,
+            };
 
-        self.last_committed_block = commit_op.block.block_number;
-        self.last_verified_block = verify_op.block.block_number;
+            self.last_committed_block = commit_op.block.block_number;
+            self.last_verified_block = verify_op.block.block_number;
 
-        self.commit_state_update(*block.block_number, accounts_updated);
-        self.storage_state = StorageUpdateState::None
-        // TODO save operations
+            self.commit_state_update(*block.block_number, &accounts_updated);
+            self.storage_state = StorageUpdateState::None
+        }
     }
 
     async fn init_token_event_progress(&mut self, _chain_id: ChainId, _last_block_number: BlockNumber) {

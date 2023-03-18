@@ -40,14 +40,13 @@ pub trait StorageInteractor {
     ///
     async fn save_rollup_ops(&mut self, blocks: &[RollupOpsBlock]);
 
-    /// Updates stored tree state: saves block transactions in storage, stores blocks and account updates
+    /// stores blocks and account updates
     ///
     /// # Arguments
     ///
-    /// * `block` - Rollup block
-    /// * `accounts_updated` - accounts updates
+    /// * `blocks_updated` - blocks and account updated
     ///
-    async fn update_tree_state(&mut self, block: Block, accounts_updated: &[(AccountId, AccountUpdate, H256)]);
+    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block,Vec<(AccountId, AccountUpdate, H256)>)>);
 
     /// Init the progress of syncing token events.
     /// # Arguments

@@ -407,13 +407,11 @@ where
             blocks_and_updates.push((block, acc_updates));
         }
         // To ensure collective update
-        for (block, accounts_updated) in blocks_and_updates{
-            interactor
-                .update_tree_state(block, &accounts_updated)
-                .await;
-        }
+        interactor
+            .store_blocks_and_updates(blocks_and_updates)
+            .await;
 
-        debug!("Updated state");
+        debug!("Updated tree state");
     }
 
     /// Gets new operations blocks from events, updates rollup operations stored state.

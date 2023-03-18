@@ -31,7 +31,6 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         execute_op: &StoredAggregatedOperation,
     ) -> QueryResult<()> {
         let start = Instant::now();
-        let new_state = self.new_storage_state("None");
         let mut transaction = self.0.start_transaction().await?;
 
         OperationsSchema(&mut transaction)
@@ -48,9 +47,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
                 .await?;
         }
 
-        RecoverSchema(&mut transaction)
-            .update_storage_state(new_state)
-            .await?;
+
         transaction.commit().await?;
         metrics::histogram!("sql.recover_state.save_block_operations", start.elapsed());
         Ok(())
@@ -164,7 +161,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         Ok(())
     }
 
-    fn new_storage_state(&self, state: impl ToString) -> NewStorageState {
+    pub fn new_storage_state(&self, state: impl ToString) -> NewStorageState {
         info!("Enter {:?} storage state", state.to_string());
         NewStorageState {
             storage_state: state.to_string(),
@@ -293,7 +290,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         Ok(state)
     }
 
-    pub(crate) async fn update_storage_state(&mut self, state: NewStorageState) -> QueryResult<()> {
+    pub async fn update_storage_state(&mut self, state: NewStorageState) -> QueryResult<()> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
         sqlx::query!("DELETE FROM recover_state_storage_state_update")
