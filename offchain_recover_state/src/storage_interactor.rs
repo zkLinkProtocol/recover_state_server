@@ -87,7 +87,7 @@ pub trait StorageInteractor {
         chain_id: ChainId,
         block_events: &[BlockEvent],
         last_watched_block_number: u64,
-    );
+    ) -> anyhow::Result<()>;
 
     /// Saves genesis accounts state in storage
     ///

@@ -212,7 +212,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         chain_id: ChainId,
         block_events: &[BlockEvent],
         last_watched_block_number: u64,
-    ) {
+    ) -> anyhow::Result<()> {
         let block_events= block_events
             .iter()
             .map(block_event_into_stored_block_event)
@@ -221,8 +221,8 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         self.storage
             .recover_schema()
             .update_block_events_state(chain_id, &block_events, last_watched_block_number)
-            .await
-            .expect("Cant update events state");
+            .await?;
+        Ok(())
     }
 
     async fn save_genesis_tree_state(&mut self, genesis_updates: &[(AccountId, AccountUpdate, H256)]) {

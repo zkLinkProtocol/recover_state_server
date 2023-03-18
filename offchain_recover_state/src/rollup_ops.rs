@@ -34,7 +34,7 @@ impl RollupOpsBlock {
     ///
     pub async fn get_rollup_ops_blocks<T: ZkLinkContract>(
         zklink_contract: &T,
-        event: BlockEvent,
+        event: &BlockEvent,
     ) -> anyhow::Result<Vec<Self>> {
         let transaction = zklink_contract
             .get_transaction(event.transaction_hash)

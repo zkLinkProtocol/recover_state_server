@@ -300,60 +300,68 @@ where
         loop {
             info!("Last watched layer1 block: {:?}", last_watched_block);
 
-            // Update events
-            if self.exist_events_state(interactor).await {
-                // Update operations
-                let new_ops_blocks = self.load_op_from_events_and_save_op(interactor).await;
+            // Update block events
+            match self.exist_events_state(interactor).await {
+                Ok(exist) if exist => {
+                    // Update operations
+                    let new_ops_blocks = self.load_op_from_events_and_save_op(interactor).await;
 
-                if !new_ops_blocks.is_empty() {
-                    // Update tree
-                    self.update_tree_state(interactor, new_ops_blocks).await;
+                    if !new_ops_blocks.is_empty() {
+                        // Update tree
+                        self.update_tree_state(interactor, new_ops_blocks).await;
 
-                    let last_verified_block = self.tree_state.state.block_number;
-                    info!(
-                        "State updated, current block[{:?}] root hash: {}",
-                        last_verified_block, self.tree_state.root_hash()
-                    );
+                        let last_verified_block = self.tree_state.state.block_number;
+                                info!(
+                            "State updated, current block[{:?}] root hash: {}",
+                            last_verified_block, self.tree_state.root_hash()
+                        );
 
-                    let total_verified_blocks = match self.zklink_contract.get_total_verified_blocks().await {
-                        Ok(total_verified_blocks) => total_verified_blocks,
-                        Err(err) => {
-                            error!("Failed to get total_verified_blocks: {}", err);
-                            continue;
+                        let total_verified_blocks = match self.zklink_contract.get_total_verified_blocks().await {
+                            Ok(total_verified_blocks) => total_verified_blocks,
+                            Err(err) => {
+                                error!("Failed to get total_verified_blocks: {}", err);
+                                continue;
+                            }
+                        };
+
+                        info!(
+                            "Processed: {:?}, total verified: {:?}, remaining: {:?}",
+                            *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
+                        );
+
+                        // If there is an expected root hash, check if current root hash matches the observed
+                        // one.
+                        // We check it after every block, since provided final hash may be not the latest hash
+                        // by the time when it was processed.
+                        if let Some(root_hash) = self.final_hash {
+                            if root_hash == self.tree_state.root_hash() {
+                                final_hash_was_found = true;
+                                info!(
+                            "Correct expected root hash was met on the block {} out of {}",
+                            *last_verified_block, total_verified_blocks
+                        );
+                            }
                         }
-                    };
 
-                    info!(
-                        "Processed: {:?}, total verified: {:?}, remaining: {:?}",
-                        *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
-                    );
+                        if self.finite_mode && *last_verified_block == total_verified_blocks {
+                            // Check if the final hash was found and panic otherwise.
+                            if self.final_hash.is_some() && !final_hash_was_found {
+                                panic!("Final hash was not met during the recover state process");
+                            }
 
-                    // If there is an expected root hash, check if current root hash matches the observed
-                    // one.
-                    // We check it after every block, since provided final hash may be not the latest hash
-                    // by the time when it was processed.
-                    if let Some(root_hash) = self.final_hash {
-                        if root_hash == self.tree_state.root_hash() {
-                            final_hash_was_found = true;
-                            info!(
-                                "Correct expected root hash was met on the block {} out of {}",
-                                *last_verified_block, total_verified_blocks
-                            );
+                            // We've restored all the blocks, our job is done.
+                            break;
                         }
                     }
-
-                    if self.finite_mode && *last_verified_block == total_verified_blocks {
-                        // Check if the final hash was found and panic otherwise.
-                        if self.final_hash.is_some() && !final_hash_was_found {
-                            panic!("Final hash was not met during the recover state process");
-                        }
-
-                        // We've restored all the blocks, our job is done.
-                        break;
-                    }
+                },
+                Err(err) => {
+                    error!("Failed to process block events: {:?}", err);
+                    continue
                 }
+                _ => {}
             }
 
+            // update block events progress
             if last_watched_block == self.rollup_events.last_watched_block_number {
                 info!("sleep block");
                 tokio::time::sleep(Duration::from_secs(5)).await;
@@ -365,7 +373,7 @@ where
 
     /// Updates events state, saves new blocks, tokens events and the last watched block number in storage
     /// Returns bool flag, true if there are new block events
-    async fn exist_events_state(&mut self, interactor: &mut I) -> bool {
+    async fn exist_events_state(&mut self, interactor: &mut I) -> anyhow::Result<bool> {
         info!("Loading block events from zklink contract!");
         let (block_events, last_watched_eth_block_number) = self
             .rollup_events
@@ -376,19 +384,18 @@ where
                 self.end_block_offset,
                 self.init_contract_version,
             )
-            .await
-            .expect("Updating events state: cant update events state");
+            .await?;
         interactor
             .update_block_events_state(
                 self.zklink_contract.layer2_chain_id(),
                 &block_events,
                 last_watched_eth_block_number,
             )
-            .await;
+            .await?;
         info!("Updating block events: {:?}", block_events);
         info!("Updating block events to block_number: {}", last_watched_eth_block_number);
 
-        !block_events.is_empty()
+        Ok(!block_events.is_empty())
     }
 
     /// Updates tree state from the new Rollup operations blocks, saves it in storage
@@ -445,9 +452,15 @@ where
             }
 
             let transaction_hash = event.transaction_hash;
-            let rollup_blocks = RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, event)
-                .await
-                .expect("Cant get new operation blocks from events");
+            let rollup_blocks = loop {
+                match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, &event).await{
+                    Ok(res) => break res,
+                    Err(e) => {
+                        error!("Failed to get new operation blocks from events: {}", e);
+                        tokio::time::sleep(Duration::from_secs(1)).await
+                    }
+                };
+            };
 
             blocks.extend(rollup_blocks);
             last_event_tx_hash = Some(transaction_hash);

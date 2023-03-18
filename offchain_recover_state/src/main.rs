@@ -3,10 +3,14 @@ use structopt::StructOpt;
 use tracing::info;
 use zklink_crypto::convert::FeConvert;
 use zklink_storage::ConnectionPool;
-use offchain_recover_state::{database_storage_interactor::DatabaseStorageInteractor, END_BLOCK_OFFSET, get_fully_on_chain_zklink_contract, VIEW_BLOCKS_STEP};
+use offchain_recover_state::{
+    database_storage_interactor::DatabaseStorageInteractor,
+    END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
+    get_fully_on_chain_zklink_contract,
+};
 use offchain_recover_state::data_restore_driver::RecoverStateDriver;
 use offchain_recover_state::log::init;
-use recover_state_config::{DBConfig, RecoverStateConfig};
+use recover_state_config::RecoverStateConfig;
 
 #[derive(StructOpt)]
 #[structopt(name = "Recover state driver", author = "N Labs", rename_all = "snake_case")]
@@ -31,20 +35,18 @@ struct Opt {
 #[tokio::main]
 async fn main() {
     dotenv().expect(".env file not found");
-
     let _sentry_guard = init();
-    info!("Restoring zkLink state from the contract");
-
-    let db_config = DBConfig::from_env();
-    let connection_pool = ConnectionPool::new(db_config.url, db_config.pool_size);
 
     let opt = Opt::from_args();
     let config = RecoverStateConfig::from_env();
 
+    let connection_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
     let final_hash = opt.final_hash
         .filter(|_|opt.finite)
         .map(|value| FeConvert::from_hex(&value).expect("Can't parse the final hash"));
 
+    info!("Restoring ZkLink state from the contract");
+    // Init RecoverStateDriver
     let (deploy_block_number, zklink_contract) = get_fully_on_chain_zklink_contract(&config);
     let mut driver = RecoverStateDriver::new(
         zklink_contract,
@@ -57,15 +59,17 @@ async fn main() {
         connection_pool.clone(),
     ).await;
 
+    // Init storage
     let storage = connection_pool.access_storage().await.unwrap();
     let mut interactor = DatabaseStorageInteractor::new(storage);
-    // If genesis is argument is present - there will be fetching contracts creation transactions to get first layer1 block and genesis acc address
-    if opt.genesis {
-        driver.set_genesis_state(&mut interactor, config).await;
-    }
 
-    // Process token events
-    driver.download_registered_tokens().await;
+    if opt.genesis {
+        // There will be fetching contracts creation transactions to get first layer1 block and genesis acc address
+        driver.set_genesis_state(&mut interactor, config).await;
+
+        // Get all token events
+        driver.download_registered_tokens().await;
+    }
 
     // Continue with recover_state as before
     if opt.continue_mode && driver.load_state_from_storage(&mut interactor).await {

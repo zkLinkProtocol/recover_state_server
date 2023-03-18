@@ -96,10 +96,12 @@ impl StorageInteractor for InMemoryStorageInteractor {
         _chain_id: ChainId,
         block_events: &[BlockEvent],
         last_watched_block_number: u64,
-    ) {
+    ) -> anyhow::Result<()> {
         self.events_state = block_events.to_vec();
         self.last_watched_block = last_watched_block_number;
         self.storage_state = StorageUpdateState::Events;
+
+        Ok(())
     }
 
     async fn save_genesis_tree_state(&mut self, genesis_updates: &[(AccountId, AccountUpdate, H256)]) {
