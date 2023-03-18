@@ -10,6 +10,7 @@ use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::prover::records::StoredExitInfo;
 use zklink_types::{ChainId, ZkLinkAddress};
 use zklink_types::block::StoredBlockInfo;
+use zklink_types::utils::check_source_token_and_target_token;
 use crate::acquired_tokens::AcquiredTokens;
 use crate::recovered_state::RecoveredState;
 use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
@@ -80,6 +81,12 @@ impl ServerData {
         &self,
         exit_info: ExitInfo,
     ) -> actix_web::Result<Option<ExitProofData>>{
+        if check_source_token_and_target_token(
+            exit_info.l2_source_token,
+            exit_info.l1_target_token
+        ).0 {
+            return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
+        }
         let mut storage = self.access_storage().await?;
         let proof = storage.prover_schema()
             .get_proof_by_exit_info((&exit_info).into())
@@ -118,6 +125,12 @@ impl ServerData {
         &self,
         exit_info: ExitInfo,
     ) -> actix_web::Result<()>{
+        if check_source_token_and_target_token(
+            exit_info.l2_source_token,
+            exit_info.l1_target_token
+        ).0 {
+            return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
+        }
         let mut storage = self.access_storage().await?;
         storage.prover_schema()
             .insert_exit_task((&exit_info).into())
