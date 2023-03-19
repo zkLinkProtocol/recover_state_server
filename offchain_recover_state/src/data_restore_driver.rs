@@ -337,9 +337,9 @@ where
                             if root_hash == self.tree_state.root_hash() {
                                 final_hash_was_found = true;
                                 info!(
-                            "Correct expected root hash was met on the block {} out of {}",
-                            *last_verified_block, total_verified_blocks
-                        );
+                                    "Correct expected root hash was met on the block {} out of {}",
+                                    *last_verified_block, total_verified_blocks
+                                );
                             }
                         }
 
@@ -355,7 +355,7 @@ where
                     }
                 },
                 Err(err) => {
-                    error!("Failed to process block events: {:?}", err);
+                    error!("Failed to process block events: {}", err);
                     continue
                 }
                 _ => {}
@@ -456,7 +456,10 @@ where
                 match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, &event).await{
                     Ok(res) => break res,
                     Err(e) => {
-                        error!("Failed to get new operation blocks from events: {}", e);
+                        error!(
+                            "Failed to get new operation block[{:?}] from events: {}\
+                            \nTry again to new operation blocks", event.block_num, e
+                        );
                         tokio::time::sleep(Duration::from_secs(1)).await
                     }
                 };
