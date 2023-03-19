@@ -81,7 +81,7 @@ impl ServerData {
         &self,
         exit_info: ExitInfo,
     ) -> actix_web::Result<Option<ExitProofData>>{
-        if check_source_token_and_target_token(
+        if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
@@ -92,7 +92,11 @@ impl ServerData {
             .get_proof_by_exit_info((&exit_info).into())
             .await
             .map_err(convert_to_actix_internal_error)?;
-        let exit_data = proof.map(|proof|proof.into());
+        let exit_data = proof.map(|proof| {
+            let mut proof: ExitProofData  = proof.into();
+            proof.exit_info.account_address = exit_info.account_address;
+            proof
+        });
         Ok(exit_data)
     }
 
@@ -116,7 +120,11 @@ impl ServerData {
             .map_err(convert_to_actix_internal_error)?;
         let exit_data = proof
             .into_iter()
-            .map(|proof|proof.into())
+            .map(|proof|{
+                let mut proof: ExitProofData = proof.into();
+                proof.exit_info.account_address = exit_info.address.clone();
+                proof
+            })
             .collect();
         Ok(Some(exit_data))
     }
@@ -125,7 +133,7 @@ impl ServerData {
         &self,
         exit_info: ExitInfo,
     ) -> actix_web::Result<()>{
-        if check_source_token_and_target_token(
+        if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
