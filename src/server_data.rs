@@ -8,10 +8,10 @@ use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::prover::records::StoredExitInfo;
-use zklink_types::{ChainId, ZkLinkAddress};
+use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
-use crate::acquired_tokens::AcquiredTokens;
+use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recovered_state::RecoveredState;
 use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
 
@@ -131,6 +131,12 @@ impl ServerData {
         ).0 {
             return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
         }
+        self.check_exit_info(
+            &exit_info.account_address,
+            exit_info.sub_account_id,
+            exit_info.l2_source_token
+        )?;
+
         let mut storage = self.access_storage().await?;
         storage.prover_schema()
             .insert_exit_task((&exit_info).into())
@@ -143,16 +149,11 @@ impl ServerData {
         &self,
         exit_info: BatchExitInfo,
     ) -> actix_web::Result<()>{
-        let Some(&id) = self.recovered_state
-            .account_id_by_address
-            .get(&exit_info.address) else {
-            return Err(actix_web::error::ErrorNotFound("Account not found"))
-        };
-        let Some(token_info) = self.acquired_tokens
-            .token_by_id
-            .get(&exit_info.token_id) else {
-            return Err(actix_web::error::ErrorNotFound("Token not found"))
-        };
+        let (&account_id, token_info) = self.check_exit_info(
+            &exit_info.address,
+            exit_info.sub_account_id,
+            exit_info.token_id
+        )?;
 
         let mut storage = self.access_storage().await?;
         if *exit_info.token_id != USD_TOKEN_ID {
@@ -161,7 +162,7 @@ impl ServerData {
                 storage.prover_schema()
                     .insert_exit_task(StoredExitInfo{
                         chain_id: *chain_id as i16,
-                        account_id: id.into(),
+                        account_id: account_id.into(),
                         sub_account_id: *exit_info.sub_account_id as i16,
                         l1_target_token: *exit_info.token_id as i32,
                         l2_source_token: *exit_info.token_id as i32,
@@ -179,7 +180,7 @@ impl ServerData {
                     storage.prover_schema()
                         .insert_exit_task(StoredExitInfo {
                             chain_id: *chain_id as i16,
-                            account_id: id.into(),
+                            account_id: account_id.into(),
                             sub_account_id: *exit_info.sub_account_id as i16,
                             l1_target_token: *token_id as i32,
                             l2_source_token: *exit_info.token_id as i32,
@@ -202,5 +203,28 @@ impl ServerData {
             return None
         }
         self.recovered_state.stored_block_info(chain_id)
+    }
+
+    fn check_exit_info(
+        &self,
+        address: &ZkLinkAddress,
+        sub_account_id: SubAccountId,
+        token_id: TokenId
+    ) -> actix_web::Result<(&AccountId , &TokenInfo)> {
+        let Some(account_id) = self.recovered_state
+            .account_id_by_address
+            .get(address) else {
+            return Err(actix_web::error::ErrorNotFound("Account not found"))
+        };
+        let Some(token_info) = self.acquired_tokens
+            .token_by_id
+            .get(&token_id) else {
+            return Err(actix_web::error::ErrorNotFound("Token not found"))
+        };
+        if self.recovered_state.empty_balance(*account_id, sub_account_id, token_info.token_id) {
+            return Err(actix_web::error::ErrorBadRequest("The token balance of the account is 0"))
+        }
+
+        Ok((account_id, token_info))
     }
 }

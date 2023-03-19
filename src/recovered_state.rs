@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use zklink_storage::ConnectionPool;
 use zklink_types::block::{Block, StoredBlockInfo};
-use zklink_types::{AccountId, AccountMap, ChainId, ZkLinkAddress};
-use zklink_types::utils::{recover_raw_token, recover_sub_account_by_token};
+use zklink_types::{AccountId, AccountMap, ChainId, SubAccountId, TokenId, ZkLinkAddress};
+use zklink_types::utils::{calculate_actual_token, recover_raw_token, recover_sub_account_by_token};
 use crate::utils::SubAccountBalances;
 
 #[derive(Debug, Clone)]
@@ -71,6 +71,14 @@ impl RecoveredState {
         Ok(Some(resp))
     }
 
+    pub fn empty_balance(&self, account_id: AccountId, sub_account_id: SubAccountId, token_id: TokenId) -> bool {
+        let real_token_id = calculate_actual_token(sub_account_id, token_id);
+        let account = self.accounts
+            .get(&account_id).unwrap();
+        account.get_existing_token_balances()
+            .get(&real_token_id)
+            .map_or(true, |balance| balance.is_zero())
+    }
 
     pub(crate) fn stored_block_info(&self, chain_id: ChainId) -> Option<StoredBlockInfo> {
         Some(self.last_block_info.stored_block_info(chain_id))

@@ -61,7 +61,7 @@ impl AcquiredTokens {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TokenInfo {
-    token_id: TokenId,
+    pub token_id: TokenId,
     pub(crate) addresses: HashMap<ChainId, ZkLinkAddress>,
 }
 
