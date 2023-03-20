@@ -70,8 +70,10 @@ To start the server, run the following command:
 ### Start the exodus Prover
 To start the prover and generate a proof for the server to receive a create proof command, run the following command:
 ```
-./target/release/exduos_prover
+./target/release/exduos_prover tasks
 ```
+Please refer to prover [README.md](prover/README.md) for detailed command details
+
 
 ## License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
