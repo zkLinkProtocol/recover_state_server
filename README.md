@@ -55,9 +55,9 @@ Your need to modify the following configuration:
 6. `DATABASE_URL`: the default is local.
 
 ### Recover ZkLink state
-To recover the database, run the following command:
+To recover the state, run the following command:
 ```
-./target/release/exduos_server --recover
+./target/debug/offchain_recover_state --genesis
 ```
 This command will take several hours to complete. Please be patient and wait until the command finishes.
 
