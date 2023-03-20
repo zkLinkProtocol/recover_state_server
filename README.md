@@ -55,11 +55,17 @@ Your need to modify the following configuration:
 6. `DATABASE_URL`: the default is local.
 
 ### Recover ZkLink state
-To recover the state, run the following command:
+To recover the state, run the following `genesis` command:
 ```
 ./target/debug/offchain_recover_state --genesis
 ```
 This command will take several hours to complete. Please be patient and wait until the command finishes.
+
+If there is an interruption, run the `continue` command
+```
+./target/debug/offchain_recover_state --continue
+```
+
 
 ### Start the exodus Server
 To start the server, run the following command:
