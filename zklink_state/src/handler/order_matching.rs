@@ -8,7 +8,7 @@ use crate::state::ZkLinkState;
 impl TxHandler<OrderMatching> for ZkLinkState {
     type Op = OrderMatchingOp;
 
-    fn create_op(&self, tx: OrderMatching) -> Result<Self::Op, anyhow::Error> {
+    fn create_op(&self, tx: OrderMatching) -> Result<Self::Op, Error> {
         // All stateless checking(tx format, l1 signature) should have been done by rpc
         // and we still redo stateful(which could be changed, eg. balance, nonce, pub_key_hash) checking when execute l2 transaction
 
@@ -30,10 +30,9 @@ impl TxHandler<OrderMatching> for ZkLinkState {
         );
 
         Ok(OrderMatchingOp {
-            submitter: tx.account_id,
-            maker: tx.maker.account_id,
-            taker: tx.taker.account_id,
             tx,
+            maker_sell_amount: Default::default(),
+            taker_sell_amount: Default::default(),
             maker_context,
             taker_context
         })
@@ -43,57 +42,68 @@ impl TxHandler<OrderMatching> for ZkLinkState {
         &mut self,
         op: &mut Self::Op,
     ) -> Result<AccountUpdates, Error> {
-        Ok(self.execute_order_matching_op(op, true)?)
+        Ok(self.execute_order_matching_op(op)?)
     }
 
     fn unsafe_apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, Error> {
         let (maker_context, taker_context) = self.verify_order_accounts(&op.tx,false)?;
         op.maker_context = maker_context;
         op.taker_context = taker_context;
-        Ok(self.execute_order_matching_op(op, false)?)
+        Ok(self.execute_order_matching_op(op)?)
     }
 }
 
 impl ZkLinkState {
-    fn execute_order_matching_op(&mut self, op: &OrderMatchingOp, check_expect: bool) -> Result<AccountUpdates, Error> {
+    fn execute_order_matching_op(&mut self, op: &mut OrderMatchingOp) -> Result<AccountUpdates, Error> {
         // preparing token
-        let (taker_buy_token_base, maker_buy_token_base) = if op.tx.maker.is_sell.is_zero() {
+        let (maker_sell_token_base, taker_sell_token_base) = if op.tx.maker.is_sell.is_zero() {
             (op.tx.maker.quote_token_id, op.tx.maker.base_token_id)
         } else {
             (op.tx.maker.base_token_id, op.tx.maker.quote_token_id)
         };
-        let taker_buy_token = Self::get_actual_token_by_sub_account(op.tx.taker.sub_account_id, taker_buy_token_base);
-        let maker_buy_token = Self::get_actual_token_by_sub_account(op.tx.maker.sub_account_id, maker_buy_token_base);
+        let maker_sell_token = Self::get_actual_token_by_sub_account(op.tx.taker.sub_account_id, maker_sell_token_base);
+        let taker_sell_token = Self::get_actual_token_by_sub_account(op.tx.maker.sub_account_id, taker_sell_token_base);
 
         // calculate actual exchanged amounts
-        if check_expect{
-            let (taker_obtain_token_amount, maker_obtain_token_amount) = Self::calculate_actual_exchanged_amounts(&op)
-                .ok_or(format_err!("Internal calculation error!"))?;
-            ensure!(
-                op.tx.expect_base_amount <= taker_obtain_token_amount,
-                "Expected base token amount does not match actual base token amount"
-            );
-            ensure!(
-                op.tx.expect_quote_amount <= maker_obtain_token_amount,
-                "Expected quote token amount does not match actual quote token amount"
-            );
-        }
+        let (taker_obtain_token_amount, maker_obtain_token_amount) = Self::calculate_actual_exchanged_amounts(&op)
+            .ok_or(format_err!("Internal calculation error!"))?;
 
-        let (taker_buy_amount, maker_buy_amount) = if op.tx.maker.is_sell.is_one(){
-            // When maker sell base token, taker obtain base token and maker obtain quote token
-            (op.tx.expect_base_amount.clone(), op.tx.expect_quote_amount.clone())
-        } else {
-            // When maker buy base token, taker obtain quote token and maker obtain base token
-            (op.tx.expect_quote_amount.clone(), op.tx.expect_base_amount.clone())
-        };
+        let (maker_sell_amount, taker_sell_amount) =
+            if !op.tx.expect_base_amount.is_zero() && !op.tx.expect_quote_amount.is_zero() {
+                if op.tx.maker.is_sell.is_one(){
+                    // When maker sell base token, taker obtain base token and maker obtain quote token
+                    ensure!(
+                        op.tx.expect_base_amount <= taker_obtain_token_amount,
+                        "Expected base token amount does not match actual base token amount"
+                    );
+                    ensure!(
+                        op.tx.expect_quote_amount <= maker_obtain_token_amount,
+                        "Expected quote token amount does not match actual quote token amount"
+                    );
+                    (op.tx.expect_base_amount.clone(), op.tx.expect_quote_amount.clone())
+                } else {
+                    // When maker buy base token, taker obtain quote token and maker obtain base token
+                    ensure!(
+                        op.tx.expect_base_amount <= maker_obtain_token_amount,
+                        "Expected base token amount does not match actual base token amount"
+                    );
+                    ensure!(
+                        op.tx.expect_quote_amount <= taker_obtain_token_amount,
+                        "Expected quote token amount does not match actual quote token amount"
+                    );
+                    (op.tx.expect_quote_amount.clone(), op.tx.expect_base_amount.clone())
+                }
+            }else {
+                (taker_obtain_token_amount, maker_obtain_token_amount)
+            };
 
         // calculate submitter collect fee.
-        let maker_fee = &maker_buy_amount * op.tx.maker.fee_ratio1 / BigUint::from(FEE_DENOMINATOR);
-        let taker_fee = &taker_buy_amount * op.tx.taker.fee_ratio2 / BigUint::from(FEE_DENOMINATOR);
-        let exchanged_base_amount = if op.tx.maker.is_sell.is_one() { &taker_buy_amount } else { &maker_buy_amount };
+        let maker_fee = &taker_sell_amount * op.tx.maker.fee_ratio1 / BigUint::from(FEE_DENOMINATOR);
+        let taker_fee = &maker_sell_amount * op.tx.taker.fee_ratio2 / BigUint::from(FEE_DENOMINATOR);
+        let exchanged_base_amount = if op.tx.maker.is_sell.is_one() { &maker_sell_amount } else { &taker_sell_amount };
 
         // update all account
-        let mut maker_account = self.get_account(op.maker).unwrap();
+        let mut maker_account = self.get_account(op.tx.maker.account_id).unwrap();
         let mut updates = vec![];
         {   // 1.update maker account balance and order
             let maker_slot_id = Self::get_actual_slot(op.tx.maker.sub_account_id, op.tx.maker.slot_id);
@@ -107,7 +117,7 @@ impl ZkLinkState {
             let new_nonce = order.nonce;
             let new_residue = order.residue.0.clone();
             updates.push((
-                op.maker,
+                op.tx.maker.account_id,
                 AccountUpdate::UpdateTidyOrder {
                     slot_id: op.tx.maker.slot_id,
                     sub_account_id: op.tx.maker.sub_account_id,
@@ -116,32 +126,36 @@ impl ZkLinkState {
                 }
             ));
             // modified balance
-            let old_balance = maker_account.get_balance(taker_buy_token);
-            maker_account.sub_balance(taker_buy_token, &taker_buy_amount);
-            let new_balance = maker_account.get_balance(taker_buy_token);
+            let old_balance = maker_account.get_balance(maker_sell_token);
+            maker_account.sub_balance(maker_sell_token, &maker_sell_amount);
+            let new_balance = maker_account.get_balance(maker_sell_token);
             updates.push((
-                op.maker,
+                op.tx.maker.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (taker_buy_token_base, op.tx.maker.sub_account_id, old_balance, new_balance),
+                    balance_update: (maker_sell_token_base, op.tx.maker.sub_account_id, old_balance, new_balance),
                     old_nonce: maker_account.nonce,
                     new_nonce: maker_account.nonce,
                 }
             ));
         }
         {   // 2.update maker account balance
-            let old_balance = maker_account.get_balance(maker_buy_token);
-            maker_account.add_balance(maker_buy_token, &(&maker_buy_amount - &maker_fee));
-            let new_balance = maker_account.get_balance(maker_buy_token);
+            let old_balance = maker_account.get_balance(taker_sell_token);
+            maker_account.add_balance(taker_sell_token, &(&taker_sell_amount - &maker_fee));
+            let new_balance = maker_account.get_balance(taker_sell_token);
             updates.push((
-                op.maker,
+                op.tx.maker.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (maker_buy_token_base, op.tx.maker.sub_account_id,old_balance, new_balance),
+                    balance_update: (taker_sell_token_base, op.tx.maker.sub_account_id, old_balance, new_balance),
                     old_nonce: maker_account.nonce,
                     new_nonce: maker_account.nonce,
                 }
             ));
         }
-        let mut taker_account = if op.taker == op.maker { maker_account.clone() } else { self.get_account(op.taker).unwrap() };
+        let mut taker_account = if op.tx.taker.account_id == op.tx.maker.account_id {
+            maker_account.clone()
+        } else {
+            self.get_account(op.tx.taker.account_id).unwrap()
+        };
         {   // 3.update taker account balance and order
             // maker slot id and taker slot id will not be same even if they are the same account
             let taker_slot_id = Self::get_actual_slot(op.tx.taker.sub_account_id, op.tx.taker.slot_id);
@@ -154,7 +168,7 @@ impl ZkLinkState {
             let new_nonce = order.nonce;
             let new_residue = order.residue.0.clone();
             updates.push((
-                op.taker,
+                op.tx.taker.account_id,
                 AccountUpdate::UpdateTidyOrder {
                     slot_id: op.tx.taker.slot_id,
                     sub_account_id: op.tx.taker.sub_account_id,
@@ -163,37 +177,37 @@ impl ZkLinkState {
                 }
             ));
             // modified balance
-            let old_balance = taker_account.get_balance(maker_buy_token);
-            taker_account.sub_balance(maker_buy_token, &maker_buy_amount);
-            let new_balance = taker_account.get_balance(maker_buy_token);
+            let old_balance = taker_account.get_balance(taker_sell_token);
+            taker_account.sub_balance(taker_sell_token, &taker_sell_amount);
+            let new_balance = taker_account.get_balance(taker_sell_token);
             updates.push((
-                op.taker,
+                op.tx.taker.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (maker_buy_token_base, op.tx.taker.sub_account_id,old_balance, new_balance),
+                    balance_update: (taker_sell_token_base, op.tx.taker.sub_account_id, old_balance, new_balance),
                     old_nonce: taker_account.nonce,
                     new_nonce: taker_account.nonce,
                 }
             ));
         }
         {   // 4.update taker account balance
-            let old_balance = taker_account.get_balance(taker_buy_token);
-            taker_account.add_balance(taker_buy_token, &(&taker_buy_amount - &taker_fee));
-            let new_balance = taker_account.get_balance(taker_buy_token);
+            let old_balance = taker_account.get_balance(maker_sell_token);
+            taker_account.add_balance(maker_sell_token, &(&maker_sell_amount - &taker_fee));
+            let new_balance = taker_account.get_balance(maker_sell_token);
             updates.push((
-                op.taker,
+                op.tx.taker.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (taker_buy_token_base, op.tx.taker.sub_account_id, old_balance, new_balance),
+                    balance_update: (maker_sell_token_base, op.tx.taker.sub_account_id, old_balance, new_balance),
                     old_nonce: taker_account.nonce,
                     new_nonce: taker_account.nonce,
                 }
             ));
         }
-        let mut submitter_account = if op.submitter == op.taker {
+        let mut submitter_account = if op.tx.account_id == op.tx.taker.account_id {
             taker_account.clone()
-        } else if op.submitter == op.maker {
+        } else if op.tx.account_id == op.tx.maker.account_id {
             maker_account.clone()
         } else {
-            self.get_account(op.submitter).unwrap()
+            self.get_account(op.tx.account_id).unwrap()
         };
         let actual_fee_token = Self::get_actual_token_by_sub_account( op.tx.sub_account_id,op.tx.fee_token);
         {   // 5.update submitter account balance
@@ -202,7 +216,7 @@ impl ZkLinkState {
             submitter_account.sub_balance(actual_fee_token, &op.tx.fee);
             let new_balance = submitter_account.get_balance(actual_fee_token);
             updates.push((
-                op.submitter,
+                op.tx.account_id,
                 AccountUpdate::UpdateBalance {
                     balance_update: (op.tx.fee_token, op.tx.sub_account_id, old_balance, new_balance),
                     old_nonce,
@@ -212,40 +226,45 @@ impl ZkLinkState {
             // 6.update submitter account sell_token balance
             // trading fee collected to MAIN_SUB_ACCOUNT_ID similar to protocol fee
             let fee_collect_sub_account_id = MAIN_SUB_ACCOUNT_ID;
-            let taker_buy_token = Self::get_actual_token_by_sub_account(fee_collect_sub_account_id,taker_buy_token_base);
+            let taker_buy_token = Self::get_actual_token_by_sub_account(fee_collect_sub_account_id, maker_sell_token_base);
             let old_balance = submitter_account.get_balance(taker_buy_token);
             submitter_account.add_balance(taker_buy_token, &taker_fee);
             let new_balance = submitter_account.get_balance(taker_buy_token);
             updates.push((
-                op.submitter,
+                op.tx.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (taker_buy_token_base, fee_collect_sub_account_id, old_balance, new_balance),
+                    balance_update: (maker_sell_token_base, fee_collect_sub_account_id, old_balance, new_balance),
                     old_nonce,
                     new_nonce: old_nonce,
                 }
             ));
             // 7.update submitter account buy_token balance
-            let maker_buy_token = Self::get_actual_token_by_sub_account(fee_collect_sub_account_id,maker_buy_token_base);
+            let maker_buy_token = Self::get_actual_token_by_sub_account(fee_collect_sub_account_id, taker_sell_token_base);
             let old_balance = submitter_account.get_balance(maker_buy_token);
             submitter_account.add_balance(maker_buy_token, &maker_fee);
             let new_balance = submitter_account.get_balance(maker_buy_token);
             updates.push((
-                op.submitter,
+                op.tx.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (maker_buy_token_base, fee_collect_sub_account_id, old_balance, new_balance),
+                    balance_update: (taker_sell_token_base, fee_collect_sub_account_id, old_balance, new_balance),
                     old_nonce,
                     new_nonce: old_nonce,
                 }
             ));
         }
 
-        if  op.maker != op.taker && op.maker != op.submitter {
-            self.insert_account(op.maker, maker_account);
+        // update op
+        op.maker_sell_amount = maker_sell_amount;
+        op.taker_sell_amount = taker_sell_amount;
+
+        // update account
+        if op.tx.maker.account_id != op.tx.taker.account_id && op.tx.maker.account_id != op.tx.account_id {
+            self.insert_account(op.tx.maker.account_id, maker_account);
         }
-        if op.taker != op.submitter {
-            self.insert_account(op.taker, taker_account);
+        if op.tx.taker.account_id != op.tx.account_id {
+            self.insert_account(op.tx.taker.account_id, taker_account);
         }
-        self.insert_account(op.submitter, submitter_account);
+        self.insert_account(op.tx.account_id, submitter_account);
         self.collect_fee(op.tx.fee_token, &op.tx.fee, &mut updates);
 
         Ok(updates)
@@ -275,7 +294,7 @@ impl ZkLinkState {
         let verify_account = |order: &Order, price: &BigUint| {
             // Check order account
             let account = if check_signature{
-                let pk = order.verify_signature().ok_or(format_err!("Invalid l2 signature"))?;
+                let pk = order.signature.pub_key_hash();
                 self.ensure_account_active_and_tx_pk_correct(order.account_id, pk)?
             } else {
                 self.get_account(order.account_id)
@@ -310,7 +329,10 @@ impl ZkLinkState {
                 (amount, order.quote_token_id)
             };
             let balance = account.get_balance(Self::get_actual_token_by_sub_account(order.sub_account_id, token));
-            ensure!(balance >= necessary_amount, "Insufficient Balance");
+            ensure!(
+                 balance >= necessary_amount,
+                "Insufficient Balance"
+            );
 
             Ok(OrderContext { residue: residue.clone()})
         };

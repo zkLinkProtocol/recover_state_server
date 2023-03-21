@@ -101,7 +101,6 @@ impl TreeState {
                         .state
                         .get_account(op.from)
                         .ok_or_else(|| format_err!("TransferToNew fail: Nonexistent account"))?;
-                    // op.tx.account_id = from.address;
                     op.tx.nonce = from.nonce;
 
                     let mut op = TransferOutcome::TransferToNew(*op);

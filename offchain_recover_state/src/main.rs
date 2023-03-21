@@ -23,8 +23,8 @@ struct Opt {
     #[structopt(long = "continue", name = "continue")]
     continue_mode: bool,
 
-    /// Restore data until the last verified block and exit
-    #[structopt(long)]
+    /// Restore data until the last verified block and exit, on by default,
+    #[structopt(long, parse(try_from_str), default_value = "true")]
     finite: bool,
 
     /// Expected tree root hash after restoring. This argument is ignored if mode is not `finite`
@@ -37,7 +37,7 @@ async fn main() {
     dotenv().expect(".env file not found");
     let _sentry_guard = init();
 
-    let opt = Opt::from_args();
+    let opt: Opt = Opt::from_args();
     let config = RecoverStateConfig::from_env();
 
     let connection_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
