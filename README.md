@@ -72,13 +72,11 @@ If there is an interruption, run the `continue` command
 ```
 
 
-### Start the exodus Server
+### Start Exodus Server and Exodus Prove
 To start the server, run the following command:
 ```
 ./target/release/zklink_recover_state --server
 ```
-
-### Start the exodus Prover
 To start the prover and generate a proof for the server to receive a create proof command, run the following command:
 ```
 ./target/release/exduos_prover tasks
