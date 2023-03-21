@@ -79,7 +79,7 @@ impl ServerData {
 
     pub(crate) async fn get_proof(
         &self,
-        exit_info: ExitInfo,
+        mut exit_info: ExitInfo,
     ) -> actix_web::Result<Option<ExitProofData>>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
@@ -87,6 +87,15 @@ impl ServerData {
         ).0 {
             return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
         }
+        if let Some(&id) = self.recovered_state
+            .account_id_by_address
+            .get(&exit_info.account_address)
+        {
+            exit_info.account_id = id;
+        } else {
+            return Ok(None)
+        };
+
         let mut storage = self.access_storage().await?;
         let proof = storage.prover_schema()
             .get_proof_by_exit_info((&exit_info).into())
