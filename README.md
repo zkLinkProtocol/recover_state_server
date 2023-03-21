@@ -25,6 +25,10 @@ Before you begin, you will need to have the following software installed:
 ```
 cargo install diesel_cli --no-default-features --features postgres
 ```
+Load git repository:
+```
+git clone --recursive https://github.com/zkLinkProtocol/recover_state_server.git
+```
 
 ## Getting Started
 
