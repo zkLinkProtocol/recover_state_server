@@ -62,20 +62,20 @@ Your need to modify the following configuration:
 ### Recover ZkLink state
 To recover the state, run the following `genesis` command:
 ```
-./target/debug/offchain_recover_state --genesis
+./target/debug/recover_state --genesis
 ```
 This command will take several hours to complete. Please be patient and wait until the command finishes.
 
 If there is an interruption, run the `continue` command
 ```
-./target/debug/offchain_recover_state --continue
+./target/debug/recover_state --continue
 ```
 
 
 ### Start Exodus Server and Exodus Prove
 To start the server, run the following command:
 ```
-./target/release/zklink_recover_state --server
+./target/release/exodus_server --server
 ```
 To start the prover and generate a proof for the server to receive a create proof command, run the following command:
 ```
