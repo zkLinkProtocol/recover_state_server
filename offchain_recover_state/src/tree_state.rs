@@ -1,3 +1,4 @@
+use std::time::Instant;
 use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
 use tracing::info;
@@ -80,7 +81,9 @@ impl TreeState {
         let mut ops = Vec::new();
         let mut current_op_block_index = 0u32;
 
-        for operation in operations {
+        let timer = Instant::now();
+        for (index, operation) in operations.into_iter().enumerate() {
+            info!("operations[{}] type: {:?}", index, operation.op_code());
             match operation {
                 ZkLinkOp::Deposit(op) => {
                     let mut op = <ZkLinkState as TxHandler<Deposit>>::create_op(&self.state, op.tx)
@@ -224,6 +227,7 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<OrderMatching>>::unsafe_apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("OrderMatching fail: {}", e))?;
+                    if ops_block.block_num == 1770.into() { info!("block_index: {}, \nupdates :{:?}", index, updates); }
                     let tx_result = OpSuccess { updates, executed_op: (*op).into()};
 
                     current_op_block_index = self.update_from_tx(
@@ -235,6 +239,7 @@ impl TreeState {
                 }
                 ZkLinkOp::Noop(_) => {}
             }
+            info!("elapsed: {:?} ms", timer.elapsed().as_millis());
         }
 
         let fee_account_address = self

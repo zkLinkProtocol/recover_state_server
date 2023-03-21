@@ -33,10 +33,11 @@ git clone --recursive https://github.com/zkLinkProtocol/recover_state_server.git
 ## Getting Started
 
 ### Create the Database
+First, You need to configure the `DATABASE_URL` environment.
 
-To create the database, run the following command in the `storage` directory:
+The, to create the database, run the following command in the `storage` directory:
 ```
-diesel setup
+diesel database setup
 ```
 This will create the necessary tables in your PostgreSQL database.
 
@@ -74,7 +75,7 @@ If there is an interruption, run the `continue` command
 ### Start the exodus Server
 To start the server, run the following command:
 ```
-./target/release/exduos_server --server
+./target/release/zklink_recover_state --server
 ```
 
 ### Start the exodus Prover

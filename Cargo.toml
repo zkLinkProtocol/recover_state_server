@@ -19,6 +19,7 @@ dotenvy = "0.15.1"
 anyhow = "1.0"
 structopt = "0.3.20"
 serde = "1.0.137"
+serde_json = "1.0"
 bigdecimal = { version = "0.3.0"}
 tokio = { version = "1.0", features = ["full"] }
 
@@ -33,11 +34,16 @@ tracing = {version= "0.1", features = ["log"]}
 tracing-subscriber = "0.3"
 
 [[bin]]
-name = "zklink_recover_state"
+name = "exodus_server"
 path = "src/main.rs"
 
-[lib]
-path = "src/lib.rs"
+[[bin]]
+name = "exodus_prover"
+path = "prover/src/main.rs"
+
+[[bin]]
+name = "recover_state"
+path = "offchain_recover_state/src/main.rs"
 
 [workspace]
 members = [
