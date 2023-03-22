@@ -13,7 +13,9 @@ use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recovered_state::RecoveredState;
-use crate::utils::{BatchExitInfo, convert_balance_resp, convert_to_actix_internal_error, SubAccountBalances};
+use crate::request::BatchExitRequest;
+use crate::response::{ExodusResponse, ExodusError};
+use crate::utils::{convert_balance_resp, SubAccountBalances};
 
 #[derive(Clone)]
 pub struct ServerData {
@@ -51,41 +53,38 @@ impl ServerData {
         }
     }
 
-    async fn access_storage(&self) -> actix_web::Result<StorageProcessor<'_>> {
+    async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
         self.conn_pool
             .access_storage()
             .await
-            .map_err(convert_to_actix_internal_error)
     }
 
-    pub(crate) async fn get_balances_by_storage(&self, account_address: ZkLinkAddress) -> actix_web::Result<Option<SubAccountBalances>>{
+    pub(crate) async fn get_balances_by_storage(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusError>{
         let mut storage = self.access_storage().await?;
         let Some(StorageAccount{id, ..}) = storage.chain()
             .account_schema()
             .account_by_address(account_address.as_bytes())
-            .await
-            .map_err(convert_to_actix_internal_error)? else
+            .await? else
         {
-            return Ok(None)
+            return Err(ExodusError::AccountNotExist)
         };
         let balances = storage.chain()
             .account_schema()
             .account_balances(id,None)
-            .await
-            .map_err(convert_to_actix_internal_error)?;
+            .await?;
 
-        Ok(Some(convert_balance_resp(balances)))
+        Ok(convert_balance_resp(balances))
     }
 
     pub(crate) async fn get_proof(
         &self,
         mut exit_info: ExitInfo,
-    ) -> actix_web::Result<Option<ExitProofData>>{
+    ) -> Result<ExitProofData, ExodusError>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
-            return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
+            return Err(ExodusError::InvalidL1L2Token)
         }
         if let Some(&id) = self.recovered_state
             .account_id_by_address
@@ -93,30 +92,32 @@ impl ServerData {
         {
             exit_info.account_id = id;
         } else {
-            return Ok(None)
+            return Err(ExodusError::AccountNotExist)
         };
 
         let mut storage = self.access_storage().await?;
         let proof = storage.prover_schema()
             .get_proof_by_exit_info((&exit_info).into())
-            .await
-            .map_err(convert_to_actix_internal_error)?;
-        let exit_data = proof.map(|proof| {
+            .await?;
+        let Some(exit_data) = proof.map(|proof| {
             let mut proof: ExitProofData  = proof.into();
             proof.exit_info.account_address = exit_info.account_address;
             proof
-        });
+        }) else {
+            return Err(ExodusError::ExitProofTaskNotExist)
+        };
+
         Ok(exit_data)
     }
 
     pub(crate) async fn get_proofs(
         &self,
-        exit_info: BatchExitInfo
-    ) -> actix_web::Result<Option<Vec<ExitProofData>>>{
+        exit_info: BatchExitRequest
+    ) -> Result<Vec<ExitProofData>, ExodusError>{
         let Some(&id) = self.recovered_state
             .account_id_by_address
             .get(&exit_info.address) else {
-            return Ok(None)
+            return Err(ExodusError::AccountNotExist)
         };
         let mut storage = self.access_storage().await?;
         let proof = storage.prover_schema()
@@ -125,8 +126,7 @@ impl ServerData {
                 *exit_info.sub_account_id as i16,
                 *exit_info.token_id as i32
             )
-            .await
-            .map_err(convert_to_actix_internal_error)?;
+            .await?;
         let exit_data = proof
             .into_iter()
             .map(|proof|{
@@ -135,18 +135,18 @@ impl ServerData {
                 proof
             })
             .collect();
-        Ok(Some(exit_data))
+        Ok(exit_data)
     }
 
     pub(crate) async fn generate_proof_task(
         &self,
         mut exit_info: ExitInfo,
-    ) -> actix_web::Result<()>{
+    ) -> Result<(), ExodusError>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
-            return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
+            return Err(ExodusError::InvalidL1L2Token)
         }
         exit_info.account_id = *self.check_exit_info(
             &exit_info.account_address,
@@ -157,15 +157,14 @@ impl ServerData {
         let mut storage = self.access_storage().await?;
         storage.prover_schema()
             .insert_exit_task((&exit_info).into())
-            .await
-            .map_err(convert_to_actix_internal_error)?;
+            .await?;
         Ok(())
     }
 
     pub(crate) async fn generate_proof_tasks(
         &self,
-        exit_info: BatchExitInfo,
-    ) -> actix_web::Result<()>{
+        exit_info: BatchExitRequest,
+    ) -> Result<(), ExodusError>{
         let (&account_id, token_info) = self.check_exit_info(
             &exit_info.address,
             exit_info.sub_account_id,
@@ -184,8 +183,7 @@ impl ServerData {
                         l1_target_token: *exit_info.token_id as i32,
                         l2_source_token: *exit_info.token_id as i32,
                     })
-                    .await
-                    .map_err(convert_to_actix_internal_error)?;
+                    .await?;
             }
         } else {
             // process stable coin token(usdx)
@@ -202,8 +200,7 @@ impl ServerData {
                             l1_target_token: *token_id as i32,
                             l2_source_token: *exit_info.token_id as i32,
                         })
-                        .await
-                        .map_err(convert_to_actix_internal_error)?;
+                        .await?;
                 }
             }
         }
@@ -211,15 +208,15 @@ impl ServerData {
         Ok(())
     }
 
-    pub(crate) fn get_contracts(&self) -> HashMap<ChainId, ZkLinkAddress>{
-        self.contracts.clone()
+    pub(crate) fn get_contracts(&self) -> ExodusResponse<HashMap<ChainId, ZkLinkAddress>> {
+        ExodusResponse::Ok().data(self.contracts.clone())
     }
 
-    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Option<StoredBlockInfo> {
+    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Result<StoredBlockInfo, ExodusError> {
         if !self.contracts.contains_key(&chain_id) {
-            return None
+            return Err(ExodusError::ChainNotExist)
         }
-        self.recovered_state.stored_block_info(chain_id)
+        Ok(self.recovered_state.stored_block_info(chain_id))
     }
 
     fn check_exit_info(
@@ -227,19 +224,19 @@ impl ServerData {
         address: &ZkLinkAddress,
         sub_account_id: SubAccountId,
         token_id: TokenId
-    ) -> actix_web::Result<(&AccountId , &TokenInfo)> {
+    ) -> Result<(&AccountId , &TokenInfo), ExodusError> {
         let Some(account_id) = self.recovered_state
             .account_id_by_address
             .get(address) else {
-            return Err(actix_web::error::ErrorNotFound("Account not found"))
+            return Err(ExodusError::AccountNotExist)
         };
         let Some(token_info) = self.acquired_tokens
             .token_by_id
             .get(&token_id) else {
-            return Err(actix_web::error::ErrorNotFound("Token not found"))
+            return Err(ExodusError::TokenNotExist)
         };
         if self.recovered_state.empty_balance(*account_id, sub_account_id, token_info.token_id) {
-            return Err(actix_web::error::ErrorBadRequest("The token balance of the account is 0"))
+            return Err(ExodusError::NonBalance)
         }
 
         Ok((account_id, token_info))

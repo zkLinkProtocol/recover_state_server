@@ -3,6 +3,7 @@ use zklink_storage::ConnectionPool;
 use zklink_types::block::{Block, StoredBlockInfo};
 use zklink_types::{AccountId, AccountMap, ChainId, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_types::utils::{calculate_actual_token, recover_raw_token, recover_sub_account_by_token};
+use crate::response::ExodusError;
 use crate::utils::SubAccountBalances;
 
 #[derive(Debug, Clone)]
@@ -50,10 +51,10 @@ impl RecoveredState {
         }
     }
 
-    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> actix_web::Result<Option<SubAccountBalances>>{
+    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusError>{
         let Some(&id) = self.account_id_by_address
             .get(&account_address) else {
-            return Ok(None)
+            return Err(ExodusError::AccountNotExist)
         };
         let balances = self.accounts
             .get(&id)
@@ -68,7 +69,7 @@ impl RecoveredState {
                 .or_default()
                 .insert(real_token_id, balance.reserve0.clone());
         }
-        Ok(Some(resp))
+        Ok(resp)
     }
 
     pub fn empty_balance(&self, account_id: AccountId, sub_account_id: SubAccountId, token_id: TokenId) -> bool {
@@ -80,7 +81,7 @@ impl RecoveredState {
             .map_or(true, |balance| balance.is_zero())
     }
 
-    pub(crate) fn stored_block_info(&self, chain_id: ChainId) -> Option<StoredBlockInfo> {
-        Some(self.last_block_info.stored_block_info(chain_id))
+    pub(crate) fn stored_block_info(&self, chain_id: ChainId) -> StoredBlockInfo {
+        self.last_block_info.stored_block_info(chain_id)
     }
 }
