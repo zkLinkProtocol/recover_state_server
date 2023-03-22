@@ -140,7 +140,7 @@ impl ServerData {
 
     pub(crate) async fn generate_proof_task(
         &self,
-        exit_info: ExitInfo,
+        mut exit_info: ExitInfo,
     ) -> actix_web::Result<()>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
@@ -148,11 +148,11 @@ impl ServerData {
         ).0 {
             return Err(actix_web::error::ErrorBadRequest("The relationship between l1 token and l2 token is incorrect"))
         }
-        self.check_exit_info(
+        exit_info.account_id = *self.check_exit_info(
             &exit_info.account_address,
             exit_info.sub_account_id,
             exit_info.l2_source_token
-        )?;
+        )?.0;
 
         let mut storage = self.access_storage().await?;
         storage.prover_schema()
