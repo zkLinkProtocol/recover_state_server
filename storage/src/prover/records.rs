@@ -22,7 +22,7 @@ impl Display for StoredExitProof {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f, "[account_id({}), sub_account_id({}), l2_source_token({})] => [chain_id({}), l1_target_token({})],",
-            self.chain_id, self.account_id, self.sub_account_id, self.l1_target_token, self.l2_source_token,
+            self.account_id, self.sub_account_id, self.l2_source_token, self.chain_id, self.l1_target_token,
         )
     }
 }
@@ -40,7 +40,7 @@ impl Display for StoredExitInfo {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f, "[account_id({}), sub_account_id({}), l2_source_token({})] => [chain_id({}), l1_target_token({})],",
-            self.chain_id, self.account_id, self.sub_account_id, self.l1_target_token, self.l2_source_token,
+            self.account_id, self.sub_account_id, self.l2_source_token, self.chain_id, self.l1_target_token,
         )
     }
 }
