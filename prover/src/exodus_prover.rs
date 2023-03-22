@@ -88,9 +88,10 @@ impl ExodusProver {
             .await?
             .map(|t| {
                 assert!(
-                    t.proof.is_none()
-                    && t.created_at.is_none()
+                    t.created_at.is_some()
                     && t.finished_at.is_none()
+                    && t.proof.is_none()
+                    && t.amount.is_none()
                 );
                 (&t).into()
             });
