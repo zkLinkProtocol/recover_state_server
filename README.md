@@ -50,7 +50,11 @@ cargo build --release
 This will create a binary file in the `target/release` directory.
 
 ### Configure the Environment Variables
-Your need to modify the following configuration:
+First, there is a `.env.eg` file in the root path of our project, copy and rename it to `.env`.
+```shell
+cp .env.eg .env
+```
+Then, you need to modify the following configuration:
 
 1. `CLIENT_WEB3_URL` for `CHAIN_1` and `CHAIN_2`: the url of the rpc node of the corresponding chain.
 2. `CONTRACT_BLOCK_HEIGHT` for `CHAIN_1` and `CHAIN_2`: the block height of the zklink contract depolyment.
