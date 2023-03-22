@@ -1,6 +1,7 @@
 // Built-in deps
 use std::time::Instant;
 use chrono::Utc;
+use tracing::info;
 // External imports
 // Workspace imports
 // Local imports
@@ -106,7 +107,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
         let stored_exit_proof = sqlx::query_as!(
             StoredExitProof,
-            "SELECT * FROM exit_proofs WHERE created_at IS NOT NULL AND finished_at IS NULL LIMIT 1",
+            "SELECT * FROM exit_proofs WHERE created_at IS NULL LIMIT 1",
         )
             .fetch_optional(transaction.conn())
             .await?;
@@ -175,17 +176,15 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
     /// Inserts task that generated exit proof.
     pub async fn insert_exit_task(&mut self, task: StoredExitInfo) -> QueryResult<()>{
+        info!("Insert new exit task: {}", task);
         let start = Instant::now();
 
-        let created_at = Utc::now();
         // counts tasks that have been started but not completed.
         sqlx::query!(
-            "INSERT INTO exit_proofs (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token, created_at) \
-            VALUES ($1, $2, $3, $4, $5, $6)\
+            "INSERT INTO exit_proofs (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) \
+            VALUES ($1, $2, $3, $4, $5)\
             ON CONFLICT (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) DO NOTHING",
-            task.chain_id, task.account_id,
-            task.sub_account_id, task.l1_target_token, task.l2_source_token,
-            created_at
+            task.chain_id, task.account_id, task.sub_account_id, task.l1_target_token, task.l2_source_token,
         )
             .execute(self.0.conn())
             .await?;

@@ -1,3 +1,4 @@
+use tracing::info;
 use recover_state_config::RecoverStateConfig;
 use zklink_crypto::circuit::account::CircuitAccount;
 use zklink_crypto::circuit::CircuitAccountTree;
@@ -87,8 +88,9 @@ impl ExodusProver {
             .load_exit_proof_task()
             .await?
             .map(|t| {
+                info!("Loading new task: {}", t);
                 assert!(
-                    t.created_at.is_some()
+                    t.created_at.is_none()
                     && t.finished_at.is_none()
                     && t.proof.is_none()
                     && t.amount.is_none()
