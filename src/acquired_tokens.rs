@@ -57,6 +57,10 @@ impl AcquiredTokens {
             Ok(None)
         }
     }
+
+    pub(crate) fn tokens(&self) -> HashMap<TokenId, TokenInfo>{
+        self.token_by_id.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
