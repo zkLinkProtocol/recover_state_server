@@ -45,10 +45,6 @@ pub fn create_exit_proof(
             total_chain_num,
         );
     info!("Exit witness generated: {} s", timer.elapsed().as_secs());
-    let commitment = exit_circuit
-        .pub_data_commitment
-        .expect("Witness should contract commitment");
-    info!("Proof commitment: {:?}", commitment);
 
     let proof = gen_verified_proof_for_exit_circuit(&config, exit_circuit)
         .map_err(|e| format_err!("Failed to generate proof: {}", e))?;

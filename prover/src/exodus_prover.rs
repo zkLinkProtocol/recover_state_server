@@ -46,6 +46,7 @@ impl ExodusProver {
         {
             circuit_account_tree.insert(*id, CircuitAccount::from(account));
         }
+        circuit_account_tree.root_hash();
         // loads the stored block info of last executed block.
         let last_executed_block_number = storage
             .chain()
