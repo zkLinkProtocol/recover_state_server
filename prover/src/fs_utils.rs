@@ -66,7 +66,7 @@ fn base_universal_setup_dir(zklink_home: &str) -> Result<PathBuf, anyhow::Error>
     let mut dir = PathBuf::new();
     // root is used by default for provers
     dir.push(zklink_home);
-    dir.push("keys");
+    dir.push("zklink_keys");
     anyhow::ensure!(dir.exists(), "Universal setup dir does not exits");
     Ok(dir)
 }
