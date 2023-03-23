@@ -22,21 +22,25 @@ Before you begin, you will need to have the following software installed:
 - [Rust and rustup](https://www.rust-lang.org/tools/install).
 - [PostgreSQL](https://www.postgresql.org/download/).
 - [Diesel](http://diesel.rs/) command-line tool for Rust. You can install it by running:
-```
+```shell
 cargo install diesel_cli --no-default-features --features postgres
 ```
 Load git repository:
-```
+```shell
 git clone --recursive https://github.com/zkLinkProtocol/recover_state_server.git
 ```
 
 ## Getting Started
-
+### Download the setup
+Run the following command in the `zklink_keys` directory:
+```shell
+axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
+```
 ### Create the Database
 First, You need to configure the `DATABASE_URL` environment.
 
 The, to create the database, run the following command in the `storage` directory:
-```
+```shell
 diesel database setup
 ```
 This will create the necessary tables in your PostgreSQL database.
@@ -44,7 +48,7 @@ This will create the necessary tables in your PostgreSQL database.
 ### Build the Project
 
 To build the project in release mode, run the following command:
-```
+```shell
 cargo build --release
 ```
 This will create a binary file in the `target/release` directory.
@@ -65,13 +69,13 @@ Then, you need to modify the following configuration:
 
 ### Recover ZkLink state
 To recover the state, run the following `genesis` command:
-```
+```shell
 ./target/debug/recover_state --genesis
 ```
 This command will take several hours to complete. Please be patient and wait until the command finishes.
 
 If there is an interruption, run the `continue` command
-```
+```shell
 ./target/debug/recover_state --continue
 ```
 

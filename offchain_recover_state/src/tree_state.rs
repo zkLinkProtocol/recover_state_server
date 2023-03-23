@@ -81,9 +81,7 @@ impl TreeState {
         let mut ops = Vec::new();
         let mut current_op_block_index = 0u32;
 
-        let timer = Instant::now();
         for (index, operation) in operations.into_iter().enumerate() {
-            info!("operations[{}] type: {:?}", index, operation.op_code());
             match operation {
                 ZkLinkOp::Deposit(op) => {
                     let mut op = <ZkLinkState as TxHandler<Deposit>>::create_op(&self.state, op.tx)
@@ -239,7 +237,6 @@ impl TreeState {
                 }
                 ZkLinkOp::Noop(_) => {}
             }
-            info!("elapsed: {:?} ms", timer.elapsed().as_millis());
         }
 
         let fee_account_address = self

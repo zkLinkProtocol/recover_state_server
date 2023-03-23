@@ -4,7 +4,6 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
 use zklink_crypto::bellman::kate_commitment::{Crs, CrsForLagrangeForm, CrsForMonomialForm};
-use zklink_crypto::params::{account_tree_depth, balance_tree_depth};
 use zklink_crypto::Engine;
 
 /// Returns universal setup in the monomial form of the given power of two (range: SETUP_MIN_POW2..=SETUP_MAX_POW2). Checks if file exists
@@ -39,20 +38,10 @@ pub fn get_universal_setup_lagrange_form(
 }
 
 pub fn get_exodus_verification_key_path(key_dir: &str) -> PathBuf {
-    let mut key = get_keys_root_dir(key_dir);
+    let mut key = PathBuf::new();
+    key.push(key_dir);
     key.push("verification_exit.key");
     key
-}
-
-pub fn get_keys_root_dir(key_dir: &str) -> PathBuf {
-    let mut out_dir = PathBuf::new();
-    out_dir.push(key_dir);
-    out_dir.push(&format!(
-        "account-{}_balance-{}",
-        account_tree_depth(),
-        balance_tree_depth(),
-    ));
-    out_dir
 }
 
 fn get_universal_setup_file_buff_reader(
@@ -78,7 +67,6 @@ fn base_universal_setup_dir(zklink_home: &str) -> Result<PathBuf, anyhow::Error>
     // root is used by default for provers
     dir.push(zklink_home);
     dir.push("keys");
-    dir.push("setup");
     anyhow::ensure!(dir.exists(), "Universal setup dir does not exits");
     Ok(dir)
 }
