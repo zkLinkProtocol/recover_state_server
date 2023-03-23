@@ -1,5 +1,3 @@
-use std::time::Instant;
-use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
 use tracing::info;
 use zklink_crypto::Fr;
@@ -15,6 +13,7 @@ use zklink_types::{
     Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching
 };
 use zklink_state::state::TransferOutcome;
+use crate::rollup_ops::RollupOpsBlock;
 
 /// Rollup accounts states
 pub struct TreeState {

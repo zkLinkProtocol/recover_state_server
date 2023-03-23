@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::{ExitInfo as ExitRequest};
@@ -138,10 +139,16 @@ async fn generate_proof_tasks_by_token(
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let num = config.api.workers_num;
+    let cors = if config.api.enable_http_cors {
+        Cors::permissive()
+    } else {
+        Cors::default()
+    };
     let server_data = ServerData::new(config).await;
 
     HttpServer::new(move || {
         App::new()
+            .wrap(cors)
             .app_data(web::Data::new(server_data.clone()))
             .route("/contracts", web::get().to(get_contracts))
             .route("/tokens", web::get().to(get_tokens))

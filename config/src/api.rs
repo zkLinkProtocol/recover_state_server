@@ -9,6 +9,8 @@ pub struct ApiConfig{
     pub server_http_port: u16,
     /// Work threads num which the API server is listening.
     pub workers_num: usize,
+    /// Enable cors cross-domain
+    pub enable_http_cors: bool,
 }
 
 impl ApiConfig {
