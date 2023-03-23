@@ -1,5 +1,5 @@
 pub mod exit_proof;
-pub mod fs_utils;
+pub mod utils;
 pub mod exodus_prover;
 pub mod exit_type;
 pub mod retries;

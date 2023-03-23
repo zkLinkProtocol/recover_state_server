@@ -60,7 +60,7 @@ pub fn gen_verified_proof_for_exit_circuit<C: Circuit<Engine> + Clone>(
     circuit: C,
 ) -> Result<SingleProof, anyhow::Error> {
     let vk = VerificationKey::read(File::open(
-        crate::fs_utils::get_exodus_verification_key_path(&config.runtime.key_dir)
+        crate::utils::get_exodus_verification_key_path(&config.runtime.key_dir)
     )?)?;
 
     info!("Proof for circuit started");
@@ -70,7 +70,7 @@ pub fn gen_verified_proof_for_exit_circuit<C: Circuit<Engine> + Clone>(
     let size_log2 = setup.n.next_power_of_two().trailing_zeros();
 
     let size_log2 = std::cmp::max(size_log2, SETUP_MIN_POW2); // for exit circuit
-    let key_monomial_form = crate::fs_utils::get_universal_setup_monomial_form(
+    let key_monomial_form = crate::utils::get_universal_setup_monomial_form(
         &config.runtime.zklink_home,
         size_log2
     )?;
