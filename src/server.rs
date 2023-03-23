@@ -139,14 +139,15 @@ async fn generate_proof_tasks_by_token(
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let num = config.api.workers_num;
-    let cors = if config.api.enable_http_cors {
-        Cors::permissive()
-    } else {
-        Cors::default()
-    };
+    let enable_http_cors = config.api.enable_http_cors;
     let server_data = ServerData::new(config).await;
 
     HttpServer::new(move || {
+        let cors = if enable_http_cors {
+            Cors::permissive()
+        } else {
+            Cors::default()
+        };
         App::new()
             .wrap(cors)
             .app_data(web::Data::new(server_data.clone()))
