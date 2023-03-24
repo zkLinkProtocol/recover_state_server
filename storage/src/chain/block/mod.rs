@@ -35,7 +35,7 @@ pub mod records;
 pub struct BlockSchema<'a, 'c>(pub &'a mut StorageProcessor<'c>);
 
 impl<'a, 'c> BlockSchema<'a, 'c> {
-        /// Given a block, stores its transactions in the database.
+    /// Given a block, stores its transactions in the database.
     pub async fn save_block_transactions(
         &mut self,
         block_number: BlockNumber,
@@ -45,6 +45,20 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             // Store the executed operation in the corresponding schema.
             let new_tx = NewExecutedTransaction::prepare_stored_tx(tx.clone(), block_number);
             OperationsSchema(self.0).store_executed_tx(new_tx).await?;
+        }
+        Ok(())
+    }
+
+    /// Given a block, update its priority transactions in the database.
+    pub async fn update_block_priority_transactions(
+        &mut self,
+        block_number: BlockNumber,
+        operations: Vec<ExecutedTx>,
+    ) -> QueryResult<()> {
+        for tx in &operations {
+            // Store the executed priority operation in the corresponding schema.
+            let new_tx = NewExecutedTransaction::prepare_stored_tx(tx.clone(), block_number);
+            OperationsSchema(self.0).update_executed_tx(new_tx).await?;
         }
         Ok(())
     }
@@ -256,7 +270,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         // Create DateTime from SystemTime
         let created_at = DateTime::<Utc>::from(d);
         BlockSchema(&mut transaction)
-            .save_block_transactions(block.block_number, block.block_transactions)
+            .update_block_priority_transactions(block.block_number, block.block_transactions)
             .await?;
 
         let new_block = StorageBlock {

@@ -1,5 +1,5 @@
 use ethers::abi::ethabi;
-use ethers::prelude::{Address, Transaction};
+use ethers::prelude::{Address, Bytes, Transaction, U256};
 use zklink_crypto::params::{INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH, INPUT_DATA_ETH_UINT_BYTES_WIDTH, INPUT_DATA_ROOT_HASH_BYTES_WIDTH};
 use zklink_types::{Account, ZkLinkOp, ZkLinkAddress};
 use std::str::FromStr;
@@ -17,6 +17,17 @@ pub struct NewToken {
     pub id: u16,
     #[ethevent(indexed, name = "token")]
     pub address: Address,
+}
+
+/// NewPriorityRequest defined in Events.sol
+#[derive(Debug, PartialEq, Eq, ethers::prelude::EthEvent)]
+#[ethevent(name = "NewPriorityRequest")]
+pub struct NewPriorityRequest {
+    pub sender: Address,
+    pub serial_id: u64,
+    pub op_type: u8,
+    pub pub_data: Bytes,
+    pub expiration_block: U256,
 }
 
 pub fn load_abi(json_file_content: &str) -> Abi {

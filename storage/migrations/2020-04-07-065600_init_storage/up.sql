@@ -378,6 +378,7 @@ CREATE TABLE recover_state_last_watched_block
     chain_id smallint NOT NULL,
     event_type text NOT NULL,
     block_number bigint NOT NULL,
+    last_serial_id bigint NOT NULL, -- Which serial id the watcher process the priority transaction from chain_id chain to
 
     PRIMARY KEY (chain_id, event_type)
 );

@@ -1,12 +1,15 @@
+use anyhow::format_err;
 use async_trait::async_trait;
 use ethers::contract::Contract;
-use ethers::prelude::{Address, Http, Middleware, Provider};
-use zklink_types::ChainId;
+use ethers::prelude::{Address, Filter, H256, Http, Log, Middleware, parse_log, Provider};
+use zklink_types::{ChainId, PriorityOp, ZkLinkAddress, ZkLinkPriorityOp};
 use ethers::core::types::BlockNumber as EthBlockNumber;
 use recover_state_config::Layer1Config;
+use zklink_storage::chain::operations::records::StoredSubmitTransaction;
 use zklink_storage::ConnectionPool;
+use crate::contract::LogInfo;
 use super::UpdateTokenEvents;
-use crate::contract::utils::{load_abi, new_provider_with_url, NewToken, ZKLINK_JSON};
+use crate::contract::utils::{load_abi, new_provider_with_url, NewPriorityRequest, NewToken, ZKLINK_JSON};
 use crate::database_storage_interactor::DatabaseStorageInteractor;
 use crate::storage_interactor::StorageInteractor;
 use crate::VIEW_BLOCKS_STEP;
@@ -15,18 +18,19 @@ pub struct EvmTokenEvents {
     contract: Contract<Provider<Http>>,
     chain_id: ChainId,
     last_sync_block_number: u64,
+    last_sync_serial_id: i64,
     connection_pool: ConnectionPool,
 }
 
 impl EvmTokenEvents {
     pub async fn new(config: &Layer1Config, connection_pool: ConnectionPool) -> Self{
-        let last_watched_block_number = {
+        let (last_watched_block_number, last_sync_serial_id) = {
             let mut storage = connection_pool.access_storage().await.unwrap();
             storage.recover_schema()
                 .last_watched_block_number(*config.chain.chain_id as i16, "token")
                 .await
                 .expect("Failed to get last watched block number")
-                .map(|num| num as u64)
+                .unwrap_or((config.contract.deployment_block as i64, -1))
         };
         let address = Address::from_slice(config.contract.address.as_bytes());
         let abi = load_abi(ZKLINK_JSON);
@@ -35,9 +39,83 @@ impl EvmTokenEvents {
         Self{
             contract: Contract::new(address, abi, client.into()),
             chain_id: config.chain.chain_id,
-            last_sync_block_number: last_watched_block_number.unwrap_or(config.contract.deployment_block),
+            last_sync_block_number: last_watched_block_number as u64,
+            last_sync_serial_id,
             connection_pool,
         }
+    }
+
+    fn get_event_signature(&self, name: &str) -> H256{
+        self.contract
+            .abi()
+            .event(name)
+            .expect("Main contract abi error")
+            .signature()
+    }
+
+    fn process_priority_ops(
+        &self,
+        last_serial_id: i64,
+        ops: Vec<PriorityOp>,
+    ) -> anyhow::Result<(i64, Vec<StoredSubmitTransaction>)> {
+        // Check whether serial_id of the received events is correct and converted to StoredSubmitTransaction.
+        if let Some(PriorityOp{serial_id, .. }) = ops.last(){
+            let mut priority_txs = Vec::with_capacity(ops.len());
+
+            assert!(last_serial_id + 1 >= 0, "Invalid last_serial_id");
+            let mut cur_serial_id = (last_serial_id + 1) as u64;
+
+            for PriorityOp{ data, serial_id, .. } in ops.iter() {
+                assert_eq!(cur_serial_id, *serial_id);
+
+                // Parsed into StoredSubmitTransaction
+                let tx = match data {
+                    ZkLinkPriorityOp::Deposit(deposit)  => deposit.into(),
+                    ZkLinkPriorityOp::FullExit(full_exit) => full_exit.into()
+                };
+                priority_txs.push(tx);
+
+                // update progress
+                cur_serial_id += 1;
+            };
+
+            Ok((*serial_id as i64, priority_txs))
+        } else {
+            Ok((last_serial_id, vec![]))
+        }
+    }
+
+    fn process_priority_op_events(&self, logs: Vec<Log>) -> anyhow::Result<Vec<PriorityOp>> {
+        logs
+            .into_iter()
+            .map(|log| {
+                let block_number = log.block_number.unwrap().as_u64();
+                let transaction_hash = log.transaction_hash.unwrap();
+                let event: NewPriorityRequest = parse_log(log)
+                    .map_err(|e|format_err!("Parse priority log error: {:?}", e))?;
+                let sender = ZkLinkAddress::from_slice(event.sender.as_bytes()).unwrap();
+                Ok(PriorityOp {
+                    serial_id: event.serial_id.into(),
+                    data: ZkLinkPriorityOp::parse_from_priority_queue_logs(
+                        event.pub_data.as_ref(),
+                        event.op_type,
+                        sender,
+                        event.serial_id,
+                        transaction_hash,
+                    )
+                        .unwrap(),
+                    deadline_block: event.expiration_block.as_u64(),
+                    eth_block: block_number,
+                })
+            })
+            .collect::<anyhow::Result<Vec<_>>>()
+    }
+
+    fn process_token_logs(&self, logs: Vec<Log>) -> anyhow::Result<Vec<NewToken>> {
+        logs
+            .into_iter()
+            .map(|log| parse_log::<NewToken>(log).map_err(|e|format_err!("Parse token log error: {:?}", e)))
+            .collect::<anyhow::Result<Vec<NewToken>>>()
     }
 }
 
@@ -59,21 +137,53 @@ impl UpdateTokenEvents for EvmTokenEvents {
     async fn update_token_events(&mut self) -> anyhow::Result<u64> {
         let from = self.last_sync_block_number + 1;
         let to = self.last_sync_block_number + VIEW_BLOCKS_STEP;
-        let events: Vec<NewToken> = self.contract
-            .event_for_name("NewToken")?
+        let topics: Vec<H256> = vec![
+            self.get_event_signature("NewToken"),
+            self.get_event_signature("NewPriorityRequest"),
+        ];
+        let filter = Filter::default()
+            .address(vec![self.contract.address()])
             .from_block(EthBlockNumber::Number(from.into()))
             .to_block(EthBlockNumber::Number(to.into()))
-            .query()
-            .await?;
+            .topic0(topics.clone());
+        let logs = self.contract
+            .client()
+            .get_logs(&filter)
+            .await
+            .map_err(|e| format_err!("Get logs: {}", e))?;
 
-        let mut interactor = {
-            let storage = self.connection_pool.access_storage().await?;
-            DatabaseStorageInteractor::new(storage)
-        };
-        interactor.store_tokens(&events, self.chain_id).await;
-        interactor.update_token_event_progress(self.chain_id,to).await;
+        let mut token_logs = Vec::new();
+        let mut priority_logs = Vec::new();
+        for log in logs {
+            if topics[0] == log.topics()[0]{
+                token_logs.push(log);
+            } else if topics[1] == log.topics()[0]{
+                priority_logs.push(log);
+            } else {
+                panic!("Not exist topic");
+            }
+        }
 
+        // priority txs
+        let ops = self.process_priority_op_events(priority_logs)?;
+        let (last_serial_id, submit_ops) = self.process_priority_ops(self.last_sync_serial_id, ops)?;
+        // registered tokens
+        let token_events = self.process_token_logs(token_logs)?;
+
+        // updated storage
+        let storage = self.connection_pool.access_storage().await?;
+        let mut interactor = DatabaseStorageInteractor::new(storage);
+        interactor.update_priority_ops_and_tokens(
+            self.chain_id,
+            to,
+            last_serial_id,
+            submit_ops,
+            token_events
+        ).await;
+
+        // update cache
         self.last_sync_block_number = to;
+        self.last_sync_serial_id = last_serial_id;
         Ok(to)
     }
 }

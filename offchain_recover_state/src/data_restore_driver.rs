@@ -107,7 +107,7 @@ where
             .last_watched_block_number(*zklink_contract.layer2_chain_id() as i16, "block")
             .await
             .expect("load last watched block number failed")
-            .map(|num|num as u64)
+            .map(|num|num.0 as u64)
             .unwrap_or(deploy_block_number);
 
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
@@ -217,8 +217,13 @@ where
         account_map.insert(GLOBAL_ASSET_ACCOUNT_ID, global_asset_account);
 
         // Init state tree
+        let last_serial_ids = self.update_token_events
+            .iter()
+            .map(|(chain_id, _)|(*chain_id, -1))
+            .collect();
         let mut tree_state = TreeState::load(
             BlockNumber(0),
+            last_serial_ids,
             account_map,
             AccountId(0),
         );
@@ -260,9 +265,14 @@ where
         self.rollup_events = interactor.get_block_events_state_from_storage(
             self.zklink_contract.layer2_chain_id()
         ).await;
-        let tree_state = interactor.get_tree_state().await;
+        let chain_ids = self.update_token_events
+            .iter()
+            .map(|(chain_id, _)|*chain_id)
+            .collect();
+        let tree_state = interactor.get_tree_state(chain_ids).await;
         self.tree_state = TreeState::load(
             tree_state.last_block_number,
+            tree_state.last_serial_ids,
             tree_state.account_map,
             tree_state.fee_acc_id,
         );

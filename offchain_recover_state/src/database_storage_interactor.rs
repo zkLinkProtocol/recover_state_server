@@ -8,7 +8,7 @@ use zklink_storage::{recover_state::records::{NewRollupOpsBlock}, StorageProcess
 use zklink_crypto::convert::FeConvert;
 use zklink_crypto::params::{USD_SYMBOL, USD_TOKEN_ID};
 use zklink_types::{AccountId, {block::Block, AccountUpdate}, ChainId, TokenId, Token, BlockNumber};
-use zklink_storage::chain::operations::records::{AggType, StoredAggregatedOperation};
+use zklink_storage::chain::operations::records::{AggType, StoredAggregatedOperation, StoredSubmitTransaction};
 use zklink_storage::tokens::records::{DbToken, DbTokenOfChain};
 // Local deps
 use crate::storage_interactor::StoredTreeState;
@@ -48,8 +48,16 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("reload token from db failed")
     }
 
-    async fn store_tokens(&mut self, tokens: &[NewToken], chain_id: ChainId) {
-        for token in tokens.iter(){
+    async fn update_priority_ops_and_tokens(
+        &mut self,
+        chain_id: ChainId,
+        last_watched_block_number: u64,
+        last_serial_id: i64,
+        submit_ops: Vec<StoredSubmitTransaction>,
+        token_events: Vec<NewToken>,
+    ) {
+        let mut transaction = self.storage.start_transaction().await.unwrap();
+        for token in token_events.iter(){
             let db_token = DbToken{
                 token_id: token.id as i32,
                 symbol: "".to_string(),
@@ -57,28 +65,45 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 usd_price: Default::default(),
                 last_update_time: Default::default(),
             };
-            self.storage
+            transaction
                 .tokens_schema()
                 .store_token_price(db_token)
                 .await
                 .expect("failed to store token");
         }
-        let tokens = tokens.iter()
-            .map(|token_event|
-                DbTokenOfChain {
-                    id: token_event.id as i32,
-                    chain_id: *chain_id as i16,
-                    address: token_event.address.as_bytes().to_vec(),
-                    decimals: 18,
-                    fast_withdraw: false
-                }
-            )
-            .collect();
-        self.storage
+        transaction
             .tokens_schema()
-            .save_tokens(tokens)
+            .save_tokens(token_events.iter()
+                .map(|token_event|
+                    DbTokenOfChain {
+                        id: token_event.id as i32,
+                        chain_id: *chain_id as i16,
+                        address: token_event.address.as_bytes().to_vec(),
+                        decimals: 18,
+                        fast_withdraw: false
+                    }
+                )
+                .collect()
+            )
             .await
             .expect("failed to store token");
+        transaction
+            .chain()
+            .operations_schema()
+            .submit_priority_txs(submit_ops)
+            .await
+            .expect("failed to store token");
+        transaction
+            .recover_schema()
+            .update_last_watched_block_number(
+                *chain_id as i16,
+                "token",
+                last_watched_block_number as i64,
+                last_serial_id
+            )
+            .await
+            .expect("failed to update last_watched_block_number");
+        transaction.commit().await.unwrap();
     }
 
     async fn save_rollup_ops(&mut self, blocks: &[RollupOpsBlock]) {
@@ -164,18 +189,6 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
     }
 
     async fn init_token_event_progress(&mut self, chain_id: ChainId, last_block_number: BlockNumber) {
-        self.storage
-            .recover_schema()
-            .insert_last_watched_block_number(*chain_id as i16, "token", *last_block_number as i64)
-            .await
-            .expect("failed to initialize last watched block number");
-    }
-
-    async fn update_token_event_progress(
-        &mut self,
-        chain_id: ChainId,
-        last_watched_block_number: u64,
-    ) {
         // add USD token to token_price table
         self.storage.tokens_schema()
             .store_token_price(DbToken {
@@ -187,12 +200,16 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             })
             .await
             .expect("failed to add USD token");
-
         self.storage
             .recover_schema()
-            .update_last_watched_block_number(*chain_id as i16, "token", last_watched_block_number as i64)
+            .insert_last_watched_block_number(
+                *chain_id as i16,
+                "token",
+                *last_block_number as i64,
+                -1
+            )
             .await
-            .expect("failed to update last_watched_block_number");
+            .expect("failed to initialize last watched block number");
     }
 
     async fn init_block_events_state(
@@ -258,7 +275,8 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .last_watched_block_number(*chain_id as i16, "block")
             .await
             .expect("Cant load last watched block number")
-            .unwrap() as u64;
+            .unwrap()
+            .0 as u64;
 
         let committed = self
             .storage
@@ -292,7 +310,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         }
     }
 
-    async fn get_tree_state(&mut self) -> StoredTreeState {
+    async fn get_tree_state(&mut self, chain_ids: Vec<ChainId>) -> StoredTreeState {
         let (last_block, account_map) = self
             .storage
             .chain()
@@ -310,8 +328,20 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Cant get the last block from storage")
             .expect("There are no last block in storage - restart driver");
 
+        let mut last_serial_ids = HashMap::with_capacity(chain_ids.len());
+        for chain_id in chain_ids{
+            let last_serial_id = self.storage
+                .chain()
+                .operations_schema()
+                .get_last_serial_id(*chain_id as i16)
+                .await
+                .expect("Failed to get the last serial id");
+            last_serial_ids.insert(chain_id, last_serial_id);
+        }
+
         StoredTreeState {
             last_block_number: last_block.into(),
+            last_serial_ids,
             account_map,
             fee_acc_id: block.fee_account,
         }

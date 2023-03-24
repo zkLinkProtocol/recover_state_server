@@ -42,19 +42,16 @@ impl TxHandler<OrderMatching> for ZkLinkState {
         &mut self,
         op: &mut Self::Op,
     ) -> Result<AccountUpdates, Error> {
-        Ok(self.execute_order_matching_op(op)?)
+        Ok(self.execute_order_matching_op(op, false)?)
     }
 
     fn unsafe_apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, Error> {
-        let (maker_context, taker_context) = self.verify_order_accounts(&op.tx,false)?;
-        op.maker_context = maker_context;
-        op.taker_context = taker_context;
-        Ok(self.execute_order_matching_op(op)?)
+        Ok(self.execute_order_matching_op(op, true)?)
     }
 }
 
 impl ZkLinkState {
-    fn execute_order_matching_op(&mut self, op: &mut OrderMatchingOp) -> Result<AccountUpdates, Error> {
+    fn execute_order_matching_op(&mut self, op: &mut OrderMatchingOp, is_recovered: bool) -> Result<AccountUpdates, Error> {
         // preparing token
         let (maker_sell_token_base, taker_sell_token_base) = if op.tx.maker.is_sell.is_zero() {
             (op.tx.maker.quote_token_id, op.tx.maker.base_token_id)
@@ -68,7 +65,9 @@ impl ZkLinkState {
         let (taker_obtain_token_amount, maker_obtain_token_amount) = Self::calculate_actual_exchanged_amounts(&op)
             .ok_or(format_err!("Internal calculation error!"))?;
 
-        let (maker_sell_amount, taker_sell_amount) =
+        let (maker_sell_amount, taker_sell_amount) = if is_recovered {
+            (op.maker_sell_amount.clone(), op.taker_sell_amount.clone())
+        } else {
             if !op.tx.expect_base_amount.is_zero() && !op.tx.expect_quote_amount.is_zero() {
                 if op.tx.maker.is_sell.is_one(){
                     // When maker sell base token, taker obtain base token and maker obtain quote token
@@ -95,7 +94,8 @@ impl ZkLinkState {
                 }
             }else {
                 (taker_obtain_token_amount, maker_obtain_token_amount)
-            };
+            }
+        };
 
         // calculate submitter collect fee.
         let maker_fee = &taker_sell_amount * op.tx.maker.fee_ratio1 / BigUint::from(FEE_DENOMINATOR);

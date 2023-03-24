@@ -66,9 +66,9 @@ async fn main() {
             info!("Run the command mode of exodus command for generating single exit proof!");
             info!("Construct exit info");
             let exit_info = ExitInfo{
-                chain_id: account_id.into(),
+                chain_id: chain_id.into(),
                 account_address: Default::default(),
-                account_id: chain_id.into(),
+                account_id: account_id.into(),
                 sub_account_id: sub_account_id.into(),
                 l1_target_token: l1_target_token.into(),
                 l2_source_token: l2_source_token.into(),

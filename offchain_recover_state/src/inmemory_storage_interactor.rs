@@ -4,6 +4,7 @@ use ethers::prelude::H256;
 use zklink_types::block::Block;
 use zklink_types::{Account, AccountId, AccountMap, AccountUpdate, Action, BlockNumber, ChainId, Operation, Token, TokenId, ZkLinkAddress};
 use zklink_types::utils::calculate_actual_token;
+use zklink_storage::chain::operations::records::StoredSubmitTransaction;
 
 use crate::{
     data_restore_driver::StorageUpdateState,
@@ -39,15 +40,21 @@ impl StorageInteractor for InMemoryStorageInteractor {
         todo!()
     }
 
-    async fn store_tokens(&mut self, tokens: &[NewToken], chain_id: ChainId) {
-        for token in tokens{
+    async fn update_priority_ops_and_tokens(
+        &mut self,
+        chain_id: ChainId,
+        _last_watched_block_number: u64,
+        _last_serial_id: i64,
+        _submit_ops: Vec<StoredSubmitTransaction>,
+        token_events: Vec<NewToken>
+    ) {
+        for token in token_events{
             let token = Token {
                 id: token.id.into(),
                 chains: vec![chain_id],
             };
             self.tokens.insert((token.id, chain_id), token);
         }
-
     }
 
     async fn save_rollup_ops(&mut self, blocks: &[RollupOpsBlock]) {
@@ -80,10 +87,6 @@ impl StorageInteractor for InMemoryStorageInteractor {
     }
 
     async fn init_token_event_progress(&mut self, _chain_id: ChainId, _last_block_number: BlockNumber) {
-        todo!()
-    }
-
-    async fn update_token_event_progress(&mut self, _chain_id: ChainId, _last_watched_block_number: u64) {
         todo!()
     }
 
@@ -120,10 +123,15 @@ impl StorageInteractor for InMemoryStorageInteractor {
         }
     }
 
-    async fn get_tree_state(&mut self) -> StoredTreeState {
+    async fn get_tree_state(&mut self, chain_ids: Vec<ChainId>) -> StoredTreeState {
+        let last_serial_ids = chain_ids
+            .into_iter()
+            .map(|chain_id|(chain_id, -1))
+            .collect();
         // TODO find a way how to get unprocessed_prior_ops and fee_acc_id
         StoredTreeState {
             last_block_number: self.last_verified_block,
+            last_serial_ids,
             account_map: self.accounts.clone(),
             fee_acc_id: AccountId(0),
         }

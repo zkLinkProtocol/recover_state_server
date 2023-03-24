@@ -93,12 +93,14 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         chain_id: i16,
         event_type: &str,
         block_number: i64,
+        last_serial_id: i64
     ) -> QueryResult<()> {
         let start = Instant::now();
 
         sqlx::query!(
-            "UPDATE recover_state_last_watched_block SET block_number=$1 WHERE chain_id=$2 AND event_type=$3",
+            "UPDATE recover_state_last_watched_block SET block_number=$1,last_serial_id=$2 WHERE chain_id=$3 AND event_type=$4",
             block_number,
+            last_serial_id,
             chain_id,
             event_type
         )
@@ -117,16 +119,16 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         &mut self,
         chain_id: i16,
         event_type: &str
-    ) -> QueryResult<Option<i64>> {
+    ) -> QueryResult<Option<(i64, i64)>> {
         let start = Instant::now();
         let stored = sqlx::query!(
-            "SELECT block_number FROM recover_state_last_watched_block WHERE chain_id=$1 and event_type=$2",
+            "SELECT block_number, last_serial_id FROM recover_state_last_watched_block WHERE chain_id=$1 and event_type=$2",
             chain_id,
             event_type
         )
             .fetch_optional(self.0.conn())
             .await?
-            .map(|num|num.block_number);
+            .map(|num|(num.block_number, num.last_serial_id));
 
         metrics::histogram!(
             "sql.recover_state.last_watched_block_number",
@@ -141,15 +143,18 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         chain_id: i16,
         event_type: &str,
         block_number: i64,
+        last_serial_id: i64,
     ) -> QueryResult<()> {
         let start = Instant::now();
 
         sqlx::query!(
-            "INSERT INTO recover_state_last_watched_block (chain_id, event_type, block_number) VALUES ($1, $2, $3)\
+            "INSERT INTO recover_state_last_watched_block (chain_id, event_type, block_number, last_serial_id) \
+            VALUES ($1, $2, $3, $4)\
             ON CONFLICT (chain_id, event_type) DO NOTHING",
             chain_id,
             event_type,
             block_number,
+            last_serial_id
         )
             .execute(self.0.conn())
             .await?;
@@ -178,7 +183,12 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         let mut transaction = self.0.start_transaction().await?;
 
         RecoverSchema(&mut transaction)
-            .insert_last_watched_block_number(*chain_id as i16, "block", last_watched_block_number as i64)
+            .insert_last_watched_block_number(
+                *chain_id as i16,
+                "block",
+                last_watched_block_number as i64,
+                0
+            )
             .await?;
         RecoverSchema(&mut transaction)
             .update_storage_state(new_state)
@@ -205,7 +215,12 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             .await?;
 
         RecoverSchema(&mut transaction)
-            .update_last_watched_block_number(*chain_id as i16, "block", last_watched_block_number as i64)
+            .update_last_watched_block_number(
+                *chain_id as i16,
+                "block",
+                last_watched_block_number as i64,
+                0
+            )
             .await?;
         RecoverSchema(&mut transaction)
             .update_storage_state(new_state)

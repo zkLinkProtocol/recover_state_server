@@ -22,6 +22,25 @@ pub mod records;
 pub struct OperationsSchema<'a, 'c>(pub &'a mut StorageProcessor<'c>);
 
 impl<'a, 'c> OperationsSchema<'a, 'c> {
+    /// batch submit priority transactions and record the latest block number of the priority tX
+    pub async fn submit_priority_txs(
+        &mut self,
+        txs: Vec<StoredSubmitTransaction>,
+    ) -> QueryResult<()>{
+        let mut transaction = self.0.start_transaction().await?;
+
+        for tx in txs.into_iter() {
+            transaction.chain()
+                .operations_schema()
+                .add_new_submit_tx(tx)
+                .await?;
+        }
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
+
     /// Return the greatest block number with the given `action_type` and `confirmed` status.
     pub async fn get_last_block_by_aggregated_action(
         &mut self,
@@ -163,6 +182,28 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         Ok(tx_data)
     }
 
+    /// Retrieves priority transaction from the database given priority transaction serial id.
+    pub async fn get_last_serial_id(&mut self, chain_id: i16) -> QueryResult<i64> {
+        let start = Instant::now();
+
+        let tx_data = sqlx::query!(
+            "SELECT max(nonce) FROM submit_txs WHERE chain_id = $1 and (op_type = $2 or op_type = $3)",
+            chain_id,
+            DepositOp::OP_CODE as i16,
+            FullExitOp::OP_CODE as i16
+        )
+            .fetch_one(self.0.conn())
+            .await?
+            .max
+            .unwrap_or(-1);
+
+        metrics::histogram!(
+            "sql.chain.operations.get_tx_by_serial_id",
+            start.elapsed()
+        );
+        Ok(tx_data)
+    }
+
     /// Retrieves transaction from the database given tx_type
     pub async fn get_tx_history(
         &mut self,
@@ -290,10 +331,9 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         operation: NewExecutedTransaction,
     ) -> QueryResult<()> {
         let start = Instant::now();
-        let mut transaction = self.0.start_transaction().await?;
         sqlx::query!(
-            r#"UPDATE submit_txs SET block_number = $1, block_index = $2,
-            operation = $3, executed = true, executed_timestamp = current_timestamp, success = $4, fail_reason = $5, nonce = $6, amount=$7
+            r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3, executed = true,
+            executed_timestamp = current_timestamp, success = $4, fail_reason = $5, nonce = $6, amount=$7
             WHERE tx_hash = $8"#,
             operation.block_number,
             operation.block_index,
@@ -304,9 +344,31 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             operation.amount,
             operation.tx_hash,
         )
-            .execute(transaction.conn())
+            .execute(self.0.conn())
             .await?;
-        transaction.commit().await?;
+        metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
+        Ok(())
+    }
+
+    /// Update the priority executed transaction in the database.
+    pub(crate) async fn update_executed_tx(
+        &mut self,
+        operation: NewExecutedTransaction,
+    ) -> QueryResult<()> {
+        let start = Instant::now();
+        sqlx::query!(
+            r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3,
+            executed = true, executed_timestamp = current_timestamp, success = true
+            WHERE chain_id = $4 AND op_type=$5 AND nonce=$6"#,
+            operation.block_number,
+            operation.block_index,
+            operation.operation,
+            operation.chain_id,
+            operation.op_type,
+            operation.nonce,
+        )
+            .execute(self.0.conn())
+            .await?;
         metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
         Ok(())
     }

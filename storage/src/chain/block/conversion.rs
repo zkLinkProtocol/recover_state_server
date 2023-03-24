@@ -36,6 +36,15 @@ impl NewExecutedTransaction {
     pub fn prepare_stored_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
         let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
         let op = exec_tx.op;
+        let op_type = op.op_code() as i16;
+        let chain_id = op.get_onchain_operation_chain_id() as i16;
+        let nonce = if matches!(op, ZkLinkOp::Deposit(_) | ZkLinkOp::FullExit(_)) {
+            match &op {
+                ZkLinkOp::Deposit(op) => op.tx.serial_id as i64,
+                ZkLinkOp::FullExit(op) => op.tx.serial_id as i64,
+                _ => unreachable!(),
+            }
+        } else {*exec_tx.tx.nonce() as i64};
         let amount = match op {
             ZkLinkOp::Deposit(op) => op.tx.amount,
             ZkLinkOp::Transfer(op) => op.tx.amount,
@@ -54,13 +63,15 @@ impl NewExecutedTransaction {
             block_index = Some(0);
         }
         Self {
+            op_type,
+            chain_id,
             block_number: i64::from(*block),
             tx_hash: exec_tx.tx.hash().as_ref().to_vec(),
             operation,
             success: exec_tx.success,
             fail_reason: exec_tx.fail_reason,
             block_index,
-            nonce: *exec_tx.tx.nonce() as i64,
+            nonce,
             amount,
         }
     }
@@ -72,6 +83,8 @@ impl NewExecutedTransaction {
 
         let block_index = Some(0);
         Self {
+            op_type: Default::default(),
+            chain_id: Default::default(),
             block_number: i64::from(*block),
             tx_hash: exec_tx.tx.hash().as_ref().to_vec(),
             operation,

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use anyhow::format_err;
 use tracing::info;
 use zklink_crypto::Fr;
@@ -9,8 +10,8 @@ use zklink_crypto::convert::FeConvert;
 use zklink_types::block::{Block, ExecutedTx};
 use zklink_types::operations::ZkLinkOp;
 use zklink_types::{
-    AccountId, AccountMap, ZkLinkAddress, BlockNumber, H256, Account, AccountUpdate, Deposit, Transfer,
-    Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching
+    AccountId, AccountMap, ZkLinkAddress, BlockNumber, H256, Account, AccountUpdate,
+    Deposit, Transfer, Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching, ChainId
 };
 use zklink_state::state::TransferOutcome;
 use crate::rollup_ops::RollupOpsBlock;
@@ -21,6 +22,8 @@ pub struct TreeState {
     pub state: ZkLinkState,
     /// The last fee account address
     pub last_fee_account_address: ZkLinkAddress,
+    /// the current serial id of priority op of all chain.
+    pub last_serial_ids: HashMap<ChainId, i64>,
 }
 
 impl Default for TreeState {
@@ -35,6 +38,7 @@ impl TreeState {
         Self {
             state: ZkLinkState::empty(),
             last_fee_account_address: ZkLinkAddress::default(),
+            last_serial_ids: HashMap::new(),
         }
     }
 
@@ -43,11 +47,13 @@ impl TreeState {
     /// # Arguments
     ///
     /// * `current_block` - The current block number
+    /// * `last_serial_ids` - the current serial id of priority op of all chain.
     /// * `accounts` - Accounts stored in a spase merkle tree
     /// * `fee_account` - The last fee account address
     ///
     pub fn load(
         current_block: BlockNumber,
+        last_serial_ids: HashMap<ChainId, i64>,
         accounts: AccountMap,
         fee_account: AccountId,
     ) -> Self {
@@ -59,6 +65,7 @@ impl TreeState {
         Self {
             state,
             last_fee_account_address,
+            last_serial_ids,
         }
     }
 
@@ -300,7 +307,7 @@ impl TreeState {
     ) -> u32 {
         let OpSuccess {
             updates,
-            executed_op,
+            mut executed_op,
             ..
         } = tx_result;
         let tx_hash = executed_op.try_get_tx().unwrap().hash();
@@ -309,6 +316,17 @@ impl TreeState {
             .map(|update|(update.0, update.1, H256::from_slice(tx_hash.as_ref())))
             .collect::<Vec<_>>();
         accounts_updated.append(&mut updates);
+        match &mut executed_op {
+            ZkLinkOp::Deposit(op) => {
+                *self.last_serial_ids.get_mut(&op.tx.from_chain_id).unwrap() += 1;
+                op.tx.serial_id = self.last_serial_ids[&op.tx.from_chain_id] as u64;
+            },
+            ZkLinkOp::FullExit(op) => {
+                *self.last_serial_ids.get_mut(&op.tx.to_chain_id).unwrap() += 1;
+                op.tx.serial_id = self.last_serial_ids[&op.tx.to_chain_id] as u64;
+            },
+            _ => {}
+        }
 
         let block_index = current_op_block_index;
         let exec_result = ExecutedTx {

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::convert::TryFrom;
 use zklink_storage::recover_state::records::{NewBlockEvent, StoredBlockEvent, StoredRollupOpsBlock};
 use zklink_types::{block::Block, AccountId, AccountMap, AccountUpdate, BlockNumber, H256, ChainId, TokenId, Token};
+use zklink_storage::chain::operations::records::StoredSubmitTransaction;
 
 use crate::{
     contract::ZkLinkContractVersion,
@@ -14,6 +15,7 @@ use crate::contract::utils::NewToken;
 
 pub struct StoredTreeState {
     pub last_block_number: BlockNumber,
+    pub last_serial_ids: HashMap<ChainId, i64>,
     pub account_map: AccountMap,
     pub fee_acc_id: AccountId,
 }
@@ -23,14 +25,24 @@ pub trait StorageInteractor {
     /// loads all token and supported chains.
     async fn load_tokens(&mut self) -> HashMap<TokenId, Token>;
 
-    /// Store token to the storage
+    /// Update priority ops and tokens events to the storage
     ///
     /// # Arguments
     ///
-    /// * `tokens` - Token events that emitted when call addToken api of contract
-    /// * `token_id` - Id for token in our system
+    /// * `chain_id` - the chain id of stored tokens
+    /// * `last_watched_block_number` - the block height of syncing token events
+    /// * `last_serial_id` - the serial id of syncing priority op
+    /// * `submit_ops` - all priority ops(etc Deposit, FullExit)
+    /// * `token_events` - Token events that emitted when call addToken api of contract
     ///
-    async fn store_tokens(&mut self, tokens: &[NewToken], chain_id: ChainId);
+    async fn update_priority_ops_and_tokens(
+        &mut self,
+        chain_id: ChainId,
+        last_watched_block_number: u64,
+        last_serial_id: i64,
+        submit_ops: Vec<StoredSubmitTransaction>,
+        token_events: Vec<NewToken>,
+    );
 
     /// Saves Rollup operations blocks in storage
     ///
@@ -55,18 +67,6 @@ pub trait StorageInteractor {
     /// * `last_watched_block_number` - the original block height of syncing token events
     ///
     async fn init_token_event_progress(&mut self, chain_id: ChainId, last_block_number: BlockNumber);
-
-    /// Update the progress of syncing token events.
-    /// # Arguments
-    ///
-    /// * `chain_id` - the chain id of syncing token events
-    /// * `last_watched_block_number` - the block height of syncing token events
-    ///
-    async fn update_token_event_progress(
-        &mut self,
-        chain_id: ChainId,
-        last_watched_block_number: u64,
-    );
 
     async fn init_block_events_state(
         &mut self,
@@ -101,7 +101,7 @@ pub trait StorageInteractor {
     async fn get_block_events_state_from_storage(&mut self, chain_id: ChainId) -> RollUpEvents;
 
     /// Returns the current Rollup block, tree accounts map, unprocessed priority ops and the last fee acc from storage
-    async fn get_tree_state(&mut self) -> StoredTreeState;
+    async fn get_tree_state(&mut self, chain_ids: Vec<ChainId>) -> StoredTreeState;
 
     /// Returns Rollup operations blocks from storage
     async fn get_ops_blocks_from_storage(&mut self) -> Vec<RollupOpsBlock>;

@@ -199,6 +199,8 @@ pub struct NewExecutedPriorityOperation {
 
 #[derive(Debug, Clone)]
 pub struct NewExecutedTransaction {
+    pub op_type: i16,
+    pub chain_id: i16,
     pub block_number: i64,
     pub block_index: Option<i32>,
     pub operation: Value,
