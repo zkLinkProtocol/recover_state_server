@@ -182,6 +182,30 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         Ok(tx_data)
     }
 
+    /// Retrieves unprocessed priority transaction from the database given address.
+    pub async fn get_unprocessed_priority_tx_by_address(
+        &mut self,
+        address: &[u8],
+    ) -> QueryResult<HashMap<u64, ZkLinkTx>> {
+        let start = Instant::now();
+
+        let tx_data = sqlx::query!(
+            "SELECT tx_data, nonce FROM submit_txs WHERE to_account = $1 and (op_type = $2 or op_type = $3) and executed=false",
+            address, DepositOp::OP_CODE as i16, FullExitOp::OP_CODE as i16
+        )
+            .fetch_all(self.0.conn())
+            .await?
+            .into_iter()
+            .map(|record|(record.nonce as u64, serde_json::from_value(record.tx_data).unwrap()))
+            .collect::<HashMap<u64, ZkLinkTx>>();
+
+        metrics::histogram!(
+            "sql.chain.operations.get_unprocessed_priority_tx_by_address",
+            start.elapsed()
+        );
+        Ok(tx_data)
+    }
+
     /// Retrieves priority transaction from the database given priority transaction serial id.
     pub async fn get_last_serial_id(&mut self, chain_id: i16) -> QueryResult<i64> {
         let start = Instant::now();

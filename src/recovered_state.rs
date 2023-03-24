@@ -52,24 +52,26 @@ impl RecoveredState {
     }
 
     pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusError>{
-        let Some(&id) = self.account_id_by_address
-            .get(&account_address) else {
-            return Err(ExodusError::AccountNotExist)
-        };
-        let balances = self.accounts
-            .get(&id)
-            .expect("Account should be exist")
-            .get_existing_token_balances();
+        if let Some(&id) = self.account_id_by_address
+            .get(&account_address)
+        {
+            let balances = self.accounts
+                .get(&id)
+                .expect("Account should be exist")
+                .get_existing_token_balances();
 
-        let mut resp: SubAccountBalances = HashMap::new();
-        for (&token_id, balance) in balances.iter() {
-            let sub_account_id = recover_sub_account_by_token(token_id);
-            let real_token_id = recover_raw_token(token_id);
-            resp.entry(sub_account_id)
-                .or_default()
-                .insert(real_token_id, balance.reserve0.clone());
+            let mut resp: SubAccountBalances = HashMap::new();
+            for (&token_id, balance) in balances.iter() {
+                let sub_account_id = recover_sub_account_by_token(token_id);
+                let real_token_id = recover_raw_token(token_id);
+                resp.entry(sub_account_id)
+                    .or_default()
+                    .insert(real_token_id, balance.reserve0.clone());
+            }
+            Ok(resp)
+        } else {
+            return Err(ExodusError::AccountNotExist)
         }
-        Ok(resp)
     }
 
     pub fn empty_balance(&self, account_id: AccountId, sub_account_id: SubAccountId, token_id: TokenId) -> bool {

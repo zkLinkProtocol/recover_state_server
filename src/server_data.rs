@@ -8,14 +8,14 @@ use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::prover::records::StoredExitInfo;
-use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress};
+use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusError};
-use crate::utils::{convert_balance_resp, SubAccountBalances};
+use crate::utils::{convert_balance_resp, UnprocessedPriorityOps, SubAccountBalances, PublicData};
 
 #[derive(Clone)]
 pub struct ServerData {
@@ -206,6 +206,27 @@ impl ServerData {
         }
 
         Ok(())
+    }
+
+    pub(crate) async fn get_unprocessed_deposit_by_address(&self, account_address: ZkLinkAddress) -> Result<UnprocessedPriorityOps, ExodusError>{
+        let mut storage = self.access_storage().await?;
+        let priority_ops = storage.chain()
+            .operations_schema()
+            .get_unprocessed_priority_tx_by_address(account_address.as_bytes())
+            .await?;
+        let unprocessed_priority_ops = priority_ops.into_iter()
+            .map(|(serial_id, tx)|{
+                (
+                    serial_id,
+                    match tx {
+                        ZkLinkTx::Deposit(op) => PublicData::Deposit((*op).into()),
+                        ZkLinkTx::FullExit(_) => PublicData::FullExit,
+                        _ => unreachable!()
+                    }
+                )
+            })
+            .collect();
+        Ok(unprocessed_priority_ops)
     }
 
     pub(crate) fn get_contracts(&self) -> ExodusResponse<HashMap<ChainId, ZkLinkAddress>> {

@@ -33,7 +33,6 @@ impl<T: Serialize + Clone> ExodusResponse<T> {
         self.data = data.into();
         self
     }
-
 }
 
 #[derive(Copy, Clone, Serialize)]
