@@ -26,7 +26,7 @@ pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<u
         workers.push(tokio::spawn(async move {
             info!("Starting [Worker{}]", i);
             loop {
-                match prover.load_new_task().await {
+                match prover.load_new_task(i).await {
                     Ok(task) => if let Some(exit_info) = task{
                         process_task(prover.clone(), exit_info).await;
                     } else {

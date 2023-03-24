@@ -81,7 +81,7 @@ impl ExodusProver {
         Ok(running_task_num as u32)
     }
 
-    pub async fn load_new_task(&self) -> anyhow::Result<Option<ExitInfo>> {
+    pub async fn load_new_task(&self, index: usize) -> anyhow::Result<Option<ExitInfo>> {
         let mut storage = self.conn_pool
             .access_storage()
             .await?;
@@ -89,7 +89,7 @@ impl ExodusProver {
             .load_exit_proof_task()
             .await?
             .map(|t| {
-                info!("Loading new task: {}", t);
+                info!("[Worker{}] loading new task: {}", index, t);
                 assert!(
                     t.created_at.is_none()
                     && t.finished_at.is_none()
