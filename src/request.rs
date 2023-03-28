@@ -7,11 +7,6 @@ pub struct BalanceRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UnprocessedDepositRequest {
-    pub address: ZkLinkAddress
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct StoredBlockInfoRequest {
     pub chain_id: ChainId
 }

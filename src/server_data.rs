@@ -208,11 +208,11 @@ impl ServerData {
         Ok(())
     }
 
-    pub(crate) async fn get_unprocessed_deposit_by_address(&self, account_address: ZkLinkAddress) -> Result<UnprocessedPriorityOps, ExodusError>{
+    pub(crate) async fn get_unprocessed_priority_ops(&self) -> Result<UnprocessedPriorityOps, ExodusError>{
         let mut storage = self.access_storage().await?;
         let priority_ops = storage.chain()
             .operations_schema()
-            .get_unprocessed_priority_tx_by_address(account_address.as_bytes())
+            .get_unprocessed_priority_txs()
             .await?;
         let unprocessed_priority_ops = priority_ops.into_iter()
             .map(|(serial_id, tx)|{

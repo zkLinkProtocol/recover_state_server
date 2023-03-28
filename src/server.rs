@@ -2,7 +2,7 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::{ExitInfo as ExitRequest};
-use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest, UnprocessedDepositRequest};
+use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest};
 use crate::response::ExodusResponse;
 use crate::ServerData;
 
@@ -72,14 +72,10 @@ async fn get_balances(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get all unprocessed priority ops by ZkLinkAddress
-async fn get_unprocessed_priority_ops(
-    unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
-    data: web::Data<ServerData>,
-) -> actix_web::Result<HttpResponse> {
-    let account_address = unprocessed_deposit_request.into_inner().address;
+/// Get all unprocessed priority ops
+async fn get_unprocessed_priority_ops(data: web::Data<ServerData>) -> actix_web::Result<HttpResponse> {
     let response = match data.get_ref()
-        .get_unprocessed_deposit_by_address(account_address)
+        .get_unprocessed_priority_ops()
         .await
     {
         Ok(ops) => ExodusResponse::Ok().data(ops),
@@ -169,10 +165,10 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
             .app_data(web::Data::new(server_data.clone()))
             .route("/contracts", web::get().to(get_contracts))
             .route("/tokens", web::get().to(get_tokens))
+            .route("/get_unprocessed_priority_ops", web::get().to(get_unprocessed_priority_ops))
             .route("/get_token", web::post().to(get_token))
             .route("/get_stored_block_info", web::post().to(get_stored_block_info))
             .route("/get_balances", web::post().to(get_balances))
-            .route("/get_unprocessed_priority_ops", web::post().to(get_unprocessed_priority_ops))
 
             .route("/get_proof_by_info", web::post().to(get_proof_by_info))
             .route("/get_proofs_by_token", web::post().to(get_proofs_by_token))
