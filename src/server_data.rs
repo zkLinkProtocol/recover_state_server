@@ -15,7 +15,7 @@ use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusError};
-use crate::utils::{convert_balance_resp, UnprocessedPriorityOps, SubAccountBalances, PublicData};
+use crate::utils::{convert_balance_resp, UnprocessedPriorityOp, SubAccountBalances, PublicData};
 
 #[derive(Clone)]
 pub struct ServerData {
@@ -208,7 +208,7 @@ impl ServerData {
         Ok(())
     }
 
-    pub(crate) async fn get_unprocessed_priority_ops(&self) -> Result<UnprocessedPriorityOps, ExodusError>{
+    pub(crate) async fn get_unprocessed_priority_ops(&self) -> Result<Vec<UnprocessedPriorityOp>, ExodusError>{
         let mut storage = self.access_storage().await?;
         let priority_ops = storage.chain()
             .operations_schema()
@@ -216,14 +216,14 @@ impl ServerData {
             .await?;
         let unprocessed_priority_ops = priority_ops.into_iter()
             .map(|(serial_id, tx)|{
-                (
+                UnprocessedPriorityOp{
                     serial_id,
-                    match tx {
+                    pub_data: match tx {
                         ZkLinkTx::Deposit(op) => PublicData::Deposit((*op).into()),
                         ZkLinkTx::FullExit(_) => PublicData::FullExit,
                         _ => unreachable!()
                     }
-                )
+                }
             })
             .collect();
         Ok(unprocessed_priority_ops)

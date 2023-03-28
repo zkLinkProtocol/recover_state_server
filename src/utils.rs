@@ -2,12 +2,17 @@ use std::collections::HashMap;
 use bigdecimal::num_bigint::{BigUint, ToBigInt};
 use zklink_storage::chain::account::records::StorageBalance;
 use zklink_types::{ChainId, Deposit, SubAccountId, TokenId, ZkLinkAddress};
-use zklink_utils::BigUintSerdeWrapper;
+use zklink_utils::{BigUintSerdeWrapper, BigUintSerdeAsRadix10Str};
 use serde::{Deserialize, Serialize};
 
 pub type SerialId = u64;
 pub type SubAccountBalances = HashMap<SubAccountId, HashMap<TokenId, BigUintSerdeWrapper>>;
-pub type UnprocessedPriorityOps  = HashMap<SerialId, PublicData>;
+
+#[derive(Debug, Serialize, Deserialize,Clone)]
+pub struct UnprocessedPriorityOp {
+    pub(crate) serial_id: SerialId,
+    pub(crate) pub_data: PublicData
+}
 
 #[derive(Debug, Serialize, Deserialize,Clone)]
 pub enum PublicData{
@@ -21,6 +26,7 @@ pub struct DepositData{
     sub_account_id: SubAccountId,
     l2_target_token_id: TokenId,
     l1_source_token_id: TokenId,
+    #[serde(with = "BigUintSerdeAsRadix10Str")]
     amount: BigUint,
     owner: ZkLinkAddress,
 }

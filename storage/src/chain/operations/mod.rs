@@ -206,22 +206,29 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         Ok(tx_data)
     }
 
-    /// Retrieves unprocessed priority transaction from the database given address.
-    pub async fn get_unprocessed_priority_txs(&mut self) -> QueryResult<HashMap<u64, ZkLinkTx>> {
+    /// Retrieves all unprocessed priority transactions from the database.
+    pub async fn get_unprocessed_priority_txs(&mut self) -> QueryResult<Vec<(u64, ZkLinkTx)>> {
         let start = Instant::now();
 
         let tx_data = sqlx::query!(
-            "SELECT tx_data, nonce FROM submit_txs WHERE executed=false and (op_type = $1 or op_type = $2)",
+            "SELECT tx_data, nonce FROM submit_txs
+            WHERE nonce > (
+                SELECT MAX(nonce) FROM submit_txs
+                WHERE executed = true AND (op_type = $1 OR op_type = $2)
+            )
+            AND (op_type = $1 OR op_type = $2)
+            ORDER BY nonce ASC;
+            ",
             DepositOp::OP_CODE as i16, FullExitOp::OP_CODE as i16
         )
             .fetch_all(self.0.conn())
             .await?
             .into_iter()
             .map(|record|(record.nonce as u64, serde_json::from_value(record.tx_data).unwrap()))
-            .collect::<HashMap<u64, ZkLinkTx>>();
+            .collect();
 
         metrics::histogram!(
-            "sql.chain.operations.get_unprocessed_priority_tx_by_address",
+            "sql.chain.operations.get_unprocessed_priority_txs",
             start.elapsed()
         );
         Ok(tx_data)
