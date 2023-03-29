@@ -37,9 +37,9 @@ Run the following command in the `zklink_keys` directory:
 axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
 ```
 ### Create the Database
-First, You need to configure the `DATABASE_URL` environment.
+First, You need to configure the `DATABASE_URL=postgres://user:password@localhost/plasma` environment.
 
-The, to create the database, run the following command in the `storage` directory:
+Then, to create the database, run the following command in the `storage` directory:
 ```shell
 diesel database setup
 ```
@@ -72,7 +72,7 @@ To recover the state, run the following `genesis` command:
 ```shell
 ./target/debug/recover_state --genesis
 ```
-This command will take several hours to complete. Please be patient and wait until the command finishes.
+This command will take several hours to complete. **Please be patient and wait until the command finishes.**
 
 If there is an interruption, run the `continue` command
 ```shell
