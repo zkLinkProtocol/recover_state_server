@@ -1,3 +1,4 @@
+use tracing::info;
 use anyhow::format_err;
 use async_trait::async_trait;
 use ethers::contract::Contract;
@@ -134,7 +135,7 @@ impl EvmTokenEvents {
                     .call()
                     .await?
             };
-            println!("address: {address:?}, symbol:{symbol}");
+            info!("Loading token from layer1: {symbol}, address: {address}");
             token_symbols.push(symbol);
         }
         Ok((token_events, token_symbols))

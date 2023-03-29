@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
-use zklink_crypto::params::{MAX_USD_TOKEN_ID, USDX_TOKEN_ID_UPPER_BOUND};
+use zklink_crypto::params::{MAX_USD_TOKEN_ID, USD_SYMBOL, USD_TOKEN_ID, USDX_TOKEN_ID_UPPER_BOUND};
 use zklink_storage::ConnectionPool;
 use crate::response::{ExodusResponse, ExodusStatus};
 
@@ -32,7 +32,13 @@ impl AcquiredTokens {
                     .await
                     .expect("Failed to get chain token")
                     .expect("Db chain token cannot be None");
-                token_info.insert_token_address(chain_id, db_token.address.into())
+                let token = storage.tokens_schema()
+                    .get_token(*token.id as i32)
+                    .await
+                    .expect("Failed to get chain token")
+                    .expect("Db chain token cannot be None");
+                token_info.insert_token_address(chain_id, db_token.address.into());
+                token_info.set_symbol(token.symbol);
             }
             token_by_id.insert(token_id, token_info);
         }
@@ -67,15 +73,25 @@ impl AcquiredTokens {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TokenInfo {
     pub token_id: TokenId,
+    pub symbol: String,
     pub(crate) addresses: HashMap<ChainId, ZkLinkAddress>,
 }
 
 impl TokenInfo {
     fn new(token_id: TokenId) -> Self {
-        Self{ token_id, addresses: HashMap::new() }
+        let symbol = if token_id == USD_TOKEN_ID.into(){ USD_SYMBOL.to_string() } else { "".to_string() };
+        Self{
+            token_id,
+            symbol,
+            addresses: HashMap::new()
+        }
     }
 
     fn insert_token_address(&mut self, chain_id: ChainId, address:ZkLinkAddress){
         self.addresses.insert(chain_id, address);
+    }
+
+    fn set_symbol(&mut self, symbol: String){
+        self.symbol = symbol;
     }
 }

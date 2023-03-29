@@ -69,7 +69,7 @@ async fn main() {
     }
 
     // Get all token events
-    // driver.download_registered_tokens().await;
+    driver.download_registered_tokens().await;
 
     // Continue with recover_state as before
     if opt.continue_mode && driver.load_state_from_storage(&mut interactor).await {
