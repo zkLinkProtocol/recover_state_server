@@ -12,6 +12,11 @@ pub struct StoredBlockInfoRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UnprocessedDepositRequest {
+    pub chain_id: ChainId
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TokenRequest {
     pub token_id: TokenId
 }

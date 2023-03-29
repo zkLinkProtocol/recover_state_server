@@ -2,7 +2,7 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::{ExitInfo as ExitRequest};
-use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest};
+use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest, UnprocessedDepositRequest};
 use crate::response::ExodusResponse;
 use crate::ServerData;
 
@@ -72,10 +72,14 @@ async fn get_balances(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get all unprocessed priority ops
-async fn get_unprocessed_priority_ops(data: web::Data<ServerData>) -> actix_web::Result<HttpResponse> {
+/// Get all unprocessed priority ops of target chain  by chain_id
+async fn get_unprocessed_priority_ops(
+    unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
+    data: web::Data<ServerData>,
+) -> actix_web::Result<HttpResponse> {
+    let chain_id = unprocessed_deposit_request.into_inner().address;
     let response = match data.get_ref()
-        .get_unprocessed_priority_ops()
+        .get_unprocessed_priority_ops(chain_id)
         .await
     {
         Ok(ops) => ExodusResponse::Ok().data(ops),

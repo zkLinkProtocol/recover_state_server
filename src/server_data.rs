@@ -208,11 +208,11 @@ impl ServerData {
         Ok(())
     }
 
-    pub(crate) async fn get_unprocessed_priority_ops(&self) -> Result<Vec<UnprocessedPriorityOp>, ExodusError>{
+    pub(crate) async fn get_unprocessed_priority_ops(&self, chain_id: ChainId) -> Result<Vec<UnprocessedPriorityOp>, ExodusError>{
         let mut storage = self.access_storage().await?;
         let priority_ops = storage.chain()
             .operations_schema()
-            .get_unprocessed_priority_txs()
+            .get_unprocessed_priority_txs(chain_id)
             .await?;
         let unprocessed_priority_ops = priority_ops.into_iter()
             .map(|(serial_id, tx)|{
