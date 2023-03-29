@@ -3989,7 +3989,6 @@ dependencies = [
  "recover_state_config",
  "serde",
  "serde_json",
- "structopt",
  "tokio",
  "tracing",
  "tracing-subscriber",
