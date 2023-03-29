@@ -3,6 +3,7 @@ mod server;
 mod server_data;
 mod recovered_state;
 mod acquired_tokens;
+mod proofs_cache;
 mod request;
 mod response;
 

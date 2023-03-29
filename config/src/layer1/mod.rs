@@ -1,4 +1,5 @@
-use zklink_types::ChainId;
+use std::collections::HashMap;
+use zklink_types::{ChainId, ZkLinkAddress};
 
 pub use chain_config::ChainConfig;
 pub use contract_config::ContractConfig;
@@ -26,6 +27,13 @@ impl MultiChainConfigs {
             chain_ids,
             chain_configs,
         }
+    }
+
+    pub fn get_contracts(&self) -> HashMap<ChainId, ZkLinkAddress> {
+        self.chain_configs
+            .iter()
+            .map(|c|(c.chain.chain_id, c.contract.address.clone()))
+            .collect()
     }
 }
 

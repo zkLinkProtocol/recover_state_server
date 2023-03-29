@@ -16,6 +16,18 @@ pub mod records;
 pub struct ProverSchema<'a, 'c>(pub &'a mut StorageProcessor<'c>);
 
 impl<'a, 'c> ProverSchema<'a, 'c> {
+    pub async fn get_stored_exit_proofs(&mut self, n: i64) -> QueryResult<Vec<StoredExitProof>> {
+        let exit_proofs = sqlx::query_as!(
+            StoredExitProof,
+            r#"SELECT * FROM exit_proofs LIMIT $1"#,
+            n
+        )
+            .fetch_all(self.0.conn())
+            .await?;
+
+        Ok(exit_proofs)
+    }
+
     /// Loads the specified proof task by account_id and sub_account_id and token_id.
     pub async fn get_proof_by_exit_info(
         &mut self,
@@ -190,6 +202,18 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             .await?;
 
         metrics::histogram!("sql.recover_state.insert_exit_task", start.elapsed());
+        Ok(())
+    }
+
+    pub async fn insert_batch_exit_tasks(&mut self, batch_exit_tasks: Vec<StoredExitInfo>) -> QueryResult<()> {
+        let mut transaction = self.0.start_transaction().await?;
+        for exit_task in batch_exit_tasks {
+            transaction.prover_schema()
+                .insert_exit_task(exit_task)
+                .await?;
+        }
+        transaction.commit().await?;
+
         Ok(())
     }
 }

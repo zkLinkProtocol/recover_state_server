@@ -39,7 +39,7 @@ impl From<StoredExitProof> for ExitProofData  {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct ExitInfo{
     pub chain_id: ChainId,
     pub account_address: ZkLinkAddress,

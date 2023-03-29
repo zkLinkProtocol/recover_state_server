@@ -2,6 +2,8 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer};
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::{ExitInfo as ExitRequest};
+use zklink_storage::ConnectionPool;
+use crate::proofs_cache::ProofsCache;
 use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest, UnprocessedDepositRequest};
 use crate::response::ExodusResponse;
 use crate::ServerData;
@@ -77,7 +79,7 @@ async fn get_unprocessed_priority_ops(
     unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    let chain_id = unprocessed_deposit_request.into_inner().address;
+    let chain_id = unprocessed_deposit_request.into_inner().chain_id;
     let response = match data.get_ref()
         .get_unprocessed_priority_ops(chain_id)
         .await
@@ -141,9 +143,9 @@ async fn generate_proof_tasks_by_token(
     batch_exit_info: web::Json<BatchExitRequest>,
     data: web::Data<ServerData>,
 ) -> actix_web::Result<HttpResponse> {
-    let exit_info = batch_exit_info.into_inner();
+    let batch_exit_info = batch_exit_info.into_inner();
     let response = match data.get_ref()
-        .generate_proof_tasks(exit_info)
+        .generate_proof_tasks(batch_exit_info)
         .await
     {
         Ok(_) => ExodusResponse::<()>::Ok(),
@@ -156,7 +158,11 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let num = config.api.workers_num;
     let enable_http_cors = config.api.enable_http_cors;
-    let server_data = ServerData::new(config).await;
+    let contracts = config.layer1.get_contracts();
+    let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
+
+    let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
+    let server_data = ServerData::new(conn_pool, contracts, proofs_cache).await;
 
     HttpServer::new(move || {
         let cors = if enable_http_cors {
@@ -169,7 +175,7 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
             .app_data(web::Data::new(server_data.clone()))
             .route("/contracts", web::get().to(get_contracts))
             .route("/tokens", web::get().to(get_tokens))
-            .route("/get_unprocessed_priority_ops", web::get().to(get_unprocessed_priority_ops))
+            .route("/get_unprocessed_priority_ops", web::post().to(get_unprocessed_priority_ops))
             .route("/get_token", web::post().to(get_token))
             .route("/get_stored_block_info", web::post().to(get_stored_block_info))
             .route("/get_balances", web::post().to(get_balances))

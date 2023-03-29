@@ -2,16 +2,15 @@
 use std::collections::HashMap;
 use std::time::Instant;
 use tracing::{debug, info};
-use recover_state_config::RecoverStateConfig;
 use zklink_crypto::params::USD_TOKEN_ID;
 use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_storage::chain::account::records::StorageAccount;
-use zklink_storage::prover::records::StoredExitInfo;
 use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
+use crate::proofs_cache::ProofsCache;
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusError};
@@ -21,33 +20,30 @@ use crate::utils::{convert_balance_resp, UnprocessedPriorityOp, SubAccountBalanc
 pub struct ServerData {
     conn_pool: ConnectionPool,
     contracts: HashMap<ChainId, ZkLinkAddress>,
+    proofs_cache: ProofsCache,
 
     pub recovered_state: RecoveredState,
     pub acquired_tokens: AcquiredTokens,
 }
 
 impl ServerData {
-    pub async fn new(config: RecoverStateConfig) -> ServerData {
-        let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
-        let contracts = config.layer1.chain_configs
-            .iter()
-            .map(|c|(c.chain.chain_id, c.contract.address.clone()))
-            .collect();
+    pub async fn new(conn_pool: ConnectionPool, contracts: HashMap<ChainId, ZkLinkAddress>, proofs_cache: ProofsCache) -> ServerData {
 
         info!("Loading accounts state....");
         let timer = Instant::now();
         let recovered_state = RecoveredState::load_from_storage(&conn_pool).await;
-        debug!("Load accounts state elapsed time: {} s", timer.elapsed().as_secs());
+        debug!("Load accounts state elapsed time: {} ms", timer.elapsed().as_millis());
         info!("End to load accounts state");
 
         info!("Loading tokens....");
         let acquired_tokens = AcquiredTokens::load_from_storage(&conn_pool).await;
-        debug!("Load tokens elapsed time: {} s", timer.elapsed().as_secs());
+        debug!("Load tokens elapsed time: {} ms", timer.elapsed().as_millis());
         info!("End to load tokens");
 
         Self{
             conn_pool,
             contracts,
+            proofs_cache,
             recovered_state,
             acquired_tokens,
         }
@@ -95,47 +91,75 @@ impl ServerData {
             return Err(ExodusError::AccountNotExist)
         };
 
-        let mut storage = self.access_storage().await?;
-        let proof = storage.prover_schema()
-            .get_proof_by_exit_info((&exit_info).into())
+        let exit_data = self.proofs_cache
+            .get_proof(exit_info)
             .await?;
-        let Some(exit_data) = proof.map(|proof| {
-            let mut proof: ExitProofData  = proof.into();
-            proof.exit_info.account_address = exit_info.account_address;
-            proof
-        }) else {
-            return Err(ExodusError::ExitProofTaskNotExist)
-        };
 
         Ok(exit_data)
+    }
+
+    pub async fn generate_batch_proofs_tasks(
+        &self,
+        batch_exit_info: BatchExitRequest,
+        token_info: &TokenInfo,
+        account_id: AccountId
+    ) -> Vec<ExitInfo>{
+        let mut exit_infos = Vec::new();
+        if *batch_exit_info.token_id != USD_TOKEN_ID {
+            // get general token
+            for (&chain_id, _) in &token_info.addresses{
+                exit_infos.push(ExitInfo{
+                    chain_id,
+                    account_address: Default::default(),
+                    account_id,
+                    sub_account_id: batch_exit_info.sub_account_id,
+                    l1_target_token: batch_exit_info.token_id,
+                    l2_source_token: batch_exit_info.token_id,
+                });
+            }
+        } else {
+            // get stable coin token(usdx)
+            for (&token_id, token) in self.acquired_tokens
+                .usdx_tokens
+                .iter()
+            {
+                for (&chain_id, _) in &token.addresses{
+                    exit_infos.push(ExitInfo{
+                        chain_id,
+                        account_address: Default::default(),
+                        account_id: account_id.into(),
+                        sub_account_id: batch_exit_info.sub_account_id,
+                        l1_target_token: token_id,
+                        l2_source_token: batch_exit_info.token_id,
+                    });
+                }
+            }
+        }
+        exit_infos
     }
 
     pub(crate) async fn get_proofs(
         &self,
         exit_info: BatchExitRequest
     ) -> Result<Vec<ExitProofData>, ExodusError>{
-        let Some(&id) = self.recovered_state
-            .account_id_by_address
-            .get(&exit_info.address) else {
-            return Err(ExodusError::AccountNotExist)
-        };
-        let mut storage = self.access_storage().await?;
-        let proof = storage.prover_schema()
-            .get_proofs(
-                *id as i64,
-                *exit_info.sub_account_id as i16,
-                *exit_info.token_id as i32
-            )
-            .await?;
-        let exit_data = proof
-            .into_iter()
-            .map(|proof|{
-                let mut proof: ExitProofData = proof.into();
-                proof.exit_info.account_address = exit_info.address.clone();
-                proof
-            })
-            .collect();
-        Ok(exit_data)
+        let (&account_id, token_info) = self.check_exit_info(
+            &exit_info.address,
+            exit_info.sub_account_id,
+            exit_info.token_id
+        )?;
+
+        let batch_exit_info = self.generate_batch_proofs_tasks(
+            exit_info,
+            token_info,
+            account_id
+        ).await;
+
+        let mut all_exit_data = Vec::new();
+        for exit_info in batch_exit_info{
+            let exit_data = self.proofs_cache.get_proof(exit_info).await?;
+            all_exit_data.push(exit_data)
+        }
+        Ok(all_exit_data)
     }
 
     pub(crate) async fn generate_proof_task(
@@ -153,58 +177,54 @@ impl ServerData {
             exit_info.sub_account_id,
             exit_info.l2_source_token
         )?.0;
+        if self.proofs_cache.cache.contains_key(&exit_info){
+            return Err(ExodusError::ExitProofTaskNotExist)
+        }
 
+        // Update to database
         let mut storage = self.access_storage().await?;
         storage.prover_schema()
             .insert_exit_task((&exit_info).into())
             .await?;
+
+        // Update to cache
+        self.proofs_cache.cache.insert(exit_info, None).await;
         Ok(())
     }
 
     pub(crate) async fn generate_proof_tasks(
         &self,
-        exit_info: BatchExitRequest,
+        batch_exit_info: BatchExitRequest,
     ) -> Result<(), ExodusError>{
         let (&account_id, token_info) = self.check_exit_info(
-            &exit_info.address,
-            exit_info.sub_account_id,
-            exit_info.token_id
+            &batch_exit_info.address,
+            batch_exit_info.sub_account_id,
+            batch_exit_info.token_id
         )?;
 
-        let mut storage = self.access_storage().await?;
-        if *exit_info.token_id != USD_TOKEN_ID {
-            // process general token
-            for (&chain_id, _) in &token_info.addresses{
-                storage.prover_schema()
-                    .insert_exit_task(StoredExitInfo{
-                        chain_id: *chain_id as i16,
-                        account_id: account_id.into(),
-                        sub_account_id: *exit_info.sub_account_id as i16,
-                        l1_target_token: *exit_info.token_id as i32,
-                        l2_source_token: *exit_info.token_id as i32,
-                    })
-                    .await?;
-            }
-        } else {
-            // process stable coin token(usdx)
-            for (&token_id, token) in self.acquired_tokens
-                .usdx_tokens
-                .iter()
-            {
-                for (&chain_id, _) in &token.addresses{
-                    storage.prover_schema()
-                        .insert_exit_task(StoredExitInfo {
-                            chain_id: *chain_id as i16,
-                            account_id: account_id.into(),
-                            sub_account_id: *exit_info.sub_account_id as i16,
-                            l1_target_token: *token_id as i32,
-                            l2_source_token: *exit_info.token_id as i32,
-                        })
-                        .await?;
-                }
-            }
+        // Generate all exit task by BatchExitRequest
+        let batch_exit_tasks = self.generate_batch_proofs_tasks(
+            batch_exit_info,
+            token_info,
+            account_id
+        ).await;
+
+        // Returns if any task exists
+        if self.proofs_cache.cache.contains_key(&batch_exit_tasks.first().unwrap()){
+            return Err(ExodusError::ExitProofTaskNotExist)
         }
 
+        // Update to database
+        let mut storage = self.access_storage().await?;
+        storage.prover_schema()
+            .insert_batch_exit_tasks(
+                batch_exit_tasks.iter().map(|t|t.into()).collect()
+            ).await?;
+
+        // Update to cache
+        for exit_task in batch_exit_tasks {
+            self.proofs_cache.cache.insert(exit_task, None).await;
+        }
         Ok(())
     }
 
@@ -212,7 +232,7 @@ impl ServerData {
         let mut storage = self.access_storage().await?;
         let priority_ops = storage.chain()
             .operations_schema()
-            .get_unprocessed_priority_txs(chain_id)
+            .get_unprocessed_priority_txs(*chain_id as i16)
             .await?;
         let unprocessed_priority_ops = priority_ops.into_iter()
             .map(|(serial_id, tx)|{
