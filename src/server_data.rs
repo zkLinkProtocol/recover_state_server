@@ -13,7 +13,7 @@ use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::proofs_cache::ProofsCache;
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
-use crate::response::{ExodusResponse, ExodusError};
+use crate::response::{ExodusResponse, ExodusStatus};
 use crate::utils::{convert_balance_resp, UnprocessedPriorityOp, SubAccountBalances, PublicData};
 
 #[derive(Clone)]
@@ -55,14 +55,14 @@ impl ServerData {
             .await
     }
 
-    pub(crate) async fn get_balances_by_storage(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusError>{
+    pub(crate) async fn get_balances_by_storage(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusStatus>{
         let mut storage = self.access_storage().await?;
         let Some(StorageAccount{id, ..}) = storage.chain()
             .account_schema()
             .account_by_address(account_address.as_bytes())
             .await? else
         {
-            return Err(ExodusError::AccountNotExist)
+            return Err(ExodusStatus::AccountNotExist)
         };
         let balances = storage.chain()
             .account_schema()
@@ -75,12 +75,12 @@ impl ServerData {
     pub(crate) async fn get_proof(
         &self,
         mut exit_info: ExitInfo,
-    ) -> Result<ExitProofData, ExodusError>{
+    ) -> Result<ExitProofData, ExodusStatus>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
-            return Err(ExodusError::InvalidL1L2Token)
+            return Err(ExodusStatus::InvalidL1L2Token)
         }
         if let Some(&id) = self.recovered_state
             .account_id_by_address
@@ -88,7 +88,7 @@ impl ServerData {
         {
             exit_info.account_id = id;
         } else {
-            return Err(ExodusError::AccountNotExist)
+            return Err(ExodusStatus::AccountNotExist)
         };
 
         let exit_data = self.proofs_cache
@@ -141,7 +141,7 @@ impl ServerData {
     pub(crate) async fn get_proofs(
         &self,
         exit_info: BatchExitRequest
-    ) -> Result<Vec<ExitProofData>, ExodusError>{
+    ) -> Result<Vec<ExitProofData>, ExodusStatus>{
         let (&account_id, token_info) = self.check_exit_info(
             &exit_info.address,
             exit_info.sub_account_id,
@@ -165,12 +165,12 @@ impl ServerData {
     pub(crate) async fn generate_proof_task(
         &self,
         mut exit_info: ExitInfo,
-    ) -> Result<(), ExodusError>{
+    ) -> Result<(), ExodusStatus>{
         if !check_source_token_and_target_token(
             exit_info.l2_source_token,
             exit_info.l1_target_token
         ).0 {
-            return Err(ExodusError::InvalidL1L2Token)
+            return Err(ExodusStatus::InvalidL1L2Token)
         }
         exit_info.account_id = *self.check_exit_info(
             &exit_info.account_address,
@@ -178,7 +178,7 @@ impl ServerData {
             exit_info.l2_source_token
         )?.0;
         if self.proofs_cache.cache.contains_key(&exit_info){
-            return Err(ExodusError::ExitProofTaskNotExist)
+            return Err(ExodusStatus::ExitProofTaskNotExist)
         }
 
         // Update to database
@@ -195,7 +195,7 @@ impl ServerData {
     pub(crate) async fn generate_proof_tasks(
         &self,
         batch_exit_info: BatchExitRequest,
-    ) -> Result<(), ExodusError>{
+    ) -> Result<(), ExodusStatus>{
         let (&account_id, token_info) = self.check_exit_info(
             &batch_exit_info.address,
             batch_exit_info.sub_account_id,
@@ -211,7 +211,7 @@ impl ServerData {
 
         // Returns if any task exists
         if self.proofs_cache.cache.contains_key(&batch_exit_tasks.first().unwrap()){
-            return Err(ExodusError::ExitProofTaskNotExist)
+            return Err(ExodusStatus::ExitProofTaskNotExist)
         }
 
         // Update to database
@@ -228,7 +228,7 @@ impl ServerData {
         Ok(())
     }
 
-    pub(crate) async fn get_unprocessed_priority_ops(&self, chain_id: ChainId) -> Result<Vec<UnprocessedPriorityOp>, ExodusError>{
+    pub(crate) async fn get_unprocessed_priority_ops(&self, chain_id: ChainId) -> Result<Vec<UnprocessedPriorityOp>, ExodusStatus>{
         let mut storage = self.access_storage().await?;
         let priority_ops = storage.chain()
             .operations_schema()
@@ -253,9 +253,9 @@ impl ServerData {
         ExodusResponse::Ok().data(self.contracts.clone())
     }
 
-    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Result<StoredBlockInfo, ExodusError> {
+    pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Result<StoredBlockInfo, ExodusStatus> {
         if !self.contracts.contains_key(&chain_id) {
-            return Err(ExodusError::ChainNotExist)
+            return Err(ExodusStatus::ChainNotExist)
         }
         Ok(self.recovered_state.stored_block_info(chain_id))
     }
@@ -265,19 +265,19 @@ impl ServerData {
         address: &ZkLinkAddress,
         sub_account_id: SubAccountId,
         token_id: TokenId
-    ) -> Result<(&AccountId , &TokenInfo), ExodusError> {
+    ) -> Result<(&AccountId , &TokenInfo), ExodusStatus> {
         let Some(account_id) = self.recovered_state
             .account_id_by_address
             .get(address) else {
-            return Err(ExodusError::AccountNotExist)
+            return Err(ExodusStatus::AccountNotExist)
         };
         let Some(token_info) = self.acquired_tokens
             .token_by_id
             .get(&token_id) else {
-            return Err(ExodusError::TokenNotExist)
+            return Err(ExodusStatus::TokenNotExist)
         };
         if self.recovered_state.empty_balance(*account_id, sub_account_id, token_info.token_id) {
-            return Err(ExodusError::NonBalance)
+            return Err(ExodusStatus::NonBalance)
         }
 
         Ok((account_id, token_info))

@@ -3,7 +3,7 @@ use zklink_storage::ConnectionPool;
 use zklink_types::block::{Block, StoredBlockInfo};
 use zklink_types::{AccountId, AccountMap, ChainId, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_types::utils::{calculate_actual_token, recover_raw_token, recover_sub_account_by_token};
-use crate::response::ExodusError;
+use crate::response::ExodusStatus;
 use crate::utils::SubAccountBalances;
 
 #[derive(Debug, Clone)]
@@ -51,7 +51,7 @@ impl RecoveredState {
         }
     }
 
-    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusError>{
+    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusStatus>{
         if let Some(&id) = self.account_id_by_address
             .get(&account_address)
         {
@@ -70,7 +70,7 @@ impl RecoveredState {
             }
             Ok(resp)
         } else {
-            return Err(ExodusError::AccountNotExist)
+            return Err(ExodusStatus::AccountNotExist)
         }
     }
 

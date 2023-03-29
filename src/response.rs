@@ -9,8 +9,8 @@ pub struct ExodusResponse<T: Serialize + Clone>{
     pub err_msg: Option<String>,
 }
 
-impl<T: Serialize + Clone> From<ExodusError> for ExodusResponse<T> {
-    fn from(code: ExodusError) -> Self {
+impl<T: Serialize + Clone> From<ExodusStatus> for ExodusResponse<T> {
+    fn from(code: ExodusStatus) -> Self {
         Self{
             code: code as i32,
             data: None,
@@ -23,7 +23,7 @@ impl<T: Serialize + Clone> ExodusResponse<T> {
     #[allow(non_snake_case)]
     pub fn Ok() -> ExodusResponse<T>{
         Self{
-            code: ExodusError::Ok as i32,
+            code: ExodusStatus::Ok as i32,
             data: None,
             err_msg: None,
         }
@@ -36,9 +36,9 @@ impl<T: Serialize + Clone> ExodusResponse<T> {
 }
 
 #[derive(Copy, Clone, Serialize)]
-pub enum ExodusError {
+pub enum ExodusStatus {
     Ok = 0,
-    ProofNotBegin = 50,
+    ProofTaskAlreadyExists = 50,
     ProofGenerating = 51,
     ProofCompleted = 52,
     NonBalance = 60,
@@ -53,34 +53,34 @@ pub enum ExodusError {
     InternalErr=500
 }
 
-impl From<anyhow::Error> for ExodusError {
+impl From<anyhow::Error> for ExodusStatus {
     fn from(err: anyhow::Error) -> Self {
         error!("Exodus server internal error: {}", err);
-        ExodusError::InternalErr
+        ExodusStatus::InternalErr
     }
 }
 
-impl ToString for ExodusError {
+impl ToString for ExodusStatus {
     fn to_string(&self) -> String {
         match self {
             // Normal response
-            ExodusError::Ok => "Ok",
-            ExodusError::ProofNotBegin => "The proof task has not yet begun",
-            ExodusError::ProofGenerating => "The proof task is running",
-            ExodusError::ProofCompleted => "The task has been completed",
-            ExodusError::NonBalance => "The token of the account is no balance",
+            ExodusStatus::Ok => "Ok",
+            ExodusStatus::ProofTaskAlreadyExists => "The proof Task already exists",
+            ExodusStatus::ProofGenerating => "The proof task is running",
+            ExodusStatus::ProofCompleted => "The task has been completed",
+            ExodusStatus::NonBalance => "The token of the account is no balance",
 
             // Not exist info
-            ExodusError::TokenNotExist => "The token not exist",
-            ExodusError::AccountNotExist => "The account not exist",
-            ExodusError::ChainNotExist => "The chain not exist",
-            ExodusError::ExitProofTaskNotExist => "The exit proof task not exist",
+            ExodusStatus::TokenNotExist => "The token not exist",
+            ExodusStatus::AccountNotExist => "The account not exist",
+            ExodusStatus::ChainNotExist => "The chain not exist",
+            ExodusStatus::ExitProofTaskNotExist => "The exit proof task not exist",
 
             // Invalid parameters
-            ExodusError::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
+            ExodusStatus::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
 
             // Internal error,
-            ExodusError::InternalErr => "Exodus server internal error",
+            ExodusStatus::InternalErr => "Exodus server internal error",
         }.to_string()
     }
 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 use zklink_crypto::params::{MAX_USD_TOKEN_ID, USDX_TOKEN_ID_UPPER_BOUND};
 use zklink_storage::ConnectionPool;
-use crate::response::{ExodusResponse, ExodusError};
+use crate::response::{ExodusResponse, ExodusStatus};
 
 #[derive(Debug, Clone)]
 pub struct AcquiredTokens{
@@ -48,14 +48,14 @@ impl AcquiredTokens {
         Self{ token_by_id, usdx_tokens }
     }
 
-    pub(crate) async fn get_token(&self, token_id: TokenId) -> Result<TokenInfo, ExodusError> {
+    pub(crate) async fn get_token(&self, token_id: TokenId) -> Result<TokenInfo, ExodusStatus> {
         if let Some(token) = self.token_by_id
             .get(&token_id)
             .cloned()
         {
             Ok(token)
         } else {
-            Err(ExodusError::TokenNotExist)
+            Err(ExodusStatus::TokenNotExist)
         }
     }
 
