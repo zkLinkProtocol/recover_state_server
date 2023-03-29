@@ -46,7 +46,8 @@ impl StorageInteractor for InMemoryStorageInteractor {
         _last_watched_block_number: u64,
         _last_serial_id: i64,
         _submit_ops: Vec<StoredSubmitTransaction>,
-        token_events: Vec<NewToken>
+        token_events: Vec<NewToken>,
+        _symbols: Vec<String>,
     ) {
         for token in token_events{
             let token = Token {

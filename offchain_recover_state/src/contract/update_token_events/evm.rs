@@ -14,9 +14,13 @@ use crate::database_storage_interactor::DatabaseStorageInteractor;
 use crate::storage_interactor::StorageInteractor;
 use crate::VIEW_BLOCKS_STEP;
 
+pub const ERC20_JSON: &str = include_str!("ERC20.json");
+
 pub struct EvmTokenEvents {
+    erc20_abi: ethers::abi::Abi,
     contract: Contract<Provider<Http>>,
     chain_id: ChainId,
+    gas_token: String,
     last_sync_block_number: u64,
     last_sync_serial_id: i64,
     connection_pool: ConnectionPool,
@@ -33,12 +37,15 @@ impl EvmTokenEvents {
                 .unwrap_or((config.contract.deployment_block as i64, -1))
         };
         let address = Address::from_slice(config.contract.address.as_bytes());
-        let abi = load_abi(ZKLINK_JSON);
+        let zklink_abi = load_abi(ZKLINK_JSON);
+        let erc20_abi = load_abi(ERC20_JSON);
         let client = new_provider_with_url(&config.client.web3_url());
 
         Self{
-            contract: Contract::new(address, abi, client.into()),
+            erc20_abi,
+            contract: Contract::new(address, zklink_abi, client.into()),
             chain_id: config.chain.chain_id,
+            gas_token: config.chain.gas_token.clone(),
             last_sync_block_number: last_watched_block_number as u64,
             last_sync_serial_id,
             connection_pool,
@@ -111,11 +118,26 @@ impl EvmTokenEvents {
             .collect::<anyhow::Result<Vec<_>>>()
     }
 
-    fn process_token_logs(&self, logs: Vec<Log>) -> anyhow::Result<Vec<NewToken>> {
-        logs
+    async fn process_token_logs(&self, logs: Vec<Log>) -> anyhow::Result<(Vec<NewToken>, Vec<String>)> {
+        let token_events = logs
             .into_iter()
             .map(|log| parse_log::<NewToken>(log).map_err(|e|format_err!("Parse token log error: {:?}", e)))
-            .collect::<anyhow::Result<Vec<NewToken>>>()
+            .collect::<anyhow::Result<Vec<NewToken>>>()?;
+        let mut token_symbols = Vec::with_capacity(token_events.len());
+        for token in &token_events{
+            let address = Address::from_slice(token.address.as_bytes());
+            let symbol = if address == "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".parse().unwrap() {
+                self.gas_token.clone()
+            } else {
+                Contract::new(address, self.erc20_abi.clone(), self.contract.client())
+                    .method("symbol", ())?
+                    .call()
+                    .await?
+            };
+            println!("address: {address:?}, symbol:{symbol}");
+            token_symbols.push(symbol);
+        }
+        Ok((token_events, token_symbols))
     }
 }
 
@@ -168,7 +190,7 @@ impl UpdateTokenEvents for EvmTokenEvents {
         let ops = self.process_priority_op_events(priority_logs)?;
         let (last_serial_id, submit_ops) = self.process_priority_ops(self.last_sync_serial_id, ops)?;
         // registered tokens
-        let token_events = self.process_token_logs(token_logs)?;
+        let (token_events, symbols) = self.process_token_logs(token_logs).await?;
 
         // updated storage
         let storage = self.connection_pool.access_storage().await?;
@@ -178,7 +200,8 @@ impl UpdateTokenEvents for EvmTokenEvents {
             to,
             last_serial_id,
             submit_ops,
-            token_events
+            token_events,
+            symbols
         ).await;
 
         // update cache

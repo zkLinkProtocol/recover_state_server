@@ -55,12 +55,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         last_serial_id: i64,
         submit_ops: Vec<StoredSubmitTransaction>,
         token_events: Vec<NewToken>,
+        symbols: Vec<String>,
     ) {
         let mut transaction = self.storage.start_transaction().await.unwrap();
-        for token in token_events.iter(){
+        for (symbol, token) in symbols.into_iter().zip(token_events.iter()){
             let db_token = DbToken{
                 token_id: token.id as i32,
-                symbol: "".to_string(),
+                symbol,
                 price_id: "".to_string(),
                 usd_price: Default::default(),
                 last_update_time: Default::default(),

@@ -44,7 +44,7 @@ pub enum StorageUpdateState {
 /// - Storage
 pub struct RecoverStateDriver<I: StorageInteractor, T: ZkLinkContract> {
     /// Update the token events of all chains.
-    pub update_token_events: Vec<(ChainId, Box<dyn UpdateTokenEvents>)>,
+    pub update_token_events: Vec<(ChainId, Option<Box<dyn UpdateTokenEvents>>)>,
     /// Provides uncompressed(upload all pubdata) layer1 rollup contract interface.
     pub zklink_contract: T,
     /// Layer1 blocks heights that include correct UpgradeComplete events.
@@ -116,7 +116,7 @@ where
                 ChainType::EVM => Box::new(EvmTokenEvents::new(config,connection_pool.clone()).await),
                 ChainType::STARKNET => panic!("supported chain type.")
             };
-            update_token_events.push((config.chain.chain_id, token_events))
+            update_token_events.push((config.chain.chain_id, Some(token_events)))
         }
         Self {
             update_token_events,
@@ -135,7 +135,9 @@ where
 
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
-        while let Some((chain_id, mut updating_event)) = self.update_token_events.pop(){
+        for (chain_id, updating_event) in self.update_token_events.iter_mut(){
+            let mut updating_event = updating_event.take().unwrap();
+            let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
                 info!("Starting {:?} update token events", chain_id);
                 let cur_block_number = updating_event.block_number()

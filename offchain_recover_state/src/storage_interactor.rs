@@ -42,6 +42,7 @@ pub trait StorageInteractor {
         last_serial_id: i64,
         submit_ops: Vec<StoredSubmitTransaction>,
         token_events: Vec<NewToken>,
+        symbols: Vec<String>,
     );
 
     /// Saves Rollup operations blocks in storage

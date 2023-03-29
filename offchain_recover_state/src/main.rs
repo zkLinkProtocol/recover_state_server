@@ -66,10 +66,10 @@ async fn main() {
     if opt.genesis {
         // There will be fetching contracts creation transactions to get first layer1 block and genesis acc address
         driver.set_genesis_state(&mut interactor, config).await;
-
-        // Get all token events
-        driver.download_registered_tokens().await;
     }
+
+    // Get all token events
+    // driver.download_registered_tokens().await;
 
     // Continue with recover_state as before
     if opt.continue_mode && driver.load_state_from_storage(&mut interactor).await {

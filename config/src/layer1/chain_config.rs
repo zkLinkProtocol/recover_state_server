@@ -9,6 +9,8 @@ pub struct ChainConfig {
     pub chain_id: ChainId,
     /// Layer one chain type, for example, the chain type of Ethereum is EVM
     pub chain_type: ChainType,
+    /// Gas token symbol
+    pub gas_token: String,
     /// Whether sender should commit compressed block
     pub is_commit_compressed_blocks: bool,
 }
