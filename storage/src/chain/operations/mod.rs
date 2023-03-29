@@ -207,19 +207,15 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     }
 
     /// Retrieves all unprocessed priority transactions from the database.
-    pub async fn get_unprocessed_priority_txs(&mut self, chain_id: ChainId) -> QueryResult<Vec<(u64, ZkLinkTx)>> {
+    pub async fn get_unprocessed_priority_txs(&mut self, chain_id: i16) -> QueryResult<Vec<(u64, ZkLinkTx)>> {
         let start = Instant::now();
 
         let tx_data = sqlx::query!(
             "SELECT tx_data, nonce FROM submit_txs
-            WHERE nonce > (
-                SELECT MAX(nonce) FROM submit_txs
-                WHERE executed = true AND (op_type = $1 OR op_type = $2) AND chain_id = $1
-            )
-            AND (op_type = $2 OR op_type = $3) AND chain_id = $1
+            WHERE executed = false AND (op_type = $1 OR op_type = $2) AND chain_id = $3
             ORDER BY nonce ASC;
             ",
-            chain_id, DepositOp::OP_CODE as i16, FullExitOp::OP_CODE as i16
+            DepositOp::OP_CODE as i16, FullExitOp::OP_CODE as i16, chain_id
         )
             .fetch_all(self.0.conn())
             .await?
