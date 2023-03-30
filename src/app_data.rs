@@ -17,17 +17,17 @@ use crate::response::{ExodusResponse, ExodusStatus};
 use crate::utils::{convert_balance_resp, UnprocessedPriorityOp, SubAccountBalances, PublicData};
 
 #[derive(Clone)]
-pub struct ServerData {
+pub struct AppData {
     conn_pool: ConnectionPool,
-    contracts: HashMap<ChainId, ZkLinkAddress>,
+    pub contracts: HashMap<ChainId, ZkLinkAddress>,
     proofs_cache: ProofsCache,
 
     pub recovered_state: RecoveredState,
     pub acquired_tokens: AcquiredTokens,
 }
 
-impl ServerData {
-    pub async fn new(conn_pool: ConnectionPool, contracts: HashMap<ChainId, ZkLinkAddress>, proofs_cache: ProofsCache) -> ServerData {
+impl AppData {
+    pub async fn new(conn_pool: ConnectionPool, contracts: HashMap<ChainId, ZkLinkAddress>, proofs_cache: ProofsCache) -> AppData {
 
         info!("Loading accounts state....");
         let timer = Instant::now();
@@ -110,7 +110,7 @@ impl ServerData {
             for (&chain_id, _) in &token_info.addresses{
                 exit_infos.push(ExitInfo{
                     chain_id,
-                    account_address: Default::default(),
+                    account_address: batch_exit_info.address.clone(),
                     account_id,
                     sub_account_id: batch_exit_info.sub_account_id,
                     l1_target_token: batch_exit_info.token_id,
@@ -126,7 +126,7 @@ impl ServerData {
                 for (&chain_id, _) in &token.addresses{
                     exit_infos.push(ExitInfo{
                         chain_id,
-                        account_address: Default::default(),
+                        account_address: batch_exit_info.address.clone(),
                         account_id: account_id.into(),
                         sub_account_id: batch_exit_info.sub_account_id,
                         l1_target_token: token_id,

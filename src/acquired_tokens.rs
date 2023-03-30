@@ -70,7 +70,7 @@ impl AcquiredTokens {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct TokenInfo {
     pub token_id: TokenId,
     pub symbol: String,

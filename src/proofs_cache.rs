@@ -2,8 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use moka::future::Cache;
 use zklink_crypto::proof::EncodedSingleProof;
+use zklink_types::ZkLinkAddress;
 use zklink_utils::BigUintSerdeWrapper;
 use zklink_prover::{ExitInfo, ExitProofData};
+use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::ConnectionPool;
 use crate::response::ExodusStatus;
 
@@ -31,11 +33,18 @@ impl ProofsCache {
             .time_to_idle(Duration::from_secs(60))
             .build();
         for stored_proof in stored_exit_proofs {
+            let StorageAccount{address, ..} = storage.chain()
+                .account_schema()
+                .account_by_id(stored_proof.account_id)
+                .await
+                .expect("Failed to get account by id")
+                .expect("Account must be existing");
             let ExitProofData{
-                exit_info,
+                mut exit_info,
                 amount,
                 proof
             } = stored_proof.into();
+            exit_info.account_address = ZkLinkAddress::from_slice(address.as_slice()).unwrap();
             proofs_cache.insert(
                 exit_info,
                 amount.and_then(|a|proof.map(|p|(a, p)))
@@ -65,6 +74,7 @@ impl ProofsCache {
         {
             let mut exit_data:ExitProofData = stored_proof.into();
             exit_data.exit_info.account_address = exit_info.account_address;
+
             let ExitProofData{
                 exit_info,
                 amount,

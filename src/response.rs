@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use tracing::error;
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExodusResponse<T: Serialize + Clone>{
     pub code: i32,
     pub data: Option<T>,
