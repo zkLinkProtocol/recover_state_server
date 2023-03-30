@@ -178,7 +178,7 @@ impl AppData {
             exit_info.l2_source_token
         )?.0;
         if self.proofs_cache.cache.contains_key(&exit_info){
-            return Err(ExodusStatus::ExitProofTaskNotExist)
+            return Err(ExodusStatus::ProofTaskAlreadyExists)
         }
 
         // Update to database
@@ -211,7 +211,7 @@ impl AppData {
 
         // Returns if any task exists
         if self.proofs_cache.cache.contains_key(&batch_exit_tasks.first().unwrap()){
-            return Err(ExodusStatus::ExitProofTaskNotExist)
+            return Err(ExodusStatus::ProofTaskAlreadyExists)
         }
 
         // Update to database
