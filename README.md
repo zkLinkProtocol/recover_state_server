@@ -56,7 +56,7 @@ This will create a binary file in the `target/release` directory.
 ### Configure the Environment Variables
 First, there is a `.env.eg` file in the root path of our project, copy and rename it to `.env`.
 ```shell
-cp .env.eg .env
+cp .env.e.g .env
 ```
 Then, you need to modify the following configuration:
 
