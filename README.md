@@ -1,17 +1,18 @@
 # ZkLink Exodus Model
+The Server, Prover and React App of ZkLink Exodus Model.
 
-The Rust Implementation of the ZkLink exodus server and prover.
+## Front-end setup, please [exodus interface](exodus-interface/README.md)
 
 ## Table of Contents
-
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
     - [Create the Database](#create-the-database)
     - [Build the Project](#build-the-project)
     - [Configure the Environment Variables](#configure-the-environment-variables)
-    - [Recover the Database](#recover-ZkLink-state)
+    - [Recover zklink state](#recover-ZkLink-state)
     - [Start the Server](#start-the-exodus-server)
     - [Start the Prover](#start-the-exodus-prover)
+    - [Front-end setup](exodus-interface/README.md)
 - [Contributing](#contributing)
 - [License](#license)
 
