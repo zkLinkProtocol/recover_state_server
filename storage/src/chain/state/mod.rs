@@ -486,7 +486,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                 let id = AccountId(stored_account.id as u32);
                 let balances = balances_for_id.remove(&id).unwrap_or_default();
                 let order_nonces = order_nonces_for_id.remove(&id).unwrap_or_default();
-                let (id, account) = restore_account(&stored_account, balances, order_nonces);
+                let (id, account) = restore_account(stored_account, balances, order_nonces);
                 account_map.insert(id, account);
             }
         }
@@ -558,7 +558,6 @@ impl<'a, 'c> StateSchema<'a, 'c> {
 
             last_block
                 .max
-                .map(|last_block| last_block)
                 .unwrap_or(0i64)
         };
 

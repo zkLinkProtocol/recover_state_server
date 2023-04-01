@@ -42,11 +42,11 @@ impl TxHandler<OrderMatching> for ZkLinkState {
         &mut self,
         op: &mut Self::Op,
     ) -> Result<AccountUpdates, Error> {
-        Ok(self.execute_order_matching_op(op, false)?)
+        self.execute_order_matching_op(op, false)
     }
 
     fn unsafe_apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, Error> {
-        Ok(self.execute_order_matching_op(op, true)?)
+        self.execute_order_matching_op(op, true)
     }
 }
 
@@ -62,39 +62,37 @@ impl ZkLinkState {
         let taker_sell_token = Self::get_actual_token_by_sub_account(op.tx.maker.sub_account_id, taker_sell_token_base);
 
         // calculate actual exchanged amounts
-        let (taker_obtain_token_amount, maker_obtain_token_amount) = Self::calculate_actual_exchanged_amounts(&op)
+        let (taker_obtain_token_amount, maker_obtain_token_amount) = Self::calculate_actual_exchanged_amounts(op)
             .ok_or(format_err!("Internal calculation error!"))?;
 
         let (maker_sell_amount, taker_sell_amount) = if is_recovered {
             (op.maker_sell_amount.clone(), op.taker_sell_amount.clone())
-        } else {
-            if !op.tx.expect_base_amount.is_zero() && !op.tx.expect_quote_amount.is_zero() {
-                if op.tx.maker.is_sell.is_one(){
-                    // When maker sell base token, taker obtain base token and maker obtain quote token
-                    ensure!(
-                        op.tx.expect_base_amount <= taker_obtain_token_amount,
-                        "Expected base token amount does not match actual base token amount"
-                    );
-                    ensure!(
-                        op.tx.expect_quote_amount <= maker_obtain_token_amount,
-                        "Expected quote token amount does not match actual quote token amount"
-                    );
-                    (op.tx.expect_base_amount.clone(), op.tx.expect_quote_amount.clone())
-                } else {
-                    // When maker buy base token, taker obtain quote token and maker obtain base token
-                    ensure!(
-                        op.tx.expect_base_amount <= maker_obtain_token_amount,
-                        "Expected base token amount does not match actual base token amount"
-                    );
-                    ensure!(
-                        op.tx.expect_quote_amount <= taker_obtain_token_amount,
-                        "Expected quote token amount does not match actual quote token amount"
-                    );
-                    (op.tx.expect_quote_amount.clone(), op.tx.expect_base_amount.clone())
-                }
-            }else {
-                (taker_obtain_token_amount, maker_obtain_token_amount)
+        } else if !op.tx.expect_base_amount.is_zero() && !op.tx.expect_quote_amount.is_zero() {
+            if op.tx.maker.is_sell.is_one(){
+                // When maker sell base token, taker obtain base token and maker obtain quote token
+                ensure!(
+                    op.tx.expect_base_amount <= taker_obtain_token_amount,
+                    "Expected base token amount does not match actual base token amount"
+                );
+                ensure!(
+                    op.tx.expect_quote_amount <= maker_obtain_token_amount,
+                    "Expected quote token amount does not match actual quote token amount"
+                );
+                (op.tx.expect_base_amount.clone(), op.tx.expect_quote_amount.clone())
+            } else {
+                // When maker buy base token, taker obtain quote token and maker obtain base token
+                ensure!(
+                    op.tx.expect_base_amount <= maker_obtain_token_amount,
+                    "Expected base token amount does not match actual base token amount"
+                );
+                ensure!(
+                    op.tx.expect_quote_amount <= taker_obtain_token_amount,
+                    "Expected quote token amount does not match actual quote token amount"
+                );
+                (op.tx.expect_quote_amount.clone(), op.tx.expect_base_amount.clone())
             }
+        }else {
+            (taker_obtain_token_amount, maker_obtain_token_amount)
         };
 
         // calculate submitter collect fee.
@@ -112,7 +110,7 @@ impl ZkLinkState {
             let old_nonce = order.nonce;
             let old_residue = order.residue.0.clone();
             // modified order
-            order.update(&exchanged_base_amount, &op.tx.maker);
+            order.update(exchanged_base_amount, &op.tx.maker);
 
             let new_nonce = order.nonce;
             let new_residue = order.residue.0.clone();
@@ -164,7 +162,7 @@ impl ZkLinkState {
             let old_nonce = order.nonce;
             let old_residue = order.residue.0.clone();
             // modified order
-            order.update(&exchanged_base_amount, &op.tx.taker);
+            order.update(exchanged_base_amount, &op.tx.taker);
             let new_nonce = order.nonce;
             let new_residue = order.residue.0.clone();
             updates.push((
@@ -283,10 +281,10 @@ impl ZkLinkState {
             .checked_div(&precision_magnified())?;
         if op.tx.maker.is_sell.is_one() {
             // When maker sell base token, taker obtain base token and maker obtain quote token
-            (actual_quantity.clone(), actual_exchanged.clone())
+            (actual_quantity.clone(), actual_exchanged)
         } else {
             // When maker buy base token, taker obtain quote token and maker obtain base token
-            (actual_exchanged.clone(), actual_quantity.clone())
+            (actual_exchanged, actual_quantity.clone())
         }.into()
     }
 

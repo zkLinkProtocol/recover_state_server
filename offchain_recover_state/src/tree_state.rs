@@ -16,6 +16,8 @@ use zklink_types::{
 use zklink_state::state::TransferOutcome;
 use crate::rollup_ops::RollupOpsBlock;
 
+type BlockAndUpdates = (Block, Vec<(AccountId, AccountUpdate, H256)>);
+
 /// Rollup accounts states
 pub struct TreeState {
     /// Accounts stored in a spase merkle tree
@@ -74,7 +76,7 @@ impl TreeState {
     pub fn apply_ops_block(
         &mut self,
         ops_block: &RollupOpsBlock,
-    ) -> Result<(Block, Vec<(AccountId, AccountUpdate, H256)>), anyhow::Error> {
+    ) -> Result<BlockAndUpdates, anyhow::Error> {
         info!("Applying ops_block[{:?}]", ops_block.block_num);
         assert_eq!(self.state.block_number + 1, ops_block.block_num);
         assert_eq!(
@@ -195,7 +197,7 @@ impl TreeState {
                 }
                 ZkLinkOp::FullExit(op) => {
                     let mut op =
-                        <ZkLinkState as TxHandler<FullExit>>::create_op(&mut self.state, op.tx)
+                        <ZkLinkState as TxHandler<FullExit>>::create_op(&self.state, op.tx)
                             .map_err(|e| format_err!("Create FullExit fail: {}", e))?;
                     let updates =
                         <ZkLinkState as TxHandler<FullExit>>::apply_op(&mut self.state, &mut op)

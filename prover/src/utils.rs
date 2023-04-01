@@ -115,8 +115,8 @@ pub fn get_universal_setup_monomial_form(
     // zklink for test
     let setup_file_name = format!("setup_2^{}.key", power_of_two);
     let mut buf_reader = get_universal_setup_file_buff_reader(zklink_home, &setup_file_name)?;
-    Ok(Crs::<Engine, CrsForMonomialForm>::read(&mut buf_reader)
-        .map_err(|e| format_err!("Failed to read Crs from setup file: {}", e))?)
+    Crs::<Engine, CrsForMonomialForm>::read(&mut buf_reader)
+        .map_err(|e| format_err!("Failed to read Crs from setup file: {}", e))
 }
 
 /// Returns universal setup in lagrange form of the given power of two (range: SETUP_MIN_POW2..=SETUP_MAX_POW2). Checks if file exists
@@ -130,8 +130,8 @@ pub fn get_universal_setup_lagrange_form(
     );
     let setup_file_name = format!("setup_2^{}_lagrange.key", power_of_two);
     let mut buf_reader = get_universal_setup_file_buff_reader(zklink_home, &setup_file_name)?;
-    Ok(Crs::<Engine, CrsForLagrangeForm>::read(&mut buf_reader)
-        .map_err(|e| format_err!("Failed to read Crs from setup file: {}", e))?)
+    Crs::<Engine, CrsForLagrangeForm>::read(&mut buf_reader)
+        .map_err(|e| format_err!("Failed to read Crs from setup file: {}", e))
 }
 
 pub fn get_exodus_verification_key_path(key_dir: &str) -> PathBuf {
@@ -147,7 +147,7 @@ fn get_universal_setup_file_buff_reader(
 ) -> Result<BufReader<File>, anyhow::Error> {
     let setup_file = {
         let mut path = base_universal_setup_dir(zklink_home)?;
-        path.push(&setup_file_name);
+        path.push(setup_file_name);
         File::open(path).map_err(|e| {
             format_err!(
                 "Failed to open universal setup file {}, err: {}",

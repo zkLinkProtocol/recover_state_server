@@ -70,7 +70,7 @@ pub struct StorageAccountOrderUpdate {
     pub tx_hash: Vec<u8>
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct StorageStateUpdates {
     pub account_creates: Vec<StorageAccountCreation>,
     pub balance_updates: Vec<StorageAccountUpdate>,
@@ -79,41 +79,33 @@ pub struct StorageStateUpdates {
 }
 
 impl StorageStateUpdates {
-    pub fn new() -> Self {
-        StorageStateUpdates {
-            account_creates: vec![],
-            balance_updates: vec![],
-            order_nonce_updates: vec![],
-            account_pubkey_updates: vec![],
-        }
-    }
     pub fn group_by_tx_hash(self) -> HashMap<Vec<u8>, StorageStateUpdates> {
-        let mut groups= HashMap::new();
+        let mut groups: HashMap<Vec<u8>, StorageStateUpdates>= HashMap::new();
         for u in self.account_creates {
             groups
                 .entry(u.tx_hash.clone())
-                .or_insert(StorageStateUpdates::new())
+                .or_default()
                 .account_creates
                 .push(u);
         }
         for u in self.balance_updates {
             groups
                 .entry(u.tx_hash.clone())
-                .or_insert(StorageStateUpdates::new())
+                .or_default()
                 .balance_updates
                 .push(u);
         }
         for u in self.order_nonce_updates {
             groups
                 .entry(u.tx_hash.clone())
-                .or_insert(StorageStateUpdates::new())
+                .or_default()
                 .order_nonce_updates
                 .push(u);
         }
         for u in self.account_pubkey_updates {
             groups
                 .entry(u.tx_hash.clone())
-                .or_insert(StorageStateUpdates::new())
+                .or_default()
                 .account_pubkey_updates
                 .push(u);
         }

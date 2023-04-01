@@ -59,7 +59,7 @@ async fn process_task(
     let op = || async {
          match result.as_ref(){
             Ok(exit_proof_data) => {
-                after_prover.store_exit_proof(&exit_proof_data).await?;
+                after_prover.store_exit_proof(exit_proof_data).await?;
                 info!("Stored exit proof");
             }
             Err(error) => {

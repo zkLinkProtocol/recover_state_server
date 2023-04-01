@@ -107,7 +107,7 @@ impl AppData {
         let mut exit_infos = Vec::new();
         if *batch_exit_info.token_id != USD_TOKEN_ID {
             // get general token
-            for (&chain_id, _) in &token_info.addresses{
+            for &chain_id in token_info.addresses.keys(){
                 exit_infos.push(ExitInfo{
                     chain_id,
                     account_address: batch_exit_info.address.clone(),
@@ -123,11 +123,11 @@ impl AppData {
                 .usdx_tokens
                 .iter()
             {
-                for (&chain_id, _) in &token.addresses{
+                for &chain_id in token.addresses.keys(){
                     exit_infos.push(ExitInfo{
                         chain_id,
                         account_address: batch_exit_info.address.clone(),
-                        account_id: account_id.into(),
+                        account_id,
                         sub_account_id: batch_exit_info.sub_account_id,
                         l1_target_token: token_id,
                         l2_source_token: batch_exit_info.token_id,
@@ -210,7 +210,7 @@ impl AppData {
         ).await;
 
         // Returns if any task exists
-        if self.proofs_cache.cache.contains_key(&batch_exit_tasks.first().unwrap()){
+        if self.proofs_cache.cache.contains_key(batch_exit_tasks.first().unwrap()){
             return Err(ExodusStatus::ProofTaskAlreadyExists)
         }
 

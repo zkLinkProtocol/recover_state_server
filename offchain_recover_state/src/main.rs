@@ -35,7 +35,7 @@ struct Opt {
 #[tokio::main]
 async fn main() {
     dotenv().expect(".env file not found");
-    let _sentry_guard = init();
+    init();
 
     let opt: Opt = Opt::from_args();
     let config = RecoverStateConfig::from_env();

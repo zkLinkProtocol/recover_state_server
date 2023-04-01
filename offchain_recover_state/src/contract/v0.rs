@@ -64,7 +64,7 @@ pub(super) fn rollup_ops_blocks_from_bytes_inner(
             if let Token::FixedBytes(root_hash) =
                 &prev_stored[previous_block_root_hash_argument_id]
             {
-                H256::from_slice(&root_hash)
+                H256::from_slice(root_hash)
             } else {
                 panic!("can't parse root hash param: {:#?}", prev_stored);
             }
@@ -106,7 +106,7 @@ pub(super) fn rollup_ops_blocks_from_bytes_inner(
                         contract_version: None,
                     });
 
-                    previous_block_root_hash = H256::from_slice(&root_hash);
+                    previous_block_root_hash = H256::from_slice(root_hash);
                 } else {
                     return Err(
                         std::io::Error::new(

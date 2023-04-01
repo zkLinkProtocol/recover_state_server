@@ -316,7 +316,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             timestamp: 0u64,
         };
 
-        Ok(self.save_block(block).await?)
+        self.save_block(block).await
     }
 
     pub async fn get_last_tx_id(&mut self, op_types: &[i16]) -> QueryResult<i64> {

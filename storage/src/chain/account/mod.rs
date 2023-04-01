@@ -368,17 +368,14 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                         .find(|b| b.account_id == u.account_id
                         && b.sub_account_id == u.sub_account_id
                         && b.coin_id == u.coin_id)
-                        .expect(&format!("Balance not found in db but update [id = {}] exist", u.balance_update_id));
+                        .unwrap_or_else(|| panic!("Balance not found in db but update [id = {}] exist", u.balance_update_id));
                     balance.balance = u.old_balance;
                 }
-                match pubkey_update {
-                    Some(update) => {
-                        if account.nonce > update.old_nonce {
-                            account.nonce = update.old_nonce;
-                        }
-                    },
-                    None => {}
-                }
+                if let Some(update) = pubkey_update{
+                    if account.nonce > update.old_nonce {
+                        account.nonce = update.old_nonce;
+                    }
+                };
 
                 for u in order_updates {
                     // Recovery slot for each (account_id, sub_account_id, slot_id)
@@ -387,7 +384,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                         .find(|o| o.account_id == u.account_id
                         && o.sub_account_id == u.sub_account_id
                         && o.slot_id == u.slot_id)
-                        .expect(&format!("Order slot not found in db but update [id = {}] exist", u.update_order_id));
+                        .unwrap_or_else(|| panic!("Order slot not found in db but update [id = {}] exist", u.update_order_id));
                     // `old_order_nonce` in db for example
                     // "[64,\"0\"]"
                     let json_string: String = serde_json::from_value(u.old_order_nonce).unwrap();

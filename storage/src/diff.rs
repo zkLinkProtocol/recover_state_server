@@ -48,9 +48,9 @@ impl From<StorageAccountOrderUpdate> for StorageAccountDiff {
     }
 }
 
-impl Into<(AccountId, AccountUpdate)> for StorageAccountDiff {
-    fn into(self) -> (AccountId, AccountUpdate) {
-        match self {
+impl From<StorageAccountDiff> for (AccountId, AccountUpdate) {
+    fn from(val: StorageAccountDiff) -> Self {
+        match val {
             StorageAccountDiff::BalanceUpdate(upd) => {
                 let old_balance = upd.old_balance.to_bigint().unwrap();
                 let old_balance = old_balance.to_biguint().unwrap();
@@ -75,7 +75,7 @@ impl Into<(AccountId, AccountUpdate)> for StorageAccountDiff {
                 AccountId(upd.account_id as u32),
                 AccountUpdate::Create {
                     nonce: Nonce(0u32),
-                    address: ZkLinkAddress::from_slice(&upd.address.as_slice()).unwrap(),
+                    address: ZkLinkAddress::from_slice(upd.address.as_slice()).unwrap(),
                 },
             ),
             StorageAccountDiff::ChangePubKey(upd) => (

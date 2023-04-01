@@ -70,7 +70,7 @@ impl RecoveredState {
             }
             Ok(resp)
         } else {
-            return Err(ExodusStatus::AccountNotExist)
+            Err(ExodusStatus::AccountNotExist)
         }
     }
 

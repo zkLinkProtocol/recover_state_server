@@ -1,14 +1,11 @@
 use std::str::FromStr;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Default, Deserialize, Clone, PartialEq)]
 pub enum ChainType{
+    #[default]
     EVM,
     STARKNET,
-}
-
-impl Default for ChainType{
-    fn default() -> Self { ChainType::EVM }
 }
 
 impl FromStr for ChainType{

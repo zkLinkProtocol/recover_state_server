@@ -4,7 +4,7 @@ pub use tracing::{debug, info, log, trace};
 #[macro_export]
 macro_rules! warn {
     ($($arg:tt)*) => {
-        crate::log::__tracing::warn!(
+        $crate::log::__tracing::warn!(
             file=file!(),
             line=line!(),
             column=column!(),
@@ -16,7 +16,7 @@ macro_rules! warn {
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        crate::log::__tracing::error!(
+        $crate::log::__tracing::error!(
             file=file!(),
             line=line!(),
             column=column!(),

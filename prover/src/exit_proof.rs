@@ -23,6 +23,7 @@ use zklink_crypto::proof::SingleProof;
 use zklink_crypto::{Engine, Fr};
 use crate::SETUP_MIN_POW2;
 
+#[allow(clippy::too_many_arguments)]
 pub fn create_exit_proof(
     config: &RecoverStateConfig,
     circuit_account_tree: &CircuitAccountTree,
@@ -46,7 +47,7 @@ pub fn create_exit_proof(
         );
     info!("Exit witness generated: {} s", timer.elapsed().as_secs());
 
-    let proof = gen_verified_proof_for_exit_circuit(&config, exit_circuit)
+    let proof = gen_verified_proof_for_exit_circuit(config, exit_circuit)
         .map_err(|e| format_err!("Failed to generate proof: {}", e))?;
 
     info!("Exit proof created: {} s", timer.elapsed().as_secs());

@@ -39,9 +39,9 @@ impl TxHandler<Transfer> for ZkLinkState {
         op: &mut Self::Op,
     ) -> Result<AccountUpdates, anyhow::Error> {
         match op {
-            TransferOutcome::Transfer(transfer_op) => self.apply_transfer_op(&transfer_op),
+            TransferOutcome::Transfer(transfer_op) => self.apply_transfer_op(transfer_op),
             TransferOutcome::TransferToNew(transfer_to_new_op) => {
-                self.apply_transfer_to_new_op(&transfer_to_new_op)
+                self.apply_transfer_to_new_op(transfer_to_new_op)
             }
         }
     }

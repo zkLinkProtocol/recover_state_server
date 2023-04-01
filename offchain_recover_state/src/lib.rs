@@ -22,7 +22,7 @@ pub const END_BLOCK_OFFSET: u64 = 40;
 // An error returned by the rpc server because the number of requests was too frequent.
 // It is configured according to the documentation of the rpc service.
 // The first error comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
-pub const PRC_REQUEST_FREQUENT_ERROR_SETS:[&'static str; 1] = ["429 Too Many Requests"];
+pub const PRC_REQUEST_FREQUENT_ERROR_SETS:[&str; 1] = ["429 Too Many Requests"];
 
 pub fn get_fully_on_chain_zklink_contract(config: &RecoverStateConfig) -> (u64, impl ZkLinkContract){
     let uncompress_chain_config = config.layer1

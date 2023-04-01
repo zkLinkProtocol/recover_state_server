@@ -115,14 +115,14 @@ impl ZkLinkState {
         Ok(())
     }
 
-    pub fn assert_token_supported(&self, token_id: &TokenId) -> () {
+    pub fn assert_token_supported(&self, token_id: &TokenId) {
         assert!(
             self.is_token_supported(token_id),
             "{:?} does not exist", token_id
         );
     }
 
-    pub fn assert_token_of_chain_supported(&self, token_id: &TokenId, chain_id: &ChainId) -> () {
+    pub fn assert_token_of_chain_supported(&self, token_id: &TokenId, chain_id: &ChainId) {
         assert!(
             self.is_token_of_chain_supported(token_id, chain_id),
             "Token {:?} does not exist on target chain {:?}.",
@@ -131,9 +131,9 @@ impl ZkLinkState {
     }
 
     pub fn check_token_supported(&self, token: &TokenId, chain_id: &ChainId) -> Result<(), Error>{
-        if let Some(token) = self.token_by_id.get(&token) {
+        if let Some(token) = self.token_by_id.get(token) {
             anyhow::ensure!(
-                token.chains.contains(&chain_id),
+                token.chains.contains(chain_id),
                 "Token {:?} does not exist on target chain {:?}.",
                 token, chain_id
             );
@@ -148,8 +148,8 @@ impl ZkLinkState {
     }
 
     pub fn is_token_of_chain_supported(&self, token_id: &TokenId, chain_id: &ChainId) -> bool {
-        if let Some(token) = self.token_by_id.get(&token_id) {
-            token.chains.contains(&chain_id)
+        if let Some(token) = self.token_by_id.get(token_id) {
+            token.chains.contains(chain_id)
         } else {
             false
         }
@@ -214,10 +214,7 @@ impl ZkLinkState {
     }
 
     pub fn root_hash(&self) -> Fr {
-        // let start = std::time::Instant::now();
-        let hash = self.balance_tree.root_hash();
-        // metrics::histogram!("root_hash", start.elapsed());
-        hash
+        self.balance_tree.root_hash()
     }
 
     pub fn get_account(&self, account_id: AccountId) -> Option<Account> {
@@ -234,16 +231,6 @@ impl ZkLinkState {
                 }
             }
             _ => franklin_tx.min_chunks(),
-        }
-    }
-
-    /// Priority op execution should not fail.
-    pub fn execute_priority_op(&mut self, op: ZkLinkPriorityOp) -> OpSuccess {
-        match op {
-            _ => OpSuccess{
-                updates: vec![],
-                executed_op: ZkLinkOp::Noop(NoopOp{}),
-            },
         }
     }
 
@@ -470,7 +457,7 @@ impl ZkLinkState {
                     account.order_slots.insert(
                         slot_id,
                         TidyOrder{
-                            nonce: new_order_nonce.0.clone(),
+                            nonce: new_order_nonce.0,
                             residue: new_order_nonce.1.clone().into(),
                         }
                     );

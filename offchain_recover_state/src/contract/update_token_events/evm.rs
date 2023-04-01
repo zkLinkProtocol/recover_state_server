@@ -103,7 +103,7 @@ impl EvmTokenEvents {
                     .map_err(|e|format_err!("Parse priority log error: {:?}", e))?;
                 let sender = ZkLinkAddress::from_slice(event.sender.as_bytes()).unwrap();
                 Ok(PriorityOp {
-                    serial_id: event.serial_id.into(),
+                    serial_id: event.serial_id,
                     data: ZkLinkPriorityOp::parse_from_priority_queue_logs(
                         event.pub_data.as_ref(),
                         event.op_type,

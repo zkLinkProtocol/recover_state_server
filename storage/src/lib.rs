@@ -81,10 +81,6 @@ use zklink_types::ActionType;
 // Local imports
 use crate::connection::{holder::ConnectionHolder, PooledConnection};
 
-// mod schema;
-#[cfg(test)]
-mod tests;
-
 pub mod chain;
 pub mod connection;
 pub mod diff;

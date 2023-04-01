@@ -20,11 +20,11 @@ pub struct DbTokenId {
    pub id: Option<i32>,
 }
 
-impl Into<Token> for DbTokenOfChain {
-    fn into(self) -> Token {
+impl From<DbTokenOfChain> for Token {
+    fn from(val: DbTokenOfChain) -> Self {
         Token {
-            id: TokenId(self.id as u32),
-            chains: vec![ChainId(self.chain_id as u8)],
+            id: TokenId(val.id as u32),
+            chains: vec![ChainId(val.chain_id as u8)],
         }
     }
 }

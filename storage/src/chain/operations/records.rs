@@ -12,7 +12,9 @@ use crate::StorageActionType;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, sqlx::Type)]
 #[sqlx(type_name = "agg_type")]
+#[derive(Default)]
 pub enum AggType {
+    #[default]
     CommitBlocks,
     CreateProofBlocks,
     PublishProofBlocksOnchain,
@@ -21,12 +23,11 @@ pub enum AggType {
     ExecuteBlocks,
 }
 
-impl Default for AggType {
-    fn default() -> Self { AggType::CommitBlocks }
-}
+
 
 #[derive(Serialize, Deserialize)]
 #[derive(Debug, Clone, FromRow)]
+#[derive(Default)]
 pub struct StoredSubmitTransaction {
     pub id: i64,
     pub chain_id: i16,
@@ -94,7 +95,7 @@ impl From<&PriorityFullExit> for StoredSubmitTransaction{
             full_exit.serial_id,
             full_exit.tx_hash,
         );
-        let zklink_tx = ZkLinkTx::from(tx.clone());
+        let zklink_tx = ZkLinkTx::from(tx);
         let hash = zklink_tx.hash().as_ref().to_vec();
         let tx_value = serde_json::to_value(zklink_tx).unwrap();
         let created_at = Utc::now();
@@ -113,30 +114,7 @@ impl From<&PriorityFullExit> for StoredSubmitTransaction{
     }
 }
 
-impl Default for StoredSubmitTransaction {
-    fn default() -> Self {
-        Self{
-            id: 0,
-            chain_id: 0,
-            op_type: 0,
-            from_account: vec![],
-            to_account: vec![],
-            nonce: 0,
-            amount: Default::default(),
-            tx_data: Default::default(),
-            eth_signature: None,
-            tx_hash: vec![],
-            created_at: Default::default(),
-            executed: false,
-            executed_timestamp: None,
-            success: false,
-            fail_reason: None,
-            block_number: 0,
-            block_index: 0,
-            operation: None
-        }
-    }
-}
+
 
 #[derive(Debug, Clone, FromRow)]
 pub struct StoredOperation {

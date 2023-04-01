@@ -1,6 +1,6 @@
 #[cfg(test)]
 pub mod test {
-    use zklink_types::Address;
+    use parity_crypto::publickey::Address;
 
     pub fn address_to_stored_string(address: &Address) -> String {
         format!("0x{:x}", address)

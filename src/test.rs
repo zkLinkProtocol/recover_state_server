@@ -25,7 +25,7 @@ async fn create_app_data() -> AppData {
 async fn test_get_contracts() {
     let app_data = create_app_data().await;
     let expect_contracts = app_data.contracts.clone();
-    let mut app = test::init_service(
+    let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_data))
             .configure(exodus_config),
@@ -33,7 +33,7 @@ async fn test_get_contracts() {
         .await;
 
     let req = test::TestRequest::get().uri("/contracts").to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
 
     assert_eq!(resp.status(), StatusCode::OK);
 
@@ -54,14 +54,14 @@ async fn test_get_tokens() {
     let app_data = create_app_data().await;
     let expected_tokens = app_data.acquired_tokens.token_by_id.clone();
 
-    let mut app = test::init_service(
+    let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_data))
             .configure(exodus_config),
     ).await;
 
     let req = test::TestRequest::get().uri("/tokens").to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
 
     assert_eq!(resp.status(), StatusCode::OK);
 
@@ -86,7 +86,7 @@ async fn test_get_token() {
     };
     app_data.acquired_tokens.token_by_id.insert(expected_token.token_id, expected_token.clone());
 
-    let mut app = test::init_service(
+    let app = test::init_service(
         App::new()
             .app_data(web::Data::new(app_data.clone()))
             .configure(exodus_config),
@@ -97,7 +97,7 @@ async fn test_get_token() {
         .uri("/get_token")
         .set_json(token_request)
         .to_request();
-    let resp = test::call_service(&mut app, req).await;
+    let resp = test::call_service(&app, req).await;
     assert_eq!(resp.status(), StatusCode::OK);
 
     let resp_body = test::read_body(resp).await;

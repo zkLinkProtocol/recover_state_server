@@ -438,7 +438,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             .await?
             .id;
 
-        Ok(op_id as i64)
+        Ok(op_id)
     }
 
     pub async fn store_aggregate_op_and_eth_op(

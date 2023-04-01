@@ -102,13 +102,16 @@ where
         let mut storage = connection_pool.access_storage().await.unwrap();
         let tree_state = TreeState::new();
 
-        let mut events_state = RollUpEvents::default();
-        events_state.last_watched_block_number = storage.recover_schema()
+        let last_watched_block_number = storage.recover_schema()
             .last_watched_block_number(*zklink_contract.layer2_chain_id() as i16, "block")
             .await
             .expect("load last watched block number failed")
             .map(|num|num.0 as u64)
             .unwrap_or(deploy_block_number);
+        let events_state = RollUpEvents {
+            last_watched_block_number,
+            ..Default::default()
+        };
 
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
         for config in &config.layer1.chain_configs {
@@ -237,9 +240,10 @@ where
         let root_hash = H256::from_slice(&state_root.to_bytes());
 
         // init basic accounts updates
-        let mut account_updates = Vec::with_capacity(2);
-        account_updates.push((AccountId(0), db_fee_account_update, root_hash));
-        account_updates.push((AccountId(1), db_global_account_update, root_hash));
+        let account_updates = vec![
+            (AccountId(0), db_fee_account_update, root_hash),
+            (AccountId(1), db_global_account_update, root_hash)
+        ];
 
         // Init last watched block number for database
         let chain_id = full_pubdata_chain_config.chain.chain_id;
@@ -422,7 +426,7 @@ where
             let (block, acc_updates) = self
                 .tree_state
                 .apply_ops_block(&op_block)
-                .expect(&format!("Applying {:?} tree state: cant update tree from operations", op_block.block_num));
+                .unwrap_or_else(|e|panic!("Failed to applying {:?} tree state: {}", op_block.block_num, e));
             blocks_and_updates.push((block, acc_updates));
         }
         // To ensure collective update
