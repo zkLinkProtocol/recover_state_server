@@ -2,9 +2,8 @@ use std::collections::HashMap;
 // Built-in deps
 use std::time::Instant;
 use serde_json::Value;
-use zklink_basic_types::ChainId;
 // Workspace imports
-use zklink_types::{BlockNumber, DepositOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp, ZkLinkAddress, ZkLinkTx, ZkLinkTxType};
+use zklink_types::{ChainId, BlockNumber, DepositOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp, ZkLinkAddress, ZkLinkTx, ZkLinkTxType};
 // Local imports
 use self::records::{
     NewExecutedTransaction, StoredAggregatedOperation, StoredSubmitTransaction

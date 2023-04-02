@@ -2,10 +2,9 @@
 use std::time::{Instant, UNIX_EPOCH, Duration};
 // External imports
 // Workspace imports
-use zklink_basic_types::{H256, U256};
 use zklink_crypto::{convert::FeConvert};
 use zklink_types::{
-    block::{Block, ExecutedTx},
+    block::{Block, ExecutedTx}, H256, U256,
     AccountId, BlockNumber, Fr,
 };
 // Local imports

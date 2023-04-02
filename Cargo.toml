@@ -26,9 +26,9 @@ bigdecimal = { version = "0.3.0"}
 tokio = { version = "1.0", features = ["full"] }
 
 zklink_storage = { path = "storage" }
-zklink_types = { path = "zklink-circuit/common_types", version = "1.0" }
-zklink_crypto = { path = "zklink-circuit/crypto", version = "1.0" }
-zklink_utils = { path = "zklink-circuit/utils", version = "1.0" }
+zklink_types = { path = "zklink_circuit/common_types", version = "1.0" }
+zklink_crypto = { path = "zklink_circuit/crypto", version = "1.0" }
+zklink_utils = { path = "zklink_circuit/utils", version = "1.0" }
 recover_state_config = { path = "config", version = "0.1.0" }
 zklink_prover = { path = "prover", version = "1.0.0" }
 offchain_recover_state = { path = "offchain_recover_state", version = "0.1.0" }
@@ -54,7 +54,10 @@ members = [
     "zklink_state",
     "storage",
     "prover",
-    "config"
+    "config",
+    "zklink_circuit/basic_types",
+    "zklink_circuit/circuit",
+    "zklink_circuit/common_types",
+    "zklink_circuit/crypto",
+    "zklink_circuit/utils",
 ]
-
-exclude = ["zklink-circuit"]

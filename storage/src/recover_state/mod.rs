@@ -1,8 +1,7 @@
 // Built-in deps
 use std::time::Instant;
 use tracing::info;
-use zklink_basic_types::{AccountId, BlockNumber, ChainId};
-use zklink_types::{AccountUpdate, H256};
+use zklink_types::{AccountId, BlockNumber, ChainId, AccountUpdate, H256};
 // External imports
 // Workspace imports
 // Local imports

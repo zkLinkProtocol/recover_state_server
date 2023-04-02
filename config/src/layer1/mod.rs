@@ -5,6 +5,7 @@ pub use chain_config::ChainConfig;
 pub use contract_config::ContractConfig;
 pub use client_config::ClientConfig;
 pub use chain_type::ChainType;
+use crate::evn_tools::parse_env_to_vec_if_exists;
 
 mod chain_config;
 mod contract_config;
@@ -19,7 +20,7 @@ pub struct MultiChainConfigs {
 
 impl MultiChainConfigs {
     pub fn from_env() -> Self {
-        let chain_ids: Vec<ChainId> = zklink_utils::parse_env_to_vec_if_exists("CHAIN_IDS").unwrap();
+        let chain_ids: Vec<ChainId> = parse_env_to_vec_if_exists("CHAIN_IDS").unwrap();
         let chain_configs = chain_ids.iter()
             .map(|chain_id| Layer1Config::from_env((*chain_id).into()))
             .collect::<Vec<_>>();

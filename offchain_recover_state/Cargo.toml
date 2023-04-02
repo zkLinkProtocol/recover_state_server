@@ -34,9 +34,9 @@ tracing-subscriber = "0.3"
 
 zklink_state = { path = "../zklink_state", version = "1.0"}
 recover_state_config = { path = "../config", version = "0.1.0" }
-zklink_types = { path = "../zklink-circuit/common_types", version = "1.0" }
-zklink_crypto = { path = "../zklink-circuit/crypto", version = "1.0" }
-zklink_utils = { path = "../zklink-circuit/utils", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
 zklink_storage = { path = "../storage", version = "1.0" }
 
 [dev-dependencies]

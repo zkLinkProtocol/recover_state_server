@@ -1,9 +1,8 @@
 use num::bigint::ToBigInt;
 use serde::{Deserialize, Serialize};
-use zklink_basic_types::{AccountId, ChainId, SubAccountId, TokenId};
 use zklink_crypto::proof::EncodedSingleProof;
 use zklink_storage::prover::records::{StoredExitInfo, StoredExitProof};
-use zklink_types::ZkLinkAddress;
+use zklink_types::{ZkLinkAddress, AccountId, ChainId, SubAccountId, TokenId};
 use zklink_utils::BigUintSerdeWrapper;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

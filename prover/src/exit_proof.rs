@@ -6,11 +6,10 @@ use num::BigUint;
 use std::time::Instant;
 use tracing::info;
 use recover_state_config::RecoverStateConfig;
-use zklink_basic_types::{ChainId, SubAccountId};
 use zklink_circuit::exit_circuit::create_exit_circuit_with_public_input;
 use zklink_crypto::circuit::CircuitAccountTree;
 use zklink_crypto::proof::EncodedSingleProof;
-use zklink_types::{AccountId, TokenId};
+use zklink_types::{AccountId, TokenId, ChainId, SubAccountId};
 use zklink_crypto::bellman::plonk::better_cs::{
     keys::VerificationKey, verifier::verify,
 };

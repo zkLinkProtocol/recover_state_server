@@ -11,9 +11,9 @@ categories = ["cryptography"]
 publish = false # We don't want to publish our binaries.
 
 [dependencies]
-zklink_crypto = { path = "../zklink-circuit/crypto", version = "1.0" }
-zklink_utils = { path = "../zklink-circuit/utils", version = "1.0" }
-zklink_types = { path = "../zklink-circuit/common_types", version = "1.0" }
+zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
 
 num = { version = "0.4.0", features = ["serde"] }
 anyhow = "1.0"

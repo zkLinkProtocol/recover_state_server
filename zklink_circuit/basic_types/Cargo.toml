@@ -1,0 +1,13 @@
+[package]
+name = "zklink_basic_types"
+version = "1.0.0"
+edition = "2018"
+authors = ["N Labs Team<nevermore@zklink.org>"]
+homepage = "https://zk.link/"
+license = "Apache-2.0"
+keywords = ["blockchain", "zklink"]
+categories = ["cryptography"]
+
+[dependencies]
+ethers = "2.0.0"
+serde = { version = "1.0.137", features = ["derive"] }

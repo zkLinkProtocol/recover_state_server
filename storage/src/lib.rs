@@ -76,8 +76,7 @@
 // External imports
 use sqlx::{postgres::Postgres, Connection, PgConnection, Transaction};
 // Workspace imports
-use zklink_basic_types::BlockNumber;
-use zklink_types::ActionType;
+use zklink_types::{ActionType, BlockNumber};
 // Local imports
 use crate::connection::{holder::ConnectionHolder, PooledConnection};
 

@@ -5,8 +5,7 @@ use serde_json::value::Value;
 use sqlx::FromRow;
 use serde::{Deserialize, Serialize};
 use sqlx::types::BigDecimal;
-use zklink_basic_types::ChainId;
-use zklink_types::{Deposit, FullExit, PriorityDeposit, PriorityFullExit, ZkLinkTx};
+use zklink_types::{ChainId, Deposit, FullExit, PriorityDeposit, PriorityFullExit, ZkLinkTx};
 // Local imports
 use crate::StorageActionType;
 
