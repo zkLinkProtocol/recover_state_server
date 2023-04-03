@@ -45,12 +45,12 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         )?;
         let account_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "account_address"),
-            || Ok(operation_branch.account_id.grab()?),
+            || operation_branch.account_id.grab(),
             account_tree_depth(),
         )?.pad(ACCOUNT_ID_BIT_WIDTH);
         let sub_account_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "sub_account_address"),
-            || Ok(operation_branch.sub_account_id.grab()?),
+            || operation_branch.sub_account_id.grab(),
             SUB_ACCOUNT_ID_BIT_WIDTH,
         )?;
         let account_audit_path = allocate_numbers_vec(
@@ -62,12 +62,12 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         // account balance leaf and merkle path
         let balance = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "balance"),
-            || Ok(operation_branch.witness.balance_value.grab()?),
+            || operation_branch.witness.balance_value.grab(),
             BALANCE_BIT_WIDTH,
         )?;
         let token = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "token"),
-            || Ok(operation_branch.token.grab()?),
+            || operation_branch.token.grab(),
             TOKEN_BIT_WIDTH,
         )?;
         let balance_audit_path = allocate_numbers_vec(
@@ -79,17 +79,17 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         // account order slots leaf and merkle path
         let order_nonce = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "order nonce"),
-            || Ok(operation_branch.witness.order_nonce.grab()?),
+            || operation_branch.witness.order_nonce.grab(),
             ORDER_NONCE_BIT_WIDTH,
         )?;
         let order_residue = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "order residue"),
-            || Ok(operation_branch.witness.order_residue.grab()?),
+            || operation_branch.witness.order_residue.grab(),
             BALANCE_BIT_WIDTH,
         )?;
         let slot_number = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "slot id"),
-            || Ok(operation_branch.slot_number.grab()?),
+            || operation_branch.slot_number.grab(),
             SLOT_BIT_WIDTH,
         )?;
         let order_audit_path = allocate_numbers_vec(
@@ -141,7 +141,7 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             &max_num
         )?.add(
             cs.namespace(||"calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER + slot"),
-            &slot
+            slot
         )
     }
 
@@ -160,7 +160,7 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             &max_num
         )?.add(
             cs.namespace(||"token_id + sub_account_id * MAX_TOKEN_NUMBER"),
-            &token
+            token
         )
     }
 

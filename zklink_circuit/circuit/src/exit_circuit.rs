@@ -309,7 +309,7 @@ pub fn check_account_data<E: RescueEngine, CS: ConstraintSystem<E>>(
         allocate_merkle_root(
             cs.namespace(|| "account_merkle_root"),
             &cur_account_leaf_bits,
-            &cur.account_id.get_bits_le(),
+            cur.account_id.get_bits_le(),
             &cur.account_audit_path,
             length_to_root,
             params,
@@ -380,7 +380,7 @@ pub fn allocate_merkle_root<E: RescueEngine, CS: ConstraintSystem<E>>(
 
     let leaf_packed = multipack::pack_into_witness(
         cs.namespace(|| "pack leaf bits into field elements"),
-        &leaf_bits,
+        leaf_bits,
     )?;
 
     let mut account_leaf_hash = rescue::rescue_hash(
@@ -409,7 +409,7 @@ pub fn allocate_merkle_root<E: RescueEngine, CS: ConstraintSystem<E>>(
             cs.namespace(|| "conditional reversal of preimage"),
             &cur_hash,
             path_element,
-            &direction_bit,
+            direction_bit,
         )?;
 
         // we do not use any personalization here cause

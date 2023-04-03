@@ -8,7 +8,7 @@ pub struct StarkECDSASignature(pub Vec<u8>);
 
 impl fmt::Display for StarkECDSASignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "StarkECDSASignature 0x{}", hex::encode(&self.0.as_slice()))
+        write!(f, "StarkECDSASignature 0x{}", hex::encode(self.0.as_slice()))
     }
 }
 

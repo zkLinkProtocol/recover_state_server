@@ -163,10 +163,7 @@ impl Order {
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 
     pub fn get_ethereum_sign_message(
@@ -188,7 +185,7 @@ impl Order {
         message += format!(
             "price: {price}\n\
             Nonce: {nonce}",
-            price = self.price.to_string(),
+            price = self.price,
             nonce = self.nonce
         )
             .as_str();
@@ -242,6 +239,7 @@ impl OrderMatching {
     ///
     /// While `signature` field is mandatory for new transactions, it may be `None`
     /// in some cases (e.g. when restoring the network state from the L1 contract data).
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         account_id: AccountId,
         sub_account_id: SubAccountId,
@@ -253,7 +251,7 @@ impl OrderMatching {
         expect_quote_amount: BigUint,
         signature: Option<TxSignature>,
     ) -> Self {
-        let tx = Self {
+        Self {
             account_id,
             taker,
             maker,
@@ -262,9 +260,8 @@ impl OrderMatching {
             sub_account_id,
             expect_base_amount,
             expect_quote_amount,
-            signature: signature.clone().unwrap_or_default(),
-        };
-        tx
+            signature: signature.unwrap_or_default(),
+        }
     }
 
     /// Creates a signed transaction using private key and
@@ -322,7 +319,7 @@ impl OrderMatching {
     pub fn check_correctness(&self) -> bool {
         match self.validate() {
             Ok(_) => {
-                return self.maker.check_correctness() && self.taker.check_correctness()
+                self.maker.check_correctness() && self.taker.check_correctness()
             }
             Err(_) => false
         }

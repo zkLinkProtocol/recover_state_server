@@ -168,7 +168,7 @@ impl ZkLinkPriorityOp {
                     amount,
                     to: account,
                     serial_id,
-                    tx_hash: tx_hash,
+                    tx_hash,
                 }))
             }
             FullExitOp::OP_CODE => {
@@ -244,7 +244,7 @@ impl ZkLinkPriorityOp {
                     chain_id: u8::from_be_bytes(chain_id.try_into().unwrap()),
                     account_id: AccountId(account_id),
                     sub_account_id: SubAccountId(sub_account_id[0]),
-                    initiator: sender.into(),
+                    initiator: sender,
                     exit_address,
                     l1_target_token: TokenId(real_token as u32),
                     l2_source_token: TokenId(user_token as u32),

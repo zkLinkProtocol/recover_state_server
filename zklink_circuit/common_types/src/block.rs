@@ -211,7 +211,7 @@ impl Block {
     }
 
     pub fn get_block_commitment(&self, old_state_hash: H256) -> H256 {
-        let block_commitment = Block::get_commitment(
+        Block::get_commitment(
             self.block_number,
             self.fee_account,
             old_state_hash,
@@ -219,8 +219,7 @@ impl Block {
             self.timestamp,
             &self.get_onchain_op_commitment(),
             &self.get_eth_public_data(),
-        );
-        block_commitment
+        )
     }
 
     /// Returns the public data for the Ethereum Commit operation.

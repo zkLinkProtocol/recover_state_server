@@ -196,7 +196,7 @@ pub const SIGNED_WITHDRAW_BIT_WIDTH: usize = TX_TYPE_BIT_WIDTH
     + CHAIN_ID_BIT_WIDTH
     + ACCOUNT_ID_BIT_WIDTH
     + SUB_ACCOUNT_ID_BIT_WIDTH
-    + 1 * ETH_ADDRESS_BIT_WIDTH
+    + ETH_ADDRESS_BIT_WIDTH
     + 2 * TOKEN_BIT_WIDTH
     + BALANCE_BIT_WIDTH
     + 2 * FEE_EXPONENT_BIT_WIDTH
@@ -278,13 +278,13 @@ pub const ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER: usize = 9;
 pub const EXEC_ALL_OPS_COMPOSITION_NUMBER: usize = 2usize.pow(ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER as u32) - 1;
 
 /// The gas token contract address of multi chains that interacts with zklink protocol.
-pub const GAS_TOKEN_CONTRACT_ADDRESS: &'static str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+pub const GAS_TOKEN_CONTRACT_ADDRESS: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 /// 0 can not be used as token id
 pub const TOKEN_ID_ZERO: u32 = 0;
 pub const USD_TOKEN_ID: u32 = 1;
 pub const USD_TOKEN_BIT: usize = 5;
-pub const USD_SYMBOL: &'static str = "USD";
+pub const USD_SYMBOL: &str = "USD";
 pub const USDX_TOKEN_ID_LOWER_BOUND: u32 = USD_TOKEN_ID + 1;
 pub const USDX_TOKEN_ID_UPPER_BOUND: u32 = 16;
 pub const USDX_TOKEN_ID_RANGE: u32 = USDX_TOKEN_ID_UPPER_BOUND - USDX_TOKEN_ID_LOWER_BOUND + 1;
@@ -297,7 +297,7 @@ pub fn calc_gas_token_by_chain_id(chain_id: ChainId) -> TokenId{
 
 /// Test usd token[17-31]
 pub fn is_usd_token(token_id: &TokenId) -> bool {
-    token_id.0 >= USDX_TOKEN_ID_UPPER_BOUND + 1 && token_id.0 <= MAX_USD_TOKEN_ID
+    token_id.0 > USDX_TOKEN_ID_UPPER_BOUND && token_id.0 <= MAX_USD_TOKEN_ID
 }
 
 /// USD_X = X - 15
@@ -350,7 +350,7 @@ pub const FEE_ACCOUNT_ID: AccountId = AccountId(0);
 /// * Can alice withdraw 100 USDC in ETH? yes, because Global account's USDC balance of ETH is 100.
 pub const GLOBAL_ASSET_ACCOUNT_ID: AccountId = AccountId(1);
 /// As the black hole address of the global asset account, no one can control.
-pub const GLOBAL_ASSET_ACCOUNT_ADDR: &'static str = "0xffffffffffffffffffffffffffffffffffffffff";
+pub const GLOBAL_ASSET_ACCOUNT_ADDR: &str = "0xffffffffffffffffffffffffffffffffffffffff";
 
 /// Special sub_account id
 /// The subaccount is used to collect the fees to which subaccount of the fee_account.

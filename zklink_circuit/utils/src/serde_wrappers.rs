@@ -95,8 +95,8 @@ impl DerefMut for BigUintSerdeWrapper{
     }
 }
 
-impl  BigUintSerdeWrapper {
-    pub fn to_string(&self) -> String {
+impl ToString for BigUintSerdeWrapper {
+    fn to_string(&self) -> String {
         self.0.to_string()
     }
 }
@@ -156,7 +156,7 @@ impl<P: Prefix> BytesToHexSerde<P> {
         let deserialized_string = String::deserialize(deserializer)?;
 
         if let Some(deserialized_string) = deserialized_string.strip_prefix(P::prefix()) {
-            hex::decode(&deserialized_string).map_err(de::Error::custom)
+            hex::decode(deserialized_string).map_err(de::Error::custom)
         } else {
             Err(de::Error::custom(format!(
                 "string value missing prefix: {:?}",

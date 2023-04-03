@@ -91,44 +91,44 @@ macro_rules! basic_type {
                 Self(t as $type)
             }
         }
-        impl Into<u8> for $name {
-            fn into(self) -> u8 {
-                *self as u8
+        impl From<$name> for u8  {
+            fn from(t: $name) -> u8 {
+                *t as u8
             }
         }
-        impl Into<u16> for $name {
-            fn into(self) -> u16 {
-                *self as u16
+        impl From<$name> for u16  {
+            fn from(t: $name) -> u16 {
+                *t as u16
             }
         }
-        impl Into<u32> for $name {
-            fn into(self) -> u32 {
-                *self as u32
+        impl From<$name> for u32  {
+            fn from(t: $name) -> u32 {
+                *t as u32
             }
         }
-        impl Into<u64> for $name {
-            fn into(self) -> u64 {
-                *self as u64
+        impl From<$name> for u64  {
+            fn from(t: $name) -> u64 {
+                *t as u64
             }
         }
-        impl Into<i8> for $name {
-            fn into(self) -> i8 {
-                *self as i8
+        impl From<$name> for i8  {
+            fn from(t: $name) -> i8 {
+                *t as i8
             }
         }
-        impl Into<i16> for $name {
-            fn into(self) -> i16 {
-                *self as i16
+        impl From<$name> for i16  {
+            fn from(t: $name) -> i16 {
+                *t as i16
             }
         }
-        impl Into<i32> for $name {
-            fn into(self) -> i32 {
-                *self as i32
+        impl From<$name> for i32  {
+            fn from(t: $name) -> i32 {
+                *t as i32
             }
         }
-        impl Into<i64> for $name {
-            fn into(self) -> i64 {
-                *self as i64
+        impl From<$name> for i64  {
+            fn from(t: $name) -> i64 {
+                *t as i64
             }
         }
     };

@@ -251,7 +251,7 @@ impl FloatConversions {
 
         let max_power = (1 << exponent_length) - 1;
 
-        let max_exponent = (exponent_base as u128).saturating_pow(max_power);
+        let max_exponent = exponent_base.saturating_pow(max_power);
 
         let max_mantissa = (1u128 << mantissa_length) - 1;
 
@@ -323,7 +323,7 @@ impl FloatConversions {
 
         let max_power = (1 << exponent_length) - 1;
 
-        let max_exponent = (exponent_base as u128).saturating_pow(max_power);
+        let max_exponent = exponent_base.saturating_pow(max_power);
 
         let max_mantissa = (1u128 << mantissa_length) - 1;
 

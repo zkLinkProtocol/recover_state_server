@@ -24,19 +24,19 @@ impl<E: RescueEngine> AccountContent<E> {
     ) -> Result<Self, SynthesisError> {
         let nonce = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "nonce"),
-            || Ok(witness.nonce.grab()?),
+            || witness.nonce.grab(),
             zklink_crypto::params::NONCE_BIT_WIDTH,
         )?;
 
         let pub_key_hash = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "pub_key_hash"),
-            || Ok(witness.pub_key_hash.grab()?),
+            || witness.pub_key_hash.grab(),
             zklink_crypto::params::NEW_PUBKEY_HASH_WIDTH,
         )?;
 
         let address = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "address"),
-            || Ok(witness.address.grab()?),
+            || witness.address.grab(),
             zklink_crypto::params::ETH_ADDRESS_BIT_WIDTH,
         )?;
 

@@ -32,7 +32,7 @@ impl AsRef<[u8]> for TxHash {
 
 impl ToString for TxHash {
     fn to_string(&self) -> String {
-        format!("sync-tx:{}", hex::encode(&self.data))
+        format!("sync-tx:{}", hex::encode(self.data))
     }
 }
 

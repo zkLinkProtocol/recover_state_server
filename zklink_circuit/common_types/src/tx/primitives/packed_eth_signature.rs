@@ -24,7 +24,7 @@ pub struct PackedEthSignature(pub Vec<u8>);
 
 impl fmt::Display for PackedEthSignature {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "PackedEthSignature 0x{}", hex::encode(&self.0.as_slice()))
+        write!(f, "PackedEthSignature 0x{}", hex::encode(self.0.as_slice()))
     }
 }
 

@@ -23,7 +23,7 @@ impl GetPublicData for ChangePubKeyOp{
         data.extend_from_slice(&self.tx.account_id.to_be_bytes());
         data.extend_from_slice(&self.tx.sub_account_id.to_be_bytes());
         data.extend_from_slice(&self.tx.new_pk_hash.data);
-        data.extend_from_slice(&self.address.as_bytes());
+        data.extend_from_slice(self.address.as_bytes());
         data.extend_from_slice(&self.tx.nonce.to_be_bytes());
         data.extend_from_slice(&(*self.tx.fee_token as u16).to_be_bytes());
         data.extend_from_slice(&pack_fee_amount(&self.tx.fee));

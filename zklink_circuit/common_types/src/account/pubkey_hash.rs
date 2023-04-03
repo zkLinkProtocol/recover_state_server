@@ -51,7 +51,7 @@ impl PubKeyHash {
     /// assert_eq!(pubkey_hash.to_hex(), "sync:0000000000000000000000000000000000000000");
     /// ```
     pub fn to_hex(&self) -> String {
-        format!("sync:{}", hex::encode(&self.data))
+        format!("sync:{}", hex::encode(self.data))
     }
 
     /// Decodes `PubKeyHash` from its hexadecimal form.
@@ -90,12 +90,12 @@ impl PubKeyHash {
 
     /// Converts the `PubKeyhash` into the field element.
     pub fn to_fr(&self) -> Fr {
-        ff::from_hex(&format!("0x{}", hex::encode(&self.data))).unwrap()
+        ff::from_hex(&format!("0x{}", hex::encode(self.data))).unwrap()
     }
 
     /// Creates a `PubKeyHash` from the private key.
     pub fn from_privkey(private_key: &PrivateKey) -> Self {
-        let pub_key = public_key_from_private(&private_key);
+        let pub_key = public_key_from_private(private_key);
         Self::from_pubkey(&pub_key)
     }
 

@@ -49,7 +49,7 @@ impl ForcedExitOp {
         let mut data = Vec::new();
         data.extend_from_slice(&Self::WITHDRAW_DATA_PREFIX); // first byte is a bool variable 'addToPendingWithdrawalsQueue'
         data.extend_from_slice(&self.tx.to_chain_id.to_be_bytes());
-        data.extend_from_slice(&self.tx.target.as_bytes());
+        data.extend_from_slice(self.tx.target.as_bytes());
         data.extend_from_slice(&self.tx.target_sub_account_id.to_be_bytes());
         data.extend_from_slice(&(*self.tx.l2_source_token as u16).to_be_bytes());
         data.extend_from_slice(&self.withdraw_amount.to_u128().unwrap().to_be_bytes());

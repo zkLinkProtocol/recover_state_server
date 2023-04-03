@@ -180,7 +180,7 @@ impl ChangePubKey {
             })
             .unwrap_or(ChangePubKeyAuthData::Onchain);
 
-        let tx = Self {
+        Self {
             chain_id,
             account_id,
             sub_account_id,
@@ -188,11 +188,10 @@ impl ChangePubKey {
             fee_token,
             fee,
             nonce,
-            signature: signature.clone().unwrap_or_default(),
+            signature: signature.unwrap_or_default(),
             eth_auth_data,
             ts,
-        };
-        tx
+        }
     }
 
     /// Creates a signed transaction using private key and
@@ -252,10 +251,7 @@ impl ChangePubKey {
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 
     pub fn is_onchain(&self) -> bool {
@@ -272,7 +268,7 @@ impl ChangePubKey {
     pub fn get_ethereum_sign_message_part(&self, token_symbol: &str, decimals: u8) -> String {
         let mut message = format!(
             "Set signing key: {}",
-            hex::encode(&self.new_pk_hash.data).to_ascii_lowercase()
+            hex::encode(self.new_pk_hash.data).to_ascii_lowercase()
         );
         if !self.fee.is_zero() {
             message.push_str(

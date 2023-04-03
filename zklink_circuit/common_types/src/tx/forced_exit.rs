@@ -70,6 +70,7 @@ impl ForcedExit {
     ///
     /// While `signature` field is mandatory for new transactions, it may be `None`
     /// in some cases (e.g. when restoring the network state from the L1 contract data).
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         to_chain_id: ChainId,
         initiator_account_id: AccountId,
@@ -84,7 +85,7 @@ impl ForcedExit {
         signature: Option<TxSignature>,
         ts: TimeStamp,
     ) -> Self {
-        let tx = Self {
+        Self {
             to_chain_id,
             initiator_account_id,
             initiator_sub_account_id,
@@ -97,12 +98,12 @@ impl ForcedExit {
             nonce,
             signature: signature.unwrap_or_default(),
             ts,
-        };
-        tx
+        }
     }
 
     /// Creates a signed transaction using private key and
     /// checks for the transaction correcteness.
+    #[allow(clippy::too_many_arguments)]
     pub fn new_signed(
         to_chain_id: ChainId,
         initiator_account_id: AccountId,
@@ -145,7 +146,7 @@ impl ForcedExit {
         out.extend_from_slice(&self.to_chain_id.to_be_bytes());
         out.extend_from_slice(&self.initiator_account_id.to_be_bytes());
         out.extend_from_slice(&self.initiator_sub_account_id.to_be_bytes());
-        out.extend_from_slice(&self.target.as_bytes());
+        out.extend_from_slice(self.target.as_bytes());
         out.extend_from_slice(&self.target_sub_account_id.to_be_bytes());
         out.extend_from_slice(&(*self.l2_source_token as u16).to_be_bytes());
         out.extend_from_slice(&(*self.l1_target_token as u16).to_be_bytes());
@@ -157,10 +158,7 @@ impl ForcedExit {
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 
     /// Restores the `PubKeyHash` from the transaction signature.

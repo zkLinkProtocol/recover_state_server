@@ -42,7 +42,7 @@ impl FullExit {
         serial_id: u64,
         eth_hash: H256,
     ) -> Self {
-        let tx = Self {
+        Self {
             to_chain_id: ChainId(chain_id),
             account_id,
             sub_account_id,
@@ -51,22 +51,18 @@ impl FullExit {
             l1_target_token,
             serial_id,
             eth_hash,
-        };
-        tx
+        }
     }
 
     /// Be used to compute hashes to facilitate the frontend to track priority transactions.
     pub fn get_bytes(&self) -> Vec<u8> {
         let mut out = Vec::new();
         out.extend_from_slice(&self.serial_id.to_be_bytes());
-        out.extend_from_slice(&self.eth_hash.as_bytes());
+        out.extend_from_slice(self.eth_hash.as_bytes());
         out
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 }

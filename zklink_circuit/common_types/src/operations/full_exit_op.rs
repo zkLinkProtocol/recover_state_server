@@ -105,7 +105,7 @@ impl FullExitOp {
                 serial_id: Default::default(),
                 eth_hash: Default::default(),
             },
-            exit_amount: amount.into(),
+            exit_amount: amount,
             l1_target_token_after_mapping
         })
     }

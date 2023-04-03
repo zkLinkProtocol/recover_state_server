@@ -212,7 +212,7 @@ impl<E: Engine> CircuitElement<E> {
         length: usize
     ) -> Result<(), SynthesisError> {
         if self.length <= length {
-            return Ok(())
+            Ok(())
         } else {
             let number_repacked =
                 pack_bits_to_element(cs.namespace(|| "pack truncated bits"), &self.bits_le[0..length])?;
@@ -240,17 +240,17 @@ impl<E: Engine> CircuitElement<E> {
 
         let selected_number = AllocatedNum::select_ifeq(
             cs.namespace(|| "select_ifeq"),
-            &a,
-            &b,
+            a,
+            b,
             x.get_number(),
             y.get_number(),
         )?;
 
-        Ok(CircuitElement::from_number_with_known_length(
+        CircuitElement::from_number_with_known_length(
             cs.namespace(|| "chosen number as ce"),
             selected_number,
             x.length,
-        )?)
+        )
     }
 
     // doesn't enforce length by design, though applied to both strict values will give strict result
@@ -267,14 +267,14 @@ impl<E: Engine> CircuitElement<E> {
             cs.namespace(|| "conditionally_select"),
             x.get_number(),
             y.get_number(),
-            &condition,
+            condition,
         )?;
 
-        Ok(CircuitElement::from_number_with_known_length(
+        CircuitElement::from_number_with_known_length(
             cs.namespace(|| "chosen number as ce"),
             selected_number,
             x.length,
-        )?)
+        )
     }
 
     pub fn conditionally_reverse<CS: ConstraintSystem<E>>(
@@ -290,7 +290,7 @@ impl<E: Engine> CircuitElement<E> {
             cs.namespace(|| "conditionally_select"),
             x.get_number(),
             y.get_number(),
-            &condition,
+            condition,
         )?;
 
         let selected_ce1 = CircuitElement::from_number_with_known_length(
@@ -320,14 +320,14 @@ impl<E: Engine> CircuitElement<E> {
             cs.namespace(|| "conditionally_select"),
             x,
             y.get_number(),
-            &condition,
+            condition,
         )?;
 
-        Ok(CircuitElement::from_number_with_known_length(
+        CircuitElement::from_number_with_known_length(
             cs.namespace(|| "chosen number as ce"),
             selected_number,
             y.length,
-        )?)
+        )
     }
 
     pub fn equals<CS: ConstraintSystem<E>>(

@@ -18,7 +18,7 @@ pub fn multi_or<E: JubjubEngine, CS: ConstraintSystem<E>>(
     Ok(Boolean::from(Expression::equals(
         cs.namespace(||"asserts whether boolean sum is equal to 0"),
         &lc,
-        Expression::u64::<CS>(0 as u64)
+        Expression::u64::<CS>(0_u64)
     )?).not())
 }
 
@@ -70,7 +70,7 @@ pub fn pack_bits_to_element<E: Engine, CS: ConstraintSystem<E>>(
     let mut data_from_lc = Num::<E>::zero();
     let mut coeff = E::Fr::one();
     for bit in bits {
-        data_from_lc = data_from_lc.add_bool_with_coeff(CS::one(), &bit, coeff);
+        data_from_lc = data_from_lc.add_bool_with_coeff(CS::one(), bit, coeff);
         coeff.double();
     }
 
@@ -305,7 +305,7 @@ pub fn div_based_on_u126<E:Engine, CS: ConstraintSystem<E>>(
     let quotient = AllocatedNum::conditionally_select(
         cs.namespace(||"selected correct quotient"),
         &disallow_divisor_is_zero,
-        &quotient.get_number(),
+        quotient.get_number(),
         &is_not_a_zero_and_is_b_zero
     )?;
     CircuitElement::from_number_with_known_length(

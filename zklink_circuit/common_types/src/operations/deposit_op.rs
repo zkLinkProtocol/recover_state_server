@@ -26,7 +26,7 @@ impl GetPublicData for DepositOp{
         data.extend_from_slice(&(*self.tx.l1_source_token as u16).to_be_bytes());
         data.extend_from_slice(&(*self.tx.l2_target_token as u16).to_be_bytes());
         data.extend_from_slice(&self.tx.amount.to_u128().unwrap().to_be_bytes());
-        data.extend_from_slice(&self.tx.to.as_bytes());
+        data.extend_from_slice(self.tx.to.as_bytes());
         data.resize(Self::CHUNKS * CHUNK_BYTES, 0x00);
         data
     }

@@ -8,15 +8,17 @@ use zklink_types::utils::{calculate_actual_slot, calculate_actual_token};
 use crate::exit_circuit::*;
 use crate::witness::account::AccountWitness;
 
+type AllBranchAuditPath = (Vec<Option<Fr>>, Vec<Option<Fr>>, Vec<Option<Fr>>);
+
 pub fn get_audits(
     tree: &CircuitAccountTree,
     account_id: u32,
     sub_account_id: u8,
     token: u32,
     slot_id: u32,
-) -> (Vec<Option<Fr>>, Vec<Option<Fr>>, Vec<Option<Fr>>) {
+) -> AllBranchAuditPath {
     let token_id = calculate_actual_token(sub_account_id.into(), token.into());
-    let slot_id = calculate_actual_slot( sub_account_id.into(), slot_id.into()).0 as u32;
+    let slot_id = calculate_actual_slot( sub_account_id.into(), slot_id.into()).0;
     let default_account = CircuitAccount::default();
     let audit_account: Vec<Option<Fr>> = tree
         .merkle_path(account_id)
@@ -49,10 +51,10 @@ pub fn get_leaf_values(
     (sub_account_id, token_id, slot_id): (u8, u32, u32),
 ) -> (AccountWitness<Bn256>, Fr, CircuitTidyOrder<Bn256>) {
     let account = tree.get(account_id).unwrap();
-    let account_witness = AccountWitness::from_circuit_account(&account);
+    let account_witness = AccountWitness::from_circuit_account(account);
 
     let token_id = calculate_actual_token(sub_account_id.into(), token_id.into());
-    let slot_id = calculate_actual_slot(sub_account_id.into(),slot_id.into()).0 as u32;
+    let slot_id = calculate_actual_slot(sub_account_id.into(),slot_id.into()).0;
 
     let balance = account
         .subtree

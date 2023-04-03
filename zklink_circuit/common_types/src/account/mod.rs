@@ -16,7 +16,7 @@ use crate::ZkLinkAddress;
 mod account_update;
 mod pubkey_hash;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct BalanceNode {
     pub reserve0: BigUintSerdeWrapper,
 }
@@ -24,14 +24,6 @@ pub struct BalanceNode {
 impl BalanceNode {
     pub fn is_zero(&self) -> bool {
         self.reserve0.0.is_zero()
-    }
-}
-
-impl Default for BalanceNode {
-    fn default() -> Self {
-        BalanceNode {
-            reserve0: BigUintSerdeWrapper::default(),
-        }
     }
 }
 
@@ -102,7 +94,7 @@ impl From<Account> for CircuitAccount<super::Engine> {
             .collect();
 
         for (i, b) in balances.into_iter() {
-            circuit_account.subtree.insert(u32::from(*i), b);
+            circuit_account.subtree.insert(*i, b);
         }
         let orders: Vec<_> = acc
             .order_slots
@@ -119,7 +111,7 @@ impl From<Account> for CircuitAccount<super::Engine> {
             .collect();
 
         for (i, b) in orders.into_iter() {
-            circuit_account.order_tree.insert(*i as u32, b);
+            circuit_account.order_tree.insert(*i, b);
         }
         circuit_account.nonce = Fr::from_str(&acc.nonce.to_string()).unwrap();
         circuit_account.pub_key_hash = acc.pub_key_hash.to_fr();
@@ -130,14 +122,13 @@ impl From<Account> for CircuitAccount<super::Engine> {
 
 impl Default for Account {
     fn default() -> Self {
-        let account = Account {
+        Account {
             balances: HashMap::new(),
             nonce: Nonce(0),
             pub_key_hash: PubKeyHash::default(),
             address: ZkLinkAddress::from(vec![0;32]),
             order_slots: HashMap::new()
-        };
-        account
+        }
     }
 }
 
@@ -187,8 +178,7 @@ impl Account {
     /// Overrides the token balance value.
     pub fn set_balance(&mut self, token: TokenId, amount: BigUint) {
         assert!(token < MAX_TOKEN_ID);
-        let mut node = BalanceNode::default();
-        node.reserve0 = BigUintSerdeWrapper(amount);
+        let node = BalanceNode{ reserve0: BigUintSerdeWrapper(amount) };
         self.balances.insert(token, node);
     }
 

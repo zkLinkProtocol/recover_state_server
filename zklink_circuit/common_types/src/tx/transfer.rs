@@ -70,7 +70,7 @@ impl Transfer {
         signature: Option<TxSignature>,
         ts: TimeStamp,
     ) -> Self {
-        let tx = Self {
+        Self {
             account_id,
             from_sub_account_id,
             to_sub_account_id,
@@ -79,10 +79,9 @@ impl Transfer {
             amount,
             fee,
             nonce,
-            signature: signature.clone().unwrap_or_default(),
+            signature: signature.unwrap_or_default(),
             ts,
-        };
-        tx
+        }
     }
 
     /// Creates a signed transaction using private key and
@@ -125,7 +124,7 @@ impl Transfer {
         out.extend_from_slice(&[Self::TX_TYPE]);
         out.extend_from_slice(&self.account_id.to_be_bytes());
         out.extend_from_slice(&self.from_sub_account_id.to_be_bytes());
-        out.extend_from_slice(&self.to.as_bytes());
+        out.extend_from_slice(self.to.as_bytes());
         out.extend_from_slice(&self.to_sub_account_id.to_be_bytes());
         out.extend_from_slice(&(*self.token as u16).to_be_bytes());
         out.extend_from_slice(&pack_token_amount(&self.amount));
@@ -136,10 +135,7 @@ impl Transfer {
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 
     /// Restores the `PubKeyHash` from the transaction signature.

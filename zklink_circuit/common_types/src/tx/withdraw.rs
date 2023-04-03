@@ -87,7 +87,7 @@ impl Withdraw {
         } else {
             0u8
         };
-        let tx = Self {
+        Self {
             to_chain_id,
             account_id,
             sub_account_id,
@@ -97,12 +97,11 @@ impl Withdraw {
             amount,
             fee,
             nonce,
-            signature: signature.clone().unwrap_or_default(),
+            signature: signature.unwrap_or_default(),
             fast_withdraw,
             withdraw_fee_ratio,
             ts,
-        };
-        tx
+        }
     }
 
     /// Creates a signed transaction using private key and
@@ -154,10 +153,7 @@ impl Withdraw {
     }
 
     pub fn check_correctness(&self) -> bool {
-        match self.validate() {
-            Ok(_) => true,
-            Err(_) => false
-        }
+        self.validate().is_ok()
     }
 
     /// Restores the `PubKeyHash` from the transaction signature.

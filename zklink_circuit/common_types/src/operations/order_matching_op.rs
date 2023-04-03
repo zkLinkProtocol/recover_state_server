@@ -147,7 +147,7 @@ impl OrderMatchingOp {
             .unwrap_or_default();
         let maker = Order {
             account_id: maker_account_id,
-            sub_account_id: sub_account_id,
+            sub_account_id,
             slot_id: maker_slot_id,
             nonce: maker_nonce,
             amount: maker_amount,
@@ -155,13 +155,13 @@ impl OrderMatchingOp {
             quote_token_id,
             price: price.clone(),
             is_sell: maker_is_sell as u8,
-            fee_ratio1: fee_ratio1,
+            fee_ratio1,
             ..Default::default()
         };
 
         let taker = Order {
             account_id: taker_account_id,
-            sub_account_id: sub_account_id,
+            sub_account_id,
             slot_id: taker_slot_id,
             nonce: taker_nonce,
             amount: taker_amount,
@@ -169,7 +169,7 @@ impl OrderMatchingOp {
             quote_token_id,
             price,
             is_sell: taker_is_sell as u8,
-            fee_ratio2: fee_ratio2,
+            fee_ratio2,
             ..Default::default()
         };
 

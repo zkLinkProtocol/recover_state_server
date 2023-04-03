@@ -18,7 +18,7 @@ impl ZkLinkAddress {
     /// Returns err if the slice length does not match with address length.
     pub fn from_slice(slice: &[u8]) -> anyhow::Result<Self> {
         if slice.len() != 32 && slice.len() != 20 {
-            return Err(format_err!("Invalid ZkLinkAddress."))
+            Err(format_err!("Invalid ZkLinkAddress."))
         } else {
             let mut out = ZkLinkAddress(Vec::with_capacity(slice.len()));
             out.0.extend_from_slice(slice);

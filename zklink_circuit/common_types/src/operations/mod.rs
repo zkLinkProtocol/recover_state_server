@@ -1,7 +1,6 @@
 //! Set of all the operations supported by the zklink network.
 
 use super::ZkLinkTx;
-use crate::ZkLinkPriorityOp;
 use anyhow::format_err;
 use serde::{Deserialize, Serialize};
 use zklink_crypto::params::CHUNK_BYTES;
@@ -137,30 +136,30 @@ impl ZkLinkOp {
     pub fn from_public_data(bytes: &[u8]) -> Result<Self, anyhow::Error> {
         let op_type: u8 = *bytes.first().ok_or_else(|| format_err!("Empty pubdata"))?;
         match op_type {
-            NoopOp::OP_CODE => Ok(ZkLinkOp::Noop(NoopOp::from_public_data(&bytes)?)),
+            NoopOp::OP_CODE => Ok(ZkLinkOp::Noop(NoopOp::from_public_data(bytes)?)),
             DepositOp::OP_CODE => Ok(ZkLinkOp::Deposit(Box::new(DepositOp::from_public_data(
-                &bytes,
+                bytes,
             )?))),
             TransferToNewOp::OP_CODE => Ok(ZkLinkOp::TransferToNew(Box::new(
-                TransferToNewOp::from_public_data(&bytes)?,
+                TransferToNewOp::from_public_data(bytes)?,
             ))),
             TransferOp::OP_CODE => Ok(ZkLinkOp::Transfer(Box::new(
-                TransferOp::from_public_data(&bytes)?,
+                TransferOp::from_public_data(bytes)?,
             ))),
             WithdrawOp::OP_CODE => Ok(ZkLinkOp::Withdraw(Box::new(WithdrawOp::from_public_data(
-                &bytes,
+                bytes,
             )?))),
             FullExitOp::OP_CODE => Ok(ZkLinkOp::FullExit(Box::new(FullExitOp::from_public_data(
-                &bytes,
+                bytes,
             )?))),
             ChangePubKeyOp::OP_CODE => Ok(ZkLinkOp::ChangePubKeyOffchain(Box::new(
-                ChangePubKeyOp::from_public_data(&bytes)?,
+                ChangePubKeyOp::from_public_data(bytes)?,
             ))),
             ForcedExitOp::OP_CODE => Ok(ZkLinkOp::ForcedExit(Box::new(
-                ForcedExitOp::from_public_data(&bytes)?,
+                ForcedExitOp::from_public_data(bytes)?,
             ))),
             OrderMatchingOp::OP_CODE => Ok(ZkLinkOp::OrderMatching(Box::new(
-                OrderMatchingOp::from_public_data(&bytes)?,
+                OrderMatchingOp::from_public_data(bytes)?,
             ))),
             _ => Err(format_err!("Wrong operation type: {}", &op_type)),
         }
@@ -195,14 +194,6 @@ impl ZkLinkOp {
             ZkLinkOp::FullExit(op) => Ok(ZkLinkTx::FullExit(Box::new(op.tx.clone()))),
             ZkLinkOp::OrderMatching(op) => Ok(ZkLinkTx::OrderMatching(Box::new(op.tx.clone()))),
             _ => Err(format_err!("Wrong tx type")),
-        }
-    }
-
-    /// Attempts to interpret the operation as the L1 priority operation.
-    pub fn try_get_priority_op(&self) -> Result<ZkLinkPriorityOp, anyhow::Error> {
-        match self {
-            // ZkLinkOp::FullExit(op) => Ok(ZkLinkPriorityOp::FullExit(op.tx.clone())),
-            _ => Err(format_err!("Wrong operation type")),
         }
     }
 

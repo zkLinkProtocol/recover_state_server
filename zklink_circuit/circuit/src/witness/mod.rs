@@ -18,6 +18,9 @@ mod utils;
 mod branch;
 mod account;
 
+type OpenValues = (Vec<Vec<AccountWitness<Engine>>>,(Vec<Vec<Fr>>,Vec<Vec<CircuitTidyOrder<Engine>>>));
+type GlobalAssetAccountAuditPath = (Vec<Vec<Vec<Option<Fr>>>>,(Vec<Vec<Vec<Option<Fr>>>>,Vec<Vec<Vec<Option<Fr>>>>));
+
 fn check_source_and_target_token(l2_token: TokenId, l1_token: TokenId) -> (bool, TokenId) {
     let mut real_l1_token = l1_token;
     let is_required_tokens = if *l2_token == USD_TOKEN_ID {
@@ -37,7 +40,7 @@ fn get_global_asset_account_witnesses(
     l1_target_token_after_mapping: TokenId,
     total_chain_num: usize,
     account_tree: &CircuitAccountTree
-) -> (Vec<Vec<AccountWitness<Engine>>>,(Vec<Vec<Fr>>,Vec<Vec<CircuitTidyOrder<Engine>>>)){
+) -> OpenValues {
     (1..=total_chain_num).map(|index| {
         if *l2_source_token == USD_TOKEN_ID{
             (USDX_TOKEN_ID_LOWER_BOUND..=USDX_TOKEN_ID_UPPER_BOUND).map(|usdx_id| {
@@ -71,7 +74,7 @@ fn get_global_asset_account_audit_paths(
     l1_target_token_after_mapping: TokenId,
     total_chain_num: usize,
     account_tree: &CircuitAccountTree
-) -> (Vec<Vec<Vec<Option<Fr>>>>,(Vec<Vec<Vec<Option<Fr>>>>,Vec<Vec<Vec<Option<Fr>>>>)){
+) -> GlobalAssetAccountAuditPath {
     (1..=total_chain_num).map(|index| {
         if *l2_source_token == USD_TOKEN_ID{
             (USDX_TOKEN_ID_LOWER_BOUND..=USDX_TOKEN_ID_UPPER_BOUND).map(|usdx_id| {
@@ -161,11 +164,11 @@ pub fn create_exit_circuit_with_public_input(
         get_leaf_values(
             account_tree,
             *account_id,
-            (*sub_account_id, *l2_source_token as u32, 0),
+            (*sub_account_id, *l2_source_token, 0),
         );
     let account_address = account_witness.address.unwrap();
     let (audit_path, audit_balance_path, audit_order_path) =
-        get_audits(account_tree, *account_id, *sub_account_id, *l2_source_token as u32, 0);
+        get_audits(account_tree, *account_id, *sub_account_id, *l2_source_token, 0);
 
     let mut pubdata_commitment = Vec::new();
     append_be_fixed_width(&mut pubdata_commitment, &root_hash, SUBTREE_HASH_WIDTH_PADDED);
@@ -193,10 +196,8 @@ pub fn create_exit_circuit_with_public_input(
                 &bal.iter().enumerate().fold(
                     Fr::zero(),|mut acc, (index, bal)|
                         {
-                            if *l2_source_token == USD_TOKEN_ID{
+                            if *l2_source_token == USD_TOKEN_ID || index == 0{
                                 acc.add_assign(bal);
-                            } else {
-                                if index == 0 { acc.add_assign(bal);}
                             }
                             acc
                         }
