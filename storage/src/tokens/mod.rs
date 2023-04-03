@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 // Built-in deps
 use std::time::Instant;
-use zklink_basic_types::TokenId;
-use zklink_types::Token;
+use zklink_types::{Token, TokenId};
 // Workspace imports
 use self::records::{DbTokenOfChain, DbToken};
 use crate::{QueryResult, StorageProcessor};

@@ -13,8 +13,8 @@ publish = false # We don't want to publish our binaries.
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-zklink_types = { path = "../zklink-circuit/common_types", version = "1.0" }
-zklink_utils = { path = "../zklink-circuit/utils", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
 
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0"

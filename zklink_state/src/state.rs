@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 use anyhow::{ensure, Error, format_err};
 use num::BigUint;
-use zklink_types::{operations::{
-    TransferOp, TransferToNewOp, ZkLinkOp, NoopOp
-}, Account, AccountId, AccountMap, AccountTree, AccountUpdate, AccountUpdates, BlockNumber, ZkLinkPriorityOp, ZkLinkTx, SlotId, ChainId, Token, SubAccountId, TokenId, ZkLinkAddress, PubKeyHash};
+use zklink_types::{
+    operations::{
+        TransferOp, TransferToNewOp, ZkLinkOp, NoopOp
+    },
+    Account, AccountId, AccountMap, AccountTree, AccountUpdate, AccountUpdates, BlockNumber, ZkLinkPriorityOp,
+    ZkLinkTx, SlotId, ChainId, Token, SubAccountId, TokenId, ZkLinkAddress, PubKeyHash,Fr
+};
 use zklink_crypto::params::{self, MAIN_SUB_ACCOUNT_ID, FEE_ACCOUNT_ID, MAX_ACCOUNT_ID};
 use zklink_types::account::TidyOrder;
 use zklink_types::utils::{calculate_actual_slot, calculate_actual_token};
-use zklink_crypto::bellman::bn256::Fr;
 use crate::handler::TxHandler;
 
 #[derive(Debug)]
