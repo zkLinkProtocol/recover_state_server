@@ -1,8 +1,6 @@
 # ZkLink Exodus Model
 The Server, Prover and React App of ZkLink Exodus Model.
 
-## Front-end setup, please [exodus interface](exodus-interface/README.md)
-
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
