@@ -365,7 +365,7 @@ where
                                 panic!("Final hash was not met during the recover state process");
                             }
 
-                            // We've restored all the blocks, our job is done.
+                            info!("We've recover all the blocks and verified states, our job is done.");
                             break;
                         }
                     }
