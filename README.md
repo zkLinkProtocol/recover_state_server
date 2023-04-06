@@ -100,7 +100,6 @@ If there is an interruption, run the `continue` command
 ./exodus.sh --continue
 ```
 
-
 ### Start Exodus Server and Exodus Prove
 To start the server, run the following command:
 ```shell
@@ -112,6 +111,10 @@ To start the prover and generate proofs for the server to receive proof tasks, r
 ```
 Please refer to prover [README.md](prover/README.md) for detailed command details
 
+### Close Exodus Server and Exodus Prove
+```shell
+./exodus.sh stop
+```
 
 ## License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
