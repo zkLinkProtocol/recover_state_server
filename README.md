@@ -1,4 +1,4 @@
-# ZkLink Exodus Model
+# zkLink Exodus Model
 The Server, Prover and React App of ZkLink Exodus Model.
 
 ## Table of Contents
@@ -15,6 +15,14 @@ The Server, Prover and React App of ZkLink Exodus Model.
 - [License](#license)
 
 ## Prerequisites
+
+You need to select a suitable server first, and we provide three recommended configurations.
+| AWS EC2 Instance | Price | Prove Performance |
+| ---------------- | ----- | ----------------- |
+| c5a.4xlarge         | $0.768/hr | 1.6 proofs/min |
+| c5a.12xlarge         | $2.304/hr | 4 proofs/min |
+| c5a.24xlarge        | $4.608/hr | 5.5 proofs/sec |
+
 
 Before you begin, you will need to have the following software installed:
 
