@@ -8,20 +8,19 @@ The Server, Prover and React App of ZkLink Exodus Model.
     - [Build the Project](#build-the-project)
     - [Configure the Environment Variables](#configure-the-environment-variables)
     - [Recover zklink state](#recover-ZkLink-state)
-    - [Start the Server](#start-the-exodus-server)
-    - [Start the Prover](#start-the-exodus-prover)
+    - [Start Exodus Server and Exodus Prove](#Start-Exodus-Server-and-Exodus-Prove)
     - [Front-end setup](exodus-interface/README.md)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Prerequisites
 
 You need to select a suitable server first, and we provide three recommended configurations.
-| AWS EC2 Instance | Price | Prove Performance |
-| ---------------- | ----- | ----------------- |
-| c5a.4xlarge         | $0.768/hr | 1.6 proofs/min |
-| c5a.12xlarge         | $2.304/hr | 4 proofs/min |
-| c5a.24xlarge        | $4.608/hr | 5.5 proofs/min |
+
+| AWS EC2 Instance | Price     | Prove Performance |
+|------------------|-----------|-------------------|
+| c5a.4xlarge      | $0.768/hr | 1.6 proofs/min    |
+| c5a.12xlarge     | $2.304/hr | 4 proofs/min      |
+| c5a.24xlarge     | $4.608/hr | 5.5 proofs/min    |
 
 
 Before you begin, you will need to have the following software installed:
@@ -66,7 +65,7 @@ First, there is a `.env.eg` file in the root path of our project, copy and renam
 cp .env.e.g .env
 ```
 Then, you need to modify the following configuration:
-(Before "dunkerque," a link will be published here that will display all configurations except for DATABASE_URL.)
+**(Before "dunkerque," a link will be published here that will display all configurations except for DATABASE_URL)**
 
 | configuration variables                        | description                                                  | example                                                              |
 |------------------------------------------------|--------------------------------------------------------------|----------------------------------------------------------------------|
