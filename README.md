@@ -76,26 +76,32 @@ Then, you need to modify the following configuration:
 6. `DATABASE_URL`: the default is local.
 
 ### Recover ZkLink state
-To recover the state, run the following `genesis` command:
+To recover the state, run the following `recover` command:
 ```shell
-./target/debug/recover_state --genesis
+./exodus.sh recover
 ```
-This command will take several hours to complete. **Please be patient and wait until the command finishes.**
+This command will take several hours to complete.
+
+If you want to see the recover state process, please:
+```shell
+tail -f log/recover_state.log
+```
+**Please be patient and wait until the command finishes.**
 
 If there is an interruption, run the `continue` command
 ```shell
-./target/debug/recover_state --continue
+./exodus.sh --continue
 ```
 
 
 ### Start Exodus Server and Exodus Prove
 To start the server, run the following command:
+```shell
+./exodus.sh server
 ```
-./target/release/exodus_server
-```
-To start the prover and generate a proof for the server to receive a create proof command, run the following command:
-```
-./target/release/exduos_prover tasks
+To start the prover and generate proofs for the server to receive proof tasks, run the following command:
+```shell
+./exodus.sh prover
 ```
 Please refer to prover [README.md](prover/README.md) for detailed command details
 
