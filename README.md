@@ -97,7 +97,7 @@ tail -f log/recover_state.log
 
 If there is an interruption, run the `continue` command
 ```shell
-./exodus.sh --continue
+./exodus.sh continue
 ```
 
 ### Start Exodus Server and Exodus Prove
