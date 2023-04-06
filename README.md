@@ -4,12 +4,13 @@ The Server, Prover and React App of ZkLink Exodus Model.
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-    - [Create the Database](#create-the-database)
-    - [Build the Project](#build-the-project)
-    - [Configure the Environment Variables](#configure-the-environment-variables)
-    - [Recover zklink state](#recover-ZkLink-state)
-    - [Start Exodus Server and Exodus Prove](#Start-Exodus-Server-and-Exodus-Prove)
-    - [Front-end setup](exodus-interface/README.md)
+    - Backend
+        - [Create the Database](#create-the-database)
+        - [Build the Project](#build-the-project)
+        - [Configure the Environment Variables](#configure-the-environment-variables)
+        - [Recover zklink State](#Recover-ZkLink-State)
+        - [Start Exodus Server and Exodus Prove](#Start-Exodus-Server-and-Exodus-Prove)
+    - [Frontend setup](exodus-interface/README.md)
 - [License](#license)
 
 ## Prerequisites
