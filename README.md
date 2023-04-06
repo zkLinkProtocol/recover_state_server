@@ -21,7 +21,7 @@ You need to select a suitable server first, and we provide three recommended con
 | ---------------- | ----- | ----------------- |
 | c5a.4xlarge         | $0.768/hr | 1.6 proofs/min |
 | c5a.12xlarge         | $2.304/hr | 4 proofs/min |
-| c5a.24xlarge        | $4.608/hr | 5.5 proofs/sec |
+| c5a.24xlarge        | $4.608/hr | 5.5 proofs/min |
 
 
 Before you begin, you will need to have the following software installed:
@@ -66,6 +66,7 @@ First, there is a `.env.eg` file in the root path of our project, copy and renam
 cp .env.e.g .env
 ```
 Then, you need to modify the following configuration:
+(Before "dunkerque," a link will be published here that will display all configurations except for DATABASE_URL.)
 
 1. `CLIENT_WEB3_URL` for `CHAIN_1` and `CHAIN_2`: the url of the rpc node of the corresponding chain.
 2. `CONTRACT_BLOCK_HEIGHT` for `CHAIN_1` and `CHAIN_2`: the block height of the zklink contract depolyment.
