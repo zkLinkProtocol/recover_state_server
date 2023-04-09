@@ -1,16 +1,15 @@
 // Built-in deps
 use std::{fmt, time::Instant};
+use std::time::Duration;
 // External imports
 use async_trait::async_trait;
 use deadpool::managed::{Manager, PoolConfig, RecycleResult, Timeouts};
-use sqlx::{Connection, Error as SqlxError, PgConnection};
-// Local imports
-// use self::recoverable_connection::RecoverableConnection;
-use crate::StorageProcessor;
-use std::time::Duration;
-use tokio::time::sleep;
 use deadpool::Runtime;
+use sqlx::{Connection, Error as SqlxError, PgConnection};
+use tokio::time::sleep;
 use tracing::log::warn;
+// Local imports
+use crate::StorageProcessor;
 
 pub mod holder;
 
@@ -86,9 +85,20 @@ impl ConnectionPool {
     ///
     /// This method is intended to be used in crucial contexts, where the
     /// database access is must-have (e.g. block worker).
-    pub async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
+    pub async fn access_storage_with_retry(&self) -> anyhow::Result<StorageProcessor<'_>> {
         let start = Instant::now();
         let connection = self.get_pooled_connection().await;
+        metrics::histogram!("sql.connection_acquire", start.elapsed());
+
+        Ok(StorageProcessor::from_pool(connection))
+    }
+
+    pub async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
+        let start = Instant::now();
+        let connection = self.pool
+            .get()
+            .await
+            .map_err(|e|anyhow::format_err!("Failed to get connection to db: {}", e))?;
         metrics::histogram!("sql.connection_acquire", start.elapsed());
 
         Ok(StorageProcessor::from_pool(connection))
@@ -104,11 +114,17 @@ impl ConnectionPool {
 
             match connection {
                 Ok(connection) => return connection,
-                Err(_) => retry_count += 1,
+                Err(e) => {
+                    warn!(
+                        "Failed to get connection to db: {}. \
+                        Backing off for 1 second, retry_count: {:?}",
+                        e ,retry_count
+                    );
+                    retry_count += 1
+                },
             }
 
             // Backing off for one second if facing an error
-            warn!("Failed to get connection to db. Backing off for 1 second, retry_count: {:?}", retry_count);
             sleep(one_second).await;
         }
 

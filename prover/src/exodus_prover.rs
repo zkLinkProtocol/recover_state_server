@@ -73,7 +73,7 @@ impl ExodusProver {
     /// The number of tasks that are currently generating proof.
     pub async fn running_tasks_num(&self) -> anyhow::Result<u32> {
         let mut storage = self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await?;
         let running_task_num = storage.prover_schema()
             .count_running_tasks()
@@ -83,7 +83,7 @@ impl ExodusProver {
 
     pub async fn load_new_task(&self, index: usize) -> anyhow::Result<Option<ExitInfo>> {
         let mut storage = self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await?;
         let task = storage.prover_schema()
             .load_exit_proof_task()
@@ -103,7 +103,7 @@ impl ExodusProver {
 
     pub async fn cancel_this_task(&self, exit_info: &ExitInfo) -> anyhow::Result<()> {
         let mut storage = self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await?;
         storage.prover_schema()
             .cancel_this_exit_proof_task(exit_info.into())
@@ -113,7 +113,7 @@ impl ExodusProver {
 
     pub async fn check_exit_info(&self, mut exit_info: ExitInfo) -> ExitInfo{
         let mut storage = self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await
             .expect("Storage access failed");
         storage
@@ -169,7 +169,7 @@ impl ExodusProver {
 
     pub(crate) async fn store_exit_proof(&self, proof: &ExitProofData) -> anyhow::Result<()>{
         let mut storage = self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await?;
         storage.prover_schema()
             .store_exit_proof(proof.into())

@@ -194,7 +194,7 @@ impl UpdateTokenEvents for EvmTokenEvents {
         let (token_events, symbols) = self.process_token_logs(token_logs).await?;
 
         // updated storage
-        let storage = self.connection_pool.access_storage().await?;
+        let storage = self.connection_pool.access_storage_with_retry().await?;
         let mut interactor = DatabaseStorageInteractor::new(storage);
         interactor.update_priority_ops_and_tokens(
             self.chain_id,

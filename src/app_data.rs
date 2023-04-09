@@ -51,7 +51,7 @@ impl AppData {
 
     async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
         self.conn_pool
-            .access_storage()
+            .access_storage_with_retry()
             .await
     }
 
