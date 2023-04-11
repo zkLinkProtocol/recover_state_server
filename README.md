@@ -23,9 +23,12 @@ You need to select a suitable server first, and we provide three recommended con
 | c5a.12xlarge     | $2.304/hr | 4 proofs/min      |
 | c5a.24xlarge     | $4.608/hr | 5.5 proofs/min    |
 
+First, install basic lib:
+```shell
+sudo apt-get install libpq-dev libssl-dev pkg-config
+```
 
-Before you begin, you will need to have the following software installed:
-
+Then, you will need to have the following software installed:
 - [Rust and rustup](https://www.rust-lang.org/tools/install).
 - [PostgreSQL](https://www.postgresql.org/download/).
 - [Diesel](http://diesel.rs/) command-line tool for Rust. You can install it by running:
@@ -34,7 +37,7 @@ cargo install diesel_cli --no-default-features --features postgres
 ```
 Load git repository:
 ```shell
-git clone --recursive https://github.com/zkLinkProtocol/recover_state_server.git
+git clone https://github.com/zkLinkProtocol/recover_state_server.git
 ```
 
 ## Getting Started
@@ -44,7 +47,7 @@ Run the following command in the `zklink_keys` directory:
 axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
 ```
 ### Create the Database
-First, You need to configure the `DATABASE_URL=postgres://user:password@localhost/plasma` environment.
+First, to configure the `DATABASE_URL=postgres://user:password@localhost/plasma` environment(Setting password refer to [psql.md](docs/psql.md)).
 
 Then, to create the database, run the following command in the `storage` directory:
 ```shell
