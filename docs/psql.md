@@ -10,5 +10,5 @@ psql
 ## basic operation
 ### modify passw
 ```
-/password
+\password
 ```
