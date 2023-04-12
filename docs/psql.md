@@ -8,11 +8,7 @@ sudo su - postgres
 psql
 ```
 ## basic operation
-### view passw
+### modify passw
 ```
 /password
-```
-### modify password
-```
-alter user postgres with password 'new password';
 ```
