@@ -30,7 +30,7 @@ Before you begin, you will need to have the following software installed:
 - [Rust and rustup](https://www.rust-lang.org/tools/install)
 - [PostgreSQL](https://www.postgresql.org/download/linux/ubuntu/) database. Before install:
 ```shell
-sudo apt-get install libpq-dev libssl-dev pkg-config
+sudo apt-get install libpq-dev libssl-dev pkg-config axel
 ```
 - [Diesel](http://diesel.rs/) command-line tool for Rust. You can install it by running:
 ```shell
@@ -48,7 +48,11 @@ Run the following command in the `zklink_keys` directory:
 axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
 ```
 ### Create the Database
-First, to configure the `DATABASE_URL=postgres://user:password@localhost/plasma` environment(Refer to [psql.md](docs/psql.md) for setting password).
+First, to configure the DATABASE_URL environment:
+```shell
+export DATABASE_URL=postgres://user:password@localhost/plasma
+```
+Refer to [psql.md](docs/psql.md) for setting password.
 
 Then, to create the database, run the following command in the `storage` directory:
 ```shell
