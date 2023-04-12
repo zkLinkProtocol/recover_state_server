@@ -52,7 +52,7 @@ First, to configure the DATABASE_URL environment:
 ```shell
 export DATABASE_URL=postgres://user:password@localhost/plasma
 ```
-Refer to [psql.md](docs/psql.md) for setting password.
+For the first time, please refer to [psql.md](docs/psql.md) for setting the password.
 
 Then, to create the database, run the following command in the `storage` directory:
 ```shell
