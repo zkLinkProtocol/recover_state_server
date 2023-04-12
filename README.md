@@ -48,7 +48,7 @@ Run the following command in the `zklink_keys` directory:
 axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
 ```
 ### Create the Database
-First, to configure the DATABASE_URL environment:
+First, to configure the `DATABASE_URL` environment:
 ```shell
 export DATABASE_URL=postgres://user:password@localhost/plasma
 ```
@@ -74,11 +74,16 @@ First, there is a `.env.eg` file in the root path of our project, copy and renam
 cp .env.e.g .env
 ```
 Then, you need to modify the following configuration:
-**(Before "dunkerque," a link will be published here that will display all configurations except for DATABASE_URL)**
+
+**note:**
+1. `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` must be configured by your current environment
+2. Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
+
 
 | configuration variables                        | description                                                  | example                                                              |
 |------------------------------------------------|--------------------------------------------------------------|----------------------------------------------------------------------|
 | `RUNTIME_CONFIG_ZKLINK_HOME`                   | The current project path                                     | /home/xxx_user/recover_state_server                                  |
+| `DATABASE_URL`                                 | the default is local.                                        | postgres://user:passwd@localhost/plasma                              |
 | `CHAIN_IDS`                                    | The chains that supported, the chain id is defined by zkLink | 1,2                                                                  |
 | `CHAIN_{CHAIN_ID}_CHAIN_ID`                    | The chain ID defined by zkLink                               | 1                                                                    |
 | `CHAIN_{CHAIN_ID}_CHAIN_TYPE`                  | The layer1 chain type                                        | EVM                                                                  |
@@ -88,7 +93,6 @@ Then, you need to modify the following configuration:
 | `CHAIN_{CHAIN_ID}_CONTRACT_ADDRESS`            | The zkLink main contract address                             | "0x517aa9dec0E297B744aC7Ac8ddd8B127c1993055"                         |
 | `CHAIN_{CHAIN_ID}_CONTRACT_GENESIS_TX_HASH`    | The zkLink contract deployed tx hash                         | "0x5c576039ffefce307ffbc5556899ee0772efcf2046051cc4fe9ca633987061ca" |
 | `CHAIN_{CHAIN_ID}_CLIENT_CHAIN_ID`             | The real chain id defined in layer1                          | 80001                                                                |
-| `DATABASE_URL`                                 | the default is local.                                        | postgres://user:passwd@localhost/plasma                              |
 
 ### Recover ZkLink state
 To recover the state, run the following `recover` command:
