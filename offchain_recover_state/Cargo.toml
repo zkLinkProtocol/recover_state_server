@@ -8,36 +8,36 @@ repository = "https://github.com/zkLinkProtocol/zklink-periphery"
 license = "Apache-2.0"
 keywords = ["blockchain", "zklink"]
 categories = ["cryptography"]
-publish = false # We don't want to publish our binaries.
+publish = false                                                   # We don't want to publish our binaries.
 
 [features]
 db_test = []
 
 [dependencies]
-tiny-keccak = "2.0.2"
-hex = "0.4"
-serde_json = "1.0.0"
 anyhow = "1.0"
-structopt = "0.3.20"
 async-trait = "0.1"
-ethers = "2.0.0"
-reqwest = "0.11.14"
-dotenvy = "0.15.1"
-itertools = "0.10.3"
-futures = "0.3.5"
-num = { version = "0.4", features = ["serde"] }
-serde = { version = "1.0", features = ["derive"] }
 chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
-tokio = { version = "1.0", features = ["full"] }
-tracing = {version= "0.1", features = ["log"]}
-tracing-subscriber = "0.3"
-
-zklink_state = { path = "../zklink_state", version = "1.0"}
+dotenvy = "0.15.1"
+ethers = "2.0.0"
+futures = "0.3.5"
+hex = "0.4"
+itertools = "0.10.3"
+num = { version = "0.4", features = ["serde"] }
 recover_state_config = { path = "../config", version = "0.1.0" }
-zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+reqwest = "0.11.14"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.0"
+structopt = "0.3.20"
+tiny-keccak = "2.0.2"
+tokio = { version = "1.0", features = ["full"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = "0.3"
 zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
-zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
+
+zklink_state = { path = "../zklink_state", version = "1.0" }
 zklink_storage = { path = "../storage", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
 
 [dev-dependencies]
 jsonrpc-core = "14.0.0"

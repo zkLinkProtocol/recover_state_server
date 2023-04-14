@@ -8,14 +8,14 @@ repository = "https://github.com/zkLinkProtocol/zklink-periphery"
 license = "Apache-2.0"
 keywords = ["blockchain", "zklink"]
 categories = ["cryptography"]
-publish = false # We don't want to publish our binaries.
+publish = false                                                   # We don't want to publish our binaries.
 
 [dependencies]
-zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
-zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
-zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+anyhow = "1.0"
+chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
 
 num = { version = "0.4.0", features = ["serde"] }
-anyhow = "1.0"
 serde_json = "1.0"
-chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
+zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }

@@ -8,28 +8,27 @@ repository = "https://github.com/zkLinkProtocol/zklink-periphery"
 license = "Apache-2.0"
 keywords = ["blockchain", "zklink"]
 categories = ["cryptography"]
-publish = false # We don't want to publish our binaries.
+publish = false                                                   # We don't want to publish our binaries.
 
 [dependencies]
-zklink_circuit = { path = "../zklink_circuit/circuit", version = "1.0" }
-zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
-zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
-zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
-zklink_storage = { path = "../storage", version = "1.0" }
-recover_state_config = { path = "../config", version = "0.1.0"}
 
 anyhow = "1.0"
-structopt = "0.3.20"
-dotenvy = "0.15.1"
 backoff = { version = "0.4.0", features = ["tokio"] }
+chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
+dotenvy = "0.15.1"
 futures = "0.3.26"
-tokio = { version = "1.0", features = ["full"] }
+num = { version = "0.4.0", features = ["serde"] }
+num_cpus = "1.15.0"
+recover_state_config = { path = "../config", version = "0.1.0" }
 reqwest = { version = "0.11", features = ["blocking"] }
 serde = "1.0"
 serde_json = "1.0"
-num_cpus = "1.15.0"
-chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
-num = { version = "0.4.0", features = ["serde"] }
-tracing = {version= "0.1", features = ["log"]}
+structopt = "0.3.20"
+tokio = { version = "1.0", features = ["full"] }
+tracing = { version = "0.1", features = ["log"] }
 tracing-subscriber = "0.3"
-
+zklink_circuit = { path = "../zklink_circuit/circuit", version = "1.0" }
+zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
+zklink_storage = { path = "../storage", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }

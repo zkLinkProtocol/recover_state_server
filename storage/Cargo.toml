@@ -8,36 +8,36 @@ repository = "https://github.com/zkLinkProtocol/zklink-periphery"
 license = "Apache-2.0"
 keywords = ["blockchain", "zklink"]
 categories = ["cryptography"]
-publish = false # We don't want to publish our binaries.
+publish = false                                                   # We don't want to publish our binaries.
 
 [features]
 default = []
 db_test = []
 
 [dependencies]
-zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
-zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
-zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }
+anyhow = "1.0"
+async-trait = "0.1"
+chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
+deadpool = { version = "0.9.5", features = ["rt_tokio_1"] }
+hex = "0.4"
+lazy_static = "1.4.0"
+metrics = "0.19.0"
+num = { version = "0.4.0", features = ["serde"] }
+parity-crypto = { version = "0.9.0", features = ["publickey"] }
 
 serde = "1.0.137"
 serde_json = "1.0.0"
-num = { version = "0.4.0", features = ["serde"] }
-chrono = { version = "0.4.23", features = ["serde", "rustc-serialize"] }
-anyhow = "1.0"
-lazy_static = "1.4.0"
-hex = "0.4"
-metrics = "0.19.0"
-tracing = {version= "0.1", features = ["log"]}
-parity-crypto = { version = "0.9.0", features = ["publickey"] }
+sqlx = { version = "0.6.0", default-features = false, features = [
+  "runtime-tokio-native-tls",
+  "macros",
+  "postgres",
+  "bigdecimal",
+  "chrono",
+  "json",
+] }
 
 tokio = { version = "1.0", features = ["full"] }
-async-trait = "0.1"
-deadpool = { version = "0.9.5", features = ["rt_tokio_1"] }
-sqlx = { version = "0.6.0", default-features = false, features = [
-    "runtime-tokio-native-tls",
-    "macros",
-    "postgres",
-    "bigdecimal",
-    "chrono",
-    "json",
-] }
+tracing = { version = "0.1", features = ["log"] }
+zklink_crypto = { path = "../zklink_circuit/crypto", version = "1.0" }
+zklink_types = { path = "../zklink_circuit/common_types", version = "1.0" }
+zklink_utils = { path = "../zklink_circuit/utils", version = "1.0" }

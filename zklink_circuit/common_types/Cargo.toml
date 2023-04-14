@@ -10,31 +10,31 @@ categories = ["cryptography"]
 readme = "README.md"
 
 [dependencies]
-zklink_crypto = { path = "../crypto", version = "1.0" }
-zklink_utils = { path = "../utils", version = "1.0" }
-zklink_basic_types = { path = "../basic_types", version = "1.0" }
-tracing = {version= "0.1.22", features = ["log"]}
-
-ethers = "2.0.0"
-num = { version = "0.4.0", features = ["serde"] }
-hex = "0.4"
-tiny-keccak = "1.4.2"
 anyhow = "1.0"
 chrono = { version = "0.4", features = ["serde", "rustc-serialize"] }
+
+ethers = "2.0.0"
+hex = "0.4"
 itertools = "0.9"
+num = { version = "0.4.0", features = ["serde"] }
+
+# Crypto stuff
+parity-crypto = { version = "0.9.0", features = ["publickey"] }
 
 serde = "1.0.137"
 serde_json = "1.0.0"
-
-# Crypto stuff
-parity-crypto = {version = "0.9.0", features = ["publickey"] }
+tiny-keccak = "1.4.2"
+tracing = { version = "0.1.22", features = ["log"] }
 
 validator = { version = "0.15", features = ["derive"] }
+zklink_basic_types = { path = "../basic_types", version = "1.0" }
+zklink_crypto = { path = "../crypto", version = "1.0" }
+zklink_utils = { path = "../utils", version = "1.0" }
 
 [dev-dependencies]
-lazy_static = "1.4.0"
 criterion = "0.3.0"
-secp256k1 = {version = "0.23.0", features = ["std", "recovery"] }
+lazy_static = "1.4.0"
+secp256k1 = { version = "0.23.0", features = ["std", "recovery"] }
 
 [[bench]]
 name = "criterion"
@@ -42,6 +42,5 @@ harness = false
 path = "benches/criterion/lib.rs"
 
 [features]
-default=[]
-run_benches=[]
-
+default = []
+run_benches = []
