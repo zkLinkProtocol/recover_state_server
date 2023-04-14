@@ -3237,15 +3237,12 @@ dependencies = [
  "ethers",
  "futures 0.3.26",
  "hex",
- "itertools 0.10.5",
  "jsonrpc-core",
  "num",
  "recover_state_config",
  "reqwest",
- "serde",
  "serde_json",
  "structopt",
- "tiny-keccak 2.0.2",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3253,7 +3250,6 @@ dependencies = [
  "zklink_state",
  "zklink_storage",
  "zklink_types",
- "zklink_utils",
 ]
 
 [[package]]
@@ -4072,9 +4068,7 @@ version = "0.1.0"
 dependencies = [
  "envy",
  "serde",
- "serde_json",
  "zklink_types",
- "zklink_utils",
 ]
 
 [[package]]
@@ -4287,12 +4281,6 @@ dependencies = [
  "quote",
  "syn",
 ]
-
-[[package]]
-name = "roots"
-version = "0.0.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1c36d2bbc763f480668d6d6790ae2fdd2e52ac0c21a3a26d156f3534a3d9eea9"
 
 [[package]]
 name = "rust-crypto"
@@ -5888,18 +5876,9 @@ dependencies = [
 name = "zklink_circuit"
 version = "1.0.0"
 dependencies = [
- "anyhow",
- "itertools 0.9.0",
- "lazy_static",
  "num",
- "once_cell",
- "parity-crypto",
- "roots",
  "rust-crypto",
- "serde",
- "serde_json",
  "sha2 0.9.9",
- "tracing",
  "zklink_crypto",
  "zklink_types",
 ]
@@ -5929,13 +5908,11 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "backoff",
- "chrono",
  "dotenvy",
  "futures 0.3.26",
  "num",
  "num_cpus",
  "recover_state_config",
- "reqwest",
  "serde",
  "serde_json",
  "structopt",
@@ -5954,12 +5931,9 @@ name = "zklink_state"
 version = "1.0.0"
 dependencies = [
  "anyhow",
- "chrono",
  "num",
- "serde_json",
  "zklink_crypto",
  "zklink_types",
- "zklink_utils",
 ]
 
 [[package]]
@@ -5970,8 +5944,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "deadpool",
- "hex",
- "lazy_static",
  "metrics",
  "num",
  "parity-crypto",
@@ -5994,14 +5966,12 @@ dependencies = [
  "criterion",
  "ethers",
  "hex",
- "itertools 0.9.0",
  "lazy_static",
  "num",
  "parity-crypto",
  "secp256k1 0.23.5",
  "serde",
  "serde_json",
- "tiny-keccak 1.5.0",
  "tracing",
  "validator",
  "zklink_basic_types",
@@ -6013,13 +5983,11 @@ dependencies = [
 name = "zklink_utils"
 version = "1.0.0"
 dependencies = [
- "anyhow",
  "bigdecimal",
  "hex",
  "num",
  "serde",
  "serde_json",
- "tokio",
 ]
 
 [[package]]
