@@ -1,11 +1,13 @@
-use crate::{helpers::pack_fee_amount, AccountId, Nonce, TokenId, ChainId, TimeStamp, ZkLinkAddress};
+use crate::{
+    helpers::pack_fee_amount, AccountId, ChainId, Nonce, TimeStamp, TokenId, ZkLinkAddress,
+};
 use num::{BigUint, Zero};
 use validator::Validate;
 
 use crate::account::PubKeyHash;
 use crate::Engine;
 use serde::{Deserialize, Serialize};
-use zklink_basic_types::{SubAccountId};
+use zklink_basic_types::SubAccountId;
 use zklink_crypto::franklin_crypto::eddsa::PrivateKey;
 use zklink_crypto::params::TOKEN_MAX_PRECISION;
 use zklink_utils::{format_units, BigUintSerdeAsRadix10Str};
@@ -176,7 +178,11 @@ impl ForcedExit {
     /// [Fee: {fee} {token}]
     ///
     /// Note that the second line is optional.
-    pub fn get_ethereum_sign_message_part(&self, l2_source_token_symbol: &str, fee_token_symbol: &str) -> String {
+    pub fn get_ethereum_sign_message_part(
+        &self,
+        l2_source_token_symbol: &str,
+        fee_token_symbol: &str,
+    ) -> String {
         let mut message = format!(
             "ForcedExit {token} to: {to}",
             token = l2_source_token_symbol,
@@ -196,8 +202,13 @@ impl ForcedExit {
     }
 
     /// Gets message that should be signed by Ethereum keys of the account for 2-Factor authentication.
-    pub fn get_ethereum_sign_message(&self, l2_source_token_symbol: &str, fee_token_symbol: &str) -> String {
-        let mut message = self.get_ethereum_sign_message_part(l2_source_token_symbol, fee_token_symbol);
+    pub fn get_ethereum_sign_message(
+        &self,
+        l2_source_token_symbol: &str,
+        fee_token_symbol: &str,
+    ) -> String {
+        let mut message =
+            self.get_ethereum_sign_message_part(l2_source_token_symbol, fee_token_symbol);
         message.push_str(format!("\nNonce: {}", self.nonce).as_str());
         message
     }

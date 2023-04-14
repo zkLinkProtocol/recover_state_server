@@ -1,10 +1,10 @@
-use crate::{TokenId, ChainId, ZkLinkAddress};
+use crate::tx::validators::*;
+use crate::{ChainId, TokenId, ZkLinkAddress};
 use num::BigUint;
 use serde::{Deserialize, Serialize};
-use zklink_basic_types::{H256, SubAccountId};
-use zklink_utils::{BigUintSerdeAsRadix10Str};
 use validator::Validate;
-use crate::tx::validators::*;
+use zklink_basic_types::{SubAccountId, H256};
+use zklink_utils::BigUintSerdeAsRadix10Str;
 
 /// `Mapping` transaction performs a move of funds from one zklink account to another.
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
@@ -35,7 +35,7 @@ pub struct Deposit {
     pub eth_hash: H256,
 }
 
-impl Deposit{
+impl Deposit {
     /// Creates transaction from all the required fields.
     ///
     /// While `signature` field is mandatory for new transactions, it may be `None`

@@ -3,7 +3,9 @@ use std::cmp::Ordering;
 // External imports
 use num::bigint::ToBigInt;
 // Workspace imports
-use zklink_types::{PubKeyHash, SlotId, SubAccountId, TokenId, AccountId, AccountUpdate, Nonce, ZkLinkAddress};
+use zklink_types::{
+    AccountId, AccountUpdate, Nonce, PubKeyHash, SlotId, SubAccountId, TokenId, ZkLinkAddress,
+};
 // Local imports
 use crate::chain::account::records::*;
 use sqlx::types::BigDecimal;
@@ -43,7 +45,7 @@ impl From<StorageAccountPubkeyUpdate> for StorageAccountDiff {
 }
 
 impl From<StorageAccountOrderUpdate> for StorageAccountDiff {
-    fn from (update: StorageAccountOrderUpdate) -> Self {
+    fn from(update: StorageAccountOrderUpdate) -> Self {
         StorageAccountDiff::ChangeOrderNonce(update)
     }
 }
@@ -67,10 +69,11 @@ impl From<StorageAccountDiff> for (AccountId, AccountUpdate) {
                             TokenId(upd.coin_id as u32),
                             SubAccountId(upd.sub_account_id as u8),
                             old_balance,
-                            new_balance),
+                            new_balance,
+                        ),
                     },
                 )
-            },
+            }
             StorageAccountDiff::Create(upd) => (
                 AccountId(upd.account_id as u32),
                 AccountUpdate::Create {
@@ -90,64 +93,72 @@ impl From<StorageAccountDiff> for (AccountId, AccountUpdate) {
                 },
             ),
             StorageAccountDiff::ChangeOrderNonce(upd) => {
-                let order_info_old: (i64, BigDecimal) = serde_json::from_str(upd.old_order_nonce.as_str().unwrap()).unwrap();
-                let order_info_new: (i64, BigDecimal) = serde_json::from_str(upd.new_order_nonce.as_str().unwrap()).unwrap();
+                let order_info_old: (i64, BigDecimal) =
+                    serde_json::from_str(upd.old_order_nonce.as_str().unwrap()).unwrap();
+                let order_info_new: (i64, BigDecimal) =
+                    serde_json::from_str(upd.new_order_nonce.as_str().unwrap()).unwrap();
                 (
                     AccountId(upd.account_id as u32),
                     AccountUpdate::UpdateTidyOrder {
                         slot_id: SlotId(upd.slot_id as u32),
                         sub_account_id: SubAccountId(upd.sub_account_id as u8),
-                        old_order: (Nonce(order_info_old.0 as u32), order_info_old.1.to_bigint().unwrap().to_biguint().unwrap()),
-                        new_order: (Nonce(order_info_new.0 as u32), order_info_new.1.to_bigint().unwrap().to_biguint().unwrap()),
-                    }
+                        old_order: (
+                            Nonce(order_info_old.0 as u32),
+                            order_info_old.1.to_bigint().unwrap().to_biguint().unwrap(),
+                        ),
+                        new_order: (
+                            Nonce(order_info_new.0 as u32),
+                            order_info_new.1.to_bigint().unwrap().to_biguint().unwrap(),
+                        ),
+                    },
                 )
-
             }
         }
     }
 }
 
-    impl StorageAccountDiff {
-        /// Compares updates by `block number` then by `update_order_id` (which is number within block).
-        pub fn cmp_order(&self, other: &Self) -> Ordering {
-            self.block_number()
-                .cmp(&other.block_number())
-                .then(self.update_order_id().cmp(&other.update_order_id()))
-        }
+impl StorageAccountDiff {
+    /// Compares updates by `block number` then by `update_order_id` (which is number within block).
+    pub fn cmp_order(&self, other: &Self) -> Ordering {
+        self.block_number()
+            .cmp(&other.block_number())
+            .then(self.update_order_id().cmp(&other.update_order_id()))
+    }
 
-        /// Returns the index of the operation within block.
-        pub fn update_order_id(&self) -> i32 {
-            match self {
-                StorageAccountDiff::BalanceUpdate(StorageAccountUpdate {
-                                                      update_order_id, ..
-                                                  }) => *update_order_id,
-                StorageAccountDiff::Create(StorageAccountCreation {
-                                               update_order_id, ..
-                                           }) => *update_order_id,
-                StorageAccountDiff::ChangePubKey(StorageAccountPubkeyUpdate {
-                                                     update_order_id,
-                                                     ..
-                                                 }) => *update_order_id,
-                StorageAccountDiff::ChangeOrderNonce(StorageAccountOrderUpdate {
-                                                     update_order_id,
-                                                     ..
-                                                 }) => *update_order_id,
-            }
-        }
-
-        /// Returns the block index to which the operation belongs.
-        pub fn block_number(&self) -> i64 {
-            *match self {
-                StorageAccountDiff::BalanceUpdate(StorageAccountUpdate { block_number, .. }) => {
-                    block_number
-                }
-                StorageAccountDiff::Create(StorageAccountCreation { block_number, .. }) => block_number,
-                StorageAccountDiff::ChangePubKey(StorageAccountPubkeyUpdate {
-                                                     block_number, ..
-                                                 }) => block_number,
-                StorageAccountDiff::ChangeOrderNonce(StorageAccountOrderUpdate {
-                                                     block_number, ..
-                                                 }) => block_number,
-            }
+    /// Returns the index of the operation within block.
+    pub fn update_order_id(&self) -> i32 {
+        match self {
+            StorageAccountDiff::BalanceUpdate(StorageAccountUpdate {
+                update_order_id, ..
+            }) => *update_order_id,
+            StorageAccountDiff::Create(StorageAccountCreation {
+                update_order_id, ..
+            }) => *update_order_id,
+            StorageAccountDiff::ChangePubKey(StorageAccountPubkeyUpdate {
+                update_order_id,
+                ..
+            }) => *update_order_id,
+            StorageAccountDiff::ChangeOrderNonce(StorageAccountOrderUpdate {
+                update_order_id,
+                ..
+            }) => *update_order_id,
         }
     }
+
+    /// Returns the block index to which the operation belongs.
+    pub fn block_number(&self) -> i64 {
+        *match self {
+            StorageAccountDiff::BalanceUpdate(StorageAccountUpdate { block_number, .. }) => {
+                block_number
+            }
+            StorageAccountDiff::Create(StorageAccountCreation { block_number, .. }) => block_number,
+            StorageAccountDiff::ChangePubKey(StorageAccountPubkeyUpdate {
+                block_number, ..
+            }) => block_number,
+            StorageAccountDiff::ChangeOrderNonce(StorageAccountOrderUpdate {
+                block_number,
+                ..
+            }) => block_number,
+        }
+    }
+}

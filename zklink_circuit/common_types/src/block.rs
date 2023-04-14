@@ -14,8 +14,8 @@ use zklink_crypto::serialization::FrSerde;
 
 use crate::ZkLinkTx;
 
-use super::{AccountId, BlockNumber, Fr};
 use super::ZkLinkOp;
+use super::{AccountId, BlockNumber, Fr};
 
 /// Executed L2 transaction.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -76,22 +76,22 @@ pub struct Block {
 }
 
 /// StoredBlockInfo is defined in Storage.sol
-#[derive(Debug, Serialize, Deserialize,Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct StoredBlockInfo {
-    pub block_number: BlockNumber, // Rollup block number
-    pub priority_operations: u64, // Number of priority operations processed
+    pub block_number: BlockNumber,             // Rollup block number
+    pub priority_operations: u64,              // Number of priority operations processed
     pub pending_onchain_operations_hash: H256, // Hash of all operations that must be processed after verify
     pub timestamp: U256, // Rollup block timestamp, have the same format as Ethereum block constant
     pub state_hash: H256, // Root hash of the rollup state
     pub commitment: H256, // Verified input for the ZkLink circuit
-    pub sync_hash: H256 // Used for cross chain block verify
+    pub sync_hash: H256, // Used for cross chain block verify
 }
 
 /// OnchainOperationsBlockInfo is defined in ZkLink.sol
 #[derive(Debug, Clone)]
 pub struct OnchainOperationsBlockInfo {
     pub public_data_offset: u32, // Byte offset in public data for onchain operation
-    pub eth_witness: Vec<u8>, // Some external data that can be needed for operation processing
+    pub eth_witness: Vec<u8>,    // Some external data that can be needed for operation processing
 }
 
 /// CommitBlockInfo is defined in ZkLink.sol
@@ -99,24 +99,24 @@ pub struct OnchainOperationsBlockInfo {
 pub struct CommitBlockInfo {
     pub new_state_hash: H256, // Root hash of the rollup state
     pub public_data: Vec<u8>, // Contain pubdata of all chains when compressed is disabled or only current chain if compressed is enable
-    pub timestamp: U256, // Rollup block timestamp
+    pub timestamp: U256,      // Rollup block timestamp
     pub onchain_operations: Vec<OnchainOperationsBlockInfo>, // Contain onchain ops of all chains when compressed is disabled or only current chain if compressed is enable
-    pub block_number: BlockNumber, // Rollup block number
-    pub fee_account: AccountId // Fee account id
+    pub block_number: BlockNumber,                           // Rollup block number
+    pub fee_account: AccountId,                              // Fee account id
 }
 
 /// CompressedBlockExtraInfo is defined in ZkLink.sol
 #[derive(Debug, Clone)]
 pub struct CompressedBlockExtraInfo {
-    pub public_data_hash: H256, // Pubdata hash of all chains
+    pub public_data_hash: H256,       // Pubdata hash of all chains
     pub offset_commitment_hash: H256, // All chains pubdata offset commitment hash
-    pub onchain_operation_pubdata_hashs: Vec<H256> // Onchain operation pubdata hash of the all other chains
+    pub onchain_operation_pubdata_hashs: Vec<H256>, // Onchain operation pubdata hash of the all other chains
 }
 
 /// ExecuteBlockInfo is defined in ZkLink.sol
 pub struct ExecuteBlockInfo {
     pub stored_block: StoredBlockInfo, // The block info that will be executed
-    pub pending_onchain_ops_pubdata: Vec<Vec<u8>> // Onchain ops(e.g. Withdraw, ForcedExit, FullExit) that will be executed
+    pub pending_onchain_ops_pubdata: Vec<Vec<u8>>, // Onchain ops(e.g. Withdraw, ForcedExit, FullExit) that will be executed
 }
 
 impl Block {
@@ -379,8 +379,8 @@ impl Block {
                     processable_operations_hash.to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                    .concat()
-                    .keccak256();
+                .concat()
+                .keccak256();
             }
         }
         H256::from(processable_operations_hash)
@@ -388,7 +388,8 @@ impl Block {
 
     /// Get onchain op pubdata hash of each chain
     pub fn get_onchain_op_pubdata_hashs(&self, max_chain_id: &ChainId) -> Vec<H256> {
-        let mut onchain_operation_pubdata_hashs = vec![Vec::new().keccak256(); max_chain_id.0 as usize + 1];
+        let mut onchain_operation_pubdata_hashs =
+            vec![Vec::new().keccak256(); max_chain_id.0 as usize + 1];
         for op in &self.block_transactions {
             let executed_op = op.get_executed_op();
             if executed_op.is_onchain_operation() {
@@ -397,8 +398,8 @@ impl Block {
                     onchain_operation_pubdata_hashs[op_chain_id].to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                    .concat()
-                    .keccak256();
+                .concat()
+                .keccak256();
             }
         }
         let onchain_op_pubdata_hashs = onchain_operation_pubdata_hashs
@@ -455,7 +456,7 @@ impl Block {
             .collect()
     }
 
-    pub fn get_sync_hash(&self, available_chain_ids:&[ChainId]) -> H256{
+    pub fn get_sync_hash(&self, available_chain_ids: &[ChainId]) -> H256 {
         let sync_hash = if self.block_number.0 == 0 {
             Vec::new().keccak256().to_vec()
         } else {
@@ -463,7 +464,13 @@ impl Block {
             let onchain_op_pubdata_hashs = self.get_onchain_op_pubdata_hashs(max_chain_id);
             let mut sync_hash_tmp = self.block_commitment.as_bytes().to_vec();
             for i in available_chain_ids.iter() {
-                sync_hash_tmp = [sync_hash_tmp, onchain_op_pubdata_hashs[i.0 as usize].as_bytes().to_vec()].concat().keccak256().to_vec();
+                sync_hash_tmp = [
+                    sync_hash_tmp,
+                    onchain_op_pubdata_hashs[i.0 as usize].as_bytes().to_vec(),
+                ]
+                .concat()
+                .keccak256()
+                .to_vec();
             }
             sync_hash_tmp
         };
@@ -474,11 +481,12 @@ impl Block {
         StoredBlockInfo {
             block_number: self.block_number,
             priority_operations: self.number_of_processed_prior_ops(chain_id),
-            pending_onchain_operations_hash: self.get_processable_operations_hash_of_chain(chain_id),
+            pending_onchain_operations_hash: self
+                .get_processable_operations_hash_of_chain(chain_id),
             timestamp: self.timestamp.into(),
             state_hash: self.get_eth_encoded_root(),
             commitment: self.block_commitment,
-            sync_hash: self.sync_hash
+            sync_hash: self.sync_hash,
         }
     }
 
@@ -489,7 +497,7 @@ impl Block {
             timestamp: self.timestamp.into(),
             onchain_operations: self.get_onchain_ops(),
             block_number: self.block_number,
-            fee_account: self.fee_account
+            fee_account: self.fee_account,
         }
     }
 
@@ -500,27 +508,31 @@ impl Block {
             timestamp: self.timestamp.into(),
             onchain_operations: self.get_onchain_ops_of_chain(chain_id),
             block_number: self.block_number,
-            fee_account: self.fee_account
+            fee_account: self.fee_account,
         }
     }
 
-    pub fn compressed_commit_extra_info(&self, available_chain_ids: &[ChainId]) -> CompressedBlockExtraInfo {
+    pub fn compressed_commit_extra_info(
+        &self,
+        available_chain_ids: &[ChainId],
+    ) -> CompressedBlockExtraInfo {
         let public_data_all = self.get_eth_public_data();
         let public_data_hash = H256::from_slice(sha256(&public_data_all).to_vec().as_slice());
         let offset_commitment = self.get_onchain_op_commitment();
-        let offset_commitment_hash = H256::from_slice(sha256(&offset_commitment).to_vec().as_slice());
+        let offset_commitment_hash =
+            H256::from_slice(sha256(&offset_commitment).to_vec().as_slice());
         let max_chain_id = available_chain_ids.iter().max().unwrap();
         CompressedBlockExtraInfo {
             public_data_hash,
             offset_commitment_hash,
-            onchain_operation_pubdata_hashs: self.get_onchain_op_pubdata_hashs(max_chain_id)
+            onchain_operation_pubdata_hashs: self.get_onchain_op_pubdata_hashs(max_chain_id),
         }
     }
 
     pub fn execute_info(&self, chain_id: ChainId) -> ExecuteBlockInfo {
         ExecuteBlockInfo {
             stored_block: self.stored_block_info(chain_id),
-            pending_onchain_ops_pubdata: self.processable_ops_pubdata(chain_id)
+            pending_onchain_ops_pubdata: self.processable_ops_pubdata(chain_id),
         }
     }
 }

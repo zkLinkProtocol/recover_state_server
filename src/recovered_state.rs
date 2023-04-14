@@ -1,13 +1,15 @@
+use crate::response::ExodusStatus;
+use crate::utils::SubAccountBalances;
 use std::collections::HashMap;
 use zklink_storage::ConnectionPool;
 use zklink_types::block::{Block, StoredBlockInfo};
+use zklink_types::utils::{
+    calculate_actual_token, recover_raw_token, recover_sub_account_by_token,
+};
 use zklink_types::{AccountId, AccountMap, ChainId, SubAccountId, TokenId, ZkLinkAddress};
-use zklink_types::utils::{calculate_actual_token, recover_raw_token, recover_sub_account_by_token};
-use crate::response::ExodusStatus;
-use crate::utils::SubAccountBalances;
 
 #[derive(Debug, Clone)]
-pub struct RecoveredState{
+pub struct RecoveredState {
     pub last_block_info: Block,
     pub account_id_by_address: HashMap<ZkLinkAddress, AccountId>,
     pub accounts: AccountMap,
@@ -15,7 +17,8 @@ pub struct RecoveredState{
 
 impl RecoveredState {
     pub(crate) async fn load_from_storage(conn_pool: &ConnectionPool) -> Self {
-        let mut storage = conn_pool.access_storage()
+        let mut storage = conn_pool
+            .access_storage()
             .await
             .expect("Failed to access storage");
         let last_executed_block_number = storage
@@ -24,7 +27,8 @@ impl RecoveredState {
             .get_last_verified_confirmed_block()
             .await
             .expect("Failed to load last verified confirmed block number");
-        let accounts = storage.chain()
+        let accounts = storage
+            .chain()
             .state_schema()
             .load_circuit_state(last_executed_block_number)
             .await
@@ -41,21 +45,23 @@ impl RecoveredState {
             .expect("Block should be existed");
         let account_id_by_address = accounts
             .iter()
-            .map(|(id, acc)|(acc.address.clone(), *id))
+            .map(|(id, acc)| (acc.address.clone(), *id))
             .collect();
 
-        Self{
+        Self {
             last_block_info,
             account_id_by_address,
             accounts,
         }
     }
 
-    pub(crate) async fn get_balances_by_cache(&self, account_address: ZkLinkAddress) -> Result<SubAccountBalances, ExodusStatus>{
-        if let Some(&id) = self.account_id_by_address
-            .get(&account_address)
-        {
-            let balances = self.accounts
+    pub(crate) async fn get_balances_by_cache(
+        &self,
+        account_address: ZkLinkAddress,
+    ) -> Result<SubAccountBalances, ExodusStatus> {
+        if let Some(&id) = self.account_id_by_address.get(&account_address) {
+            let balances = self
+                .accounts
                 .get(&id)
                 .expect("Account should be exist")
                 .get_existing_token_balances();
@@ -74,11 +80,16 @@ impl RecoveredState {
         }
     }
 
-    pub fn empty_balance(&self, account_id: AccountId, sub_account_id: SubAccountId, token_id: TokenId) -> bool {
+    pub fn empty_balance(
+        &self,
+        account_id: AccountId,
+        sub_account_id: SubAccountId,
+        token_id: TokenId,
+    ) -> bool {
         let real_token_id = calculate_actual_token(sub_account_id, token_id);
-        let account = self.accounts
-            .get(&account_id).unwrap();
-        account.get_existing_token_balances()
+        let account = self.accounts.get(&account_id).unwrap();
+        account
+            .get_existing_token_balances()
             .get(&real_token_id)
             .map_or(true, |balance| balance.is_zero())
     }

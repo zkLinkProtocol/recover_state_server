@@ -1,5 +1,5 @@
-use serde::Deserialize;
 use crate::envy_load;
+use serde::Deserialize;
 
 /// Configuration for the zklink runtime.
 #[derive(Default, Debug, Deserialize, Clone, PartialEq)]

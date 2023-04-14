@@ -1,9 +1,6 @@
+use crate::{handler::TxHandler, state::ZkLinkState};
 use anyhow::{ensure, format_err};
 use zklink_types::{operations::ChangePubKeyOp, tx::ChangePubKey, AccountUpdate, AccountUpdates};
-use crate::{
-    handler::TxHandler,
-    state::ZkLinkState,
-};
 
 impl TxHandler<ChangePubKey> for ZkLinkState {
     type Op = ChangePubKeyOp;
@@ -21,19 +18,17 @@ impl TxHandler<ChangePubKey> for ZkLinkState {
         let change_pk_op = ChangePubKeyOp {
             account_id: tx.account_id,
             tx,
-            address: account.address
+            address: account.address,
         };
         Ok(change_pk_op)
     }
 
-    fn apply_op(
-        &mut self,
-        op: &mut Self::Op,
-    ) -> Result<AccountUpdates, anyhow::Error> {
+    fn apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, anyhow::Error> {
         let mut updates = Vec::new();
         let mut account = self.get_account(op.account_id).unwrap();
         let old_pub_key_hash = account.pub_key_hash;
-        let actual_fee_token  = Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.fee_token);
+        let actual_fee_token =
+            Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.fee_token);
         let old_balance = account.get_balance(actual_fee_token);
         let old_nonce = account.nonce;
 
@@ -67,7 +62,12 @@ impl TxHandler<ChangePubKey> for ZkLinkState {
         updates.push((
             op.account_id,
             AccountUpdate::UpdateBalance {
-                balance_update: (op.tx.fee_token, op.tx.sub_account_id, old_balance, new_balance),
+                balance_update: (
+                    op.tx.fee_token,
+                    op.tx.sub_account_id,
+                    old_balance,
+                    new_balance,
+                ),
                 old_nonce: new_nonce,
                 new_nonce,
             },

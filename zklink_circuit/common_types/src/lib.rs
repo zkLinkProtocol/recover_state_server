@@ -40,9 +40,9 @@ extern crate core;
 
 pub mod account;
 pub mod block;
-pub mod layer_one;
 pub mod gas_counter;
 pub mod helpers;
+pub mod layer_one;
 pub mod operations;
 pub mod priority_ops;
 pub mod prover;
@@ -55,15 +55,17 @@ mod tests;
 
 pub use self::account::{Account, AccountUpdate, PubKeyHash};
 pub use self::block::ExecutedTx;
+pub use self::layer_one::*;
 pub use self::operations::{
-    ChangePubKeyOp, DepositOp, ForcedExitOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp, ZkLinkOp, NoopOp, OrderMatchingOp
+    ChangePubKeyOp, DepositOp, ForcedExitOp, FullExitOp, NoopOp, OrderMatchingOp, TransferOp,
+    TransferToNewOp, WithdrawOp, ZkLinkOp,
 };
 pub use self::priority_ops::{PriorityDeposit, PriorityFullExit, PriorityOp, ZkLinkPriorityOp};
 pub use self::tokens::Token;
 pub use self::tx::{
-    ForcedExit, Transfer, Withdraw, ZkLinkTx, ZkLinkTxType, FullExit, Deposit, OrderMatching, Order, ChangePubKey
+    ChangePubKey, Deposit, ForcedExit, FullExit, Order, OrderMatching, Transfer, Withdraw,
+    ZkLinkTx, ZkLinkTxType,
 };
-pub use self::layer_one::*;
 pub use zklink_basic_types::*;
 
 pub type AccountMap = zklink_crypto::fnv::FnvHashMap<AccountId, Account>;
@@ -72,12 +74,12 @@ pub type AccountTree = SparseMerkleTree<Account, Fr, RescueHasher<Engine>>;
 pub type SerialId = u64;
 
 use crate::block::Block;
-pub use zklink_crypto::{
-    merkle_tree::{RescueHasher, SparseMerkleTree},
-    Engine, Fr, params
-};
 use serde::{Deserialize, Serialize};
 use zklink_crypto::proof::SingleProof;
+pub use zklink_crypto::{
+    merkle_tree::{RescueHasher, SparseMerkleTree},
+    params, Engine, Fr,
+};
 
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]

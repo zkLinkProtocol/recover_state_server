@@ -1,10 +1,10 @@
-use num::{BigUint, ToPrimitive};
-use validator::Validate;
-use crate::{helpers::pack_fee_amount, AccountId, Nonce, TokenId, ZkLinkAddress};
 use crate::account::PubKeyHash;
-use crate::utils::{ethereum_sign_message_part};
+use crate::utils::ethereum_sign_message_part;
 use crate::Engine;
+use crate::{helpers::pack_fee_amount, AccountId, Nonce, TokenId, ZkLinkAddress};
+use num::{BigUint, ToPrimitive};
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 use zklink_basic_types::{ChainId, SubAccountId, TimeStamp};
 use zklink_crypto::franklin_crypto::eddsa::PrivateKey;
 use zklink_crypto::params::TOKEN_MAX_PRECISION;
@@ -61,7 +61,6 @@ pub struct Withdraw {
 }
 
 impl Withdraw {
-
     /// Creates transaction from all the required fields.
     ///
     /// While `signature` field is mandatory for new transactions, it may be `None`
@@ -82,11 +81,7 @@ impl Withdraw {
         signature: Option<TxSignature>,
         ts: TimeStamp,
     ) -> Self {
-        let fast_withdraw = if fast_withdraw{
-            1u8
-        } else {
-            0u8
-        };
+        let fast_withdraw = if fast_withdraw { 1u8 } else { 0u8 };
         Self {
             to_chain_id,
             account_id,
@@ -123,8 +118,19 @@ impl Withdraw {
         ts: TimeStamp,
     ) -> Result<Self, anyhow::Error> {
         let mut tx = Self::new(
-            account_id, sub_account_id, to_chain_id, to, l2_token, l1_token, amount, fee, nonce,
-            fast_withdraw, withdraw_fee_ratio, None, ts,
+            account_id,
+            sub_account_id,
+            to_chain_id,
+            to,
+            l2_token,
+            l1_token,
+            amount,
+            fee,
+            nonce,
+            fast_withdraw,
+            withdraw_fee_ratio,
+            None,
+            ts,
         );
         tx.signature = TxSignature::sign_musig(private_key, &tx.get_bytes());
         if !tx.check_correctness() {

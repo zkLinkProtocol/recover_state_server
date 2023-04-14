@@ -1,4 +1,4 @@
-use crate::franklin_crypto::bellman::pairing::ff::{PrimeField, PrimeFieldRepr, BitIterator};
+use crate::franklin_crypto::bellman::pairing::ff::{BitIterator, PrimeField, PrimeFieldRepr};
 
 /// Extension trait denoting common conversion method for field elements.
 pub trait FeConvert: PrimeField {
@@ -59,13 +59,13 @@ pub trait FeConvert: PrimeField {
         })
     }
 
-    fn into_big_uint(self) -> num::BigUint{
+    fn into_big_uint(self) -> num::BigUint {
         let mut reader = Vec::with_capacity(32);
         self.into_repr().write_be(&mut reader).unwrap();
         num::BigUint::from_bytes_be(&reader)
     }
 
-    fn into_usize(self) -> usize{
+    fn into_usize(self) -> usize {
         use std::convert::TryInto;
         let mut reader = Vec::with_capacity(32);
         self.into_repr().write_be(&mut reader).unwrap();
@@ -75,7 +75,7 @@ pub trait FeConvert: PrimeField {
         usize::from_le_bytes(usize_reader.try_into().unwrap())
     }
 
-    fn get_be_fixed_bits(&self, width: usize) -> Vec<bool>{
+    fn get_be_fixed_bits(&self, width: usize) -> Vec<bool> {
         let mut bits: Vec<bool> = BitIterator::new(self.into_repr()).collect();
         bits.reverse();
         bits.resize(width, false);
@@ -83,7 +83,7 @@ pub trait FeConvert: PrimeField {
         bits
     }
 
-    fn from_big_uint(uint: num::BigUint) -> Option<Self>{
+    fn from_big_uint(uint: num::BigUint) -> Option<Self> {
         let mut vec_big = uint.to_bytes_le();
         let mut fr_repr = Self::Repr::default();
         vec_big.resize(fr_repr.as_ref().len() * 8, 0);
@@ -92,7 +92,7 @@ pub trait FeConvert: PrimeField {
     }
 
     fn from_u64(num: u64) -> Self {
-       Self::from_repr(num.into()).unwrap()
+        Self::from_repr(num.into()).unwrap()
     }
 }
 
@@ -100,9 +100,9 @@ impl<T> FeConvert for T where T: PrimeField {}
 
 #[cfg(test)]
 mod tests {
-    use num::BigUint;
-    use franklin_crypto::bellman::Field;
     use super::*;
+    use franklin_crypto::bellman::Field;
+    use num::BigUint;
 
     use crate::rand::{Rand, SeedableRng, XorShiftRng};
     use crate::Fr;
@@ -135,18 +135,19 @@ mod tests {
         assert_eq!(fr, decoded_fr);
     }
 
-
     #[test]
-    fn test_fr(){
+    fn test_fr() {
         let f = Fr::from_repr(18u64.into()).unwrap();
         println!("{}", f);
 
         let b = BigUint::from(1000000u128);
         let mut vec_big = b.to_bytes_le();
-        println!("b:{:x}",b);
+        println!("b:{:x}", b);
         let mut fr_repr = Fr::zero().into_repr();
         vec_big.resize(fr_repr.as_ref().len() * 8, 0);
-        fr_repr.read_le(&*vec_big).expect("pack bigUint as field element");
+        fr_repr
+            .read_le(&*vec_big)
+            .expect("pack bigUint as field element");
         let b_fr = Fr::from_repr(fr_repr).unwrap();
         println!("{}", b_fr);
 
@@ -155,6 +156,6 @@ mod tests {
         b_fr.into_repr().write_be(&mut reader).unwrap();
         reader.reverse();
         let (reader, _) = reader.split_at(std::mem::size_of::<usize>());
-        println!("{}",usize::from_le_bytes(reader.try_into().unwrap()))
+        println!("{}", usize::from_le_bytes(reader.try_into().unwrap()))
     }
 }

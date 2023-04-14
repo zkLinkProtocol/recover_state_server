@@ -5,15 +5,11 @@
 use num::bigint::ToBigInt;
 use sqlx::types::BigDecimal;
 // Workspace imports
-use zklink_types::{
-    {block::ExecutedTx, BlockNumber, ZkLinkOp, ZkLinkTx},
-};
 use zklink_types::block::FailedExecutedTx;
+use zklink_types::{block::ExecutedTx, BlockNumber, ZkLinkOp, ZkLinkTx};
 // Local imports
 use crate::chain::operations::records::StoredAggregatedOperation;
-use crate::{
-    chain::{operations::records::{NewExecutedTransaction, StoredExecutedTransaction}},
-};
+use crate::chain::operations::records::{NewExecutedTransaction, StoredExecutedTransaction};
 
 impl StoredExecutedTransaction {
     pub fn into_executed_tx(self) -> Result<ExecutedTx, anyhow::Error> {
@@ -44,7 +40,9 @@ impl NewExecutedTransaction {
                 ZkLinkOp::FullExit(op) => op.tx.serial_id as i64,
                 _ => unreachable!(),
             }
-        } else {*exec_tx.tx.nonce() as i64};
+        } else {
+            *exec_tx.tx.nonce() as i64
+        };
         let amount = match op {
             ZkLinkOp::Deposit(op) => op.tx.amount,
             ZkLinkOp::Transfer(op) => op.tx.amount,
@@ -99,9 +97,6 @@ impl NewExecutedTransaction {
 
 impl StoredAggregatedOperation {
     pub fn get_aggregate_operation_info(self) -> (i64, (i64, i64)) {
-        (
-            self.id,
-            (self.from_block, self.to_block),
-        )
+        (self.id, (self.from_block, self.to_block))
     }
 }

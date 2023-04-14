@@ -1,17 +1,17 @@
-use std::fmt::Debug;
-use async_trait::async_trait;
-use zklink_types::{Account, BlockNumber, ChainId, H256};
 pub use self::version::ZkLinkContractVersion;
 pub use self::zklink_evm_contract::ZkLinkEvmContract;
+use async_trait::async_trait;
+use std::fmt::Debug;
+use zklink_types::{Account, BlockNumber, ChainId, H256};
 
-pub mod zklink_evm_contract;
 pub mod update_token_events;
 pub mod utils;
 pub mod v0;
 pub mod version;
+pub mod zklink_evm_contract;
 
 /// Abstracts the basic information of layer1 Log.
-pub trait LogInfo: Debug{
+pub trait LogInfo: Debug {
     /// Returns all topics of this log.
     fn topics(&self) -> Vec<H256>;
 
@@ -26,7 +26,7 @@ pub trait LogInfo: Debug{
 }
 
 /// Abstracts the basic information of layer1 transaction.
-pub trait TransactionInfo{
+pub trait TransactionInfo {
     /// Returns the input parameter when the layer1 tx calls the contract api.
     fn input_data(&self) -> anyhow::Result<Vec<u8>>;
 
@@ -55,7 +55,7 @@ pub trait BlockChain {
 
 /// Abstracts the required api of ZkLink contract for recovering state.
 #[async_trait]
-pub trait ZkLinkContract: BlockChain{
+pub trait ZkLinkContract: BlockChain {
     /// Returns topics(signature) of event by name;
     fn get_event_signature(&self, name: &str) -> H256;
 

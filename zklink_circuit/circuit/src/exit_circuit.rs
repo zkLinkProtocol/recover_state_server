@@ -1,25 +1,37 @@
 // Workspace deps
 pub use zklink_crypto::{
-    circuit::{*, utils::*}, convert::FeConvert, franklin_crypto::{
+    circuit::{utils::*, *},
+    convert::FeConvert,
+    franklin_crypto::{
         bellman::{
-            BitIterator, Circuit, ConstraintSystem, Engine, pairing::ff::{Field, PrimeField, PrimeFieldRepr}, SynthesisError
+            pairing::ff::{Field, PrimeField, PrimeFieldRepr},
+            BitIterator, Circuit, ConstraintSystem, Engine, SynthesisError,
         },
         circuit::{
-            Assignment, boolean::{AllocatedBit, Boolean, le_bits_into_le_bytes}, ecc, expression::Expression,
-            float_point::parse_with_exponent_le, multipack, num::{AllocatedNum, Num}, polynomial_lookup::{do_the_lookup, generate_powers}, rescue, sha256
+            boolean::{le_bits_into_le_bytes, AllocatedBit, Boolean},
+            ecc,
+            expression::Expression,
+            float_point::parse_with_exponent_le,
+            multipack,
+            num::{AllocatedNum, Num},
+            polynomial_lookup::{do_the_lookup, generate_powers},
+            rescue, sha256, Assignment,
         },
-        jubjub::{FixedGenerators, JubjubEngine, JubjubParams}, rescue::{bn256::Bn256RescueParams, rescue_hash, RescueEngine}
+        jubjub::{FixedGenerators, JubjubEngine, JubjubParams},
+        rescue::{bn256::Bn256RescueParams, rescue_hash, RescueEngine},
     },
 };
-pub use zklink_types::{H256, operations::*, Order, params::*};
+pub use zklink_types::{operations::*, params::*, Order, H256};
 
 // Local deps
 pub use crate::{
-    witness::{AccountWitness, OperationBranch}, branch::*, element::CircuitElement,
+    branch::*,
+    element::CircuitElement,
     utils::{
-        boolean_or, multi_and, multi_or, pack_bits_to_element_strict,
-        div_based_on_u126, multiply_based_on_u126
+        boolean_or, div_based_on_u126, multi_and, multi_or, multiply_based_on_u126,
+        pack_bits_to_element_strict,
     },
+    witness::{AccountWitness, OperationBranch},
 };
 
 #[derive(Clone)]
@@ -38,7 +50,7 @@ pub struct ZkLinkExitCircuit<'a, E: RescueEngine> {
 // Implementation of our circuit:
 impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
     fn synthesize<CS: ConstraintSystem<E>>(self, cs: &mut CS) -> Result<(), SynthesisError> {
-        let zero = AllocatedNum::zero(cs.namespace(||"zero"))?;
+        let zero = AllocatedNum::zero(cs.namespace(|| "zero"))?;
         // this is only public input to our circuit
         let public_data_commitment =
             AllocatedNum::alloc(cs.namespace(|| "public_data_commitment"), || {
@@ -50,18 +62,18 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
             AllocatedNum::alloc(cs.namespace(|| "root_hash"), || self.root_hash.grab())?;
         let chain_id_ce = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "chain_id_ce"),
-            ||self.chain_id.grab(),
-            CHAIN_ID_BIT_WIDTH
+            || self.chain_id.grab(),
+            CHAIN_ID_BIT_WIDTH,
         )?;
         let l1_target_token_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "l1_target_token_id"),
-            ||self.l1_target_token.grab(),
-            TOKEN_BIT_WIDTH
+            || self.l1_target_token.grab(),
+            TOKEN_BIT_WIDTH,
         )?;
         let l1_target_token_after_mapping = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "l1_target_token_after_mapping"),
-            ||self.l1_target_token_after_mapping.grab(),
-            TOKEN_BIT_WIDTH
+            || self.l1_target_token_after_mapping.grab(),
+            TOKEN_BIT_WIDTH,
         )?;
 
         let branch = AllocatedOperationBranch::from_witness(
@@ -72,7 +84,8 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
             cs.namespace(|| "is usd token"),
             Expression::from(branch.token.get_number()),
             Expression::u64::<CS>(USD_TOKEN_ID as u64),
-        )?.into();
+        )?
+        .into();
         {
             let is_required_source_token_and_target_token = require_source_token_and_target_token(
                 cs.namespace(|| "is_required_source_token_and_target_token"),
@@ -104,16 +117,14 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
         let mut all_chain_sum = zero.clone();
         let mut target_chain_token_surplus = zero.clone();
         for (index, branch) in self.global_account_audit_data.iter().enumerate() {
-            let mut cs = cs.namespace(||format!("{}th branch", index));
-            let is_first_every_chain = if index as u32 % USDX_TOKEN_ID_RANGE == 0{
+            let mut cs = cs.namespace(|| format!("{}th branch", index));
+            let is_first_every_chain = if index as u32 % USDX_TOKEN_ID_RANGE == 0 {
                 Boolean::constant(true)
             } else {
                 Boolean::constant(false)
             };
-            let global_branch = AllocatedOperationBranch::from_witness(
-                cs.namespace(|| "alloc branch"),
-                branch,
-            )?;
+            let global_branch =
+                AllocatedOperationBranch::from_witness(cs.namespace(|| "alloc branch"), branch)?;
             // calculate root for given account data
             let (state_root, _, _) = check_account_data(
                 cs.namespace(|| "calculate account root"),
@@ -140,13 +151,13 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
                     &l1_target_token_after_mapping,
                 )?;
                 Boolean::and(
-                    cs.namespace(||"is_correct_chain and is_correct_token"),
+                    cs.namespace(|| "is_correct_chain and is_correct_token"),
                     &is_correct_chain,
-                    &is_correct_token
+                    &is_correct_token,
                 )?
             };
             target_chain_token_surplus = Expression::conditionally_select(
-                cs.namespace(||"select surplus of target_chain"),
+                cs.namespace(|| "select surplus of target_chain"),
                 global_branch.balance.get_number(),
                 &target_chain_token_surplus,
                 &is_correct_token_and_chain,
@@ -154,36 +165,34 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
             let not_usd_and_not_first = Boolean::and(
                 cs.namespace(|| "not_usd_and_not_first"),
                 &is_first_every_chain.not(),
-                &is_usd_l2_token.not()
+                &is_usd_l2_token.not(),
             )?;
             let accumulated_balance = AllocatedNum::conditionally_select(
-                cs.namespace(||"choose whether to accumulate balance"),
+                cs.namespace(|| "choose whether to accumulate balance"),
                 &zero,
                 global_branch.balance.get_number(),
-                &not_usd_and_not_first
+                &not_usd_and_not_first,
             )?;
-            all_chain_sum = all_chain_sum.add(
-                cs.namespace(||"add balance"),
-                &accumulated_balance
-            )?;
+            all_chain_sum =
+                all_chain_sum.add(cs.namespace(|| "add balance"), &accumulated_balance)?;
         }
 
         let withdraw_amount = {
             let all_chain_sum = CircuitElement::from_number_with_known_length(
-                cs.namespace(||"all_chain_sum convert as ce"),
+                cs.namespace(|| "all_chain_sum convert as ce"),
                 all_chain_sum,
-                BALANCE_BIT_WIDTH
+                BALANCE_BIT_WIDTH,
             )?;
             let target_chain_token_surplus = CircuitElement::from_number_with_known_length(
-                cs.namespace(||"target_chain_token_surplus convert as ce"),
+                cs.namespace(|| "target_chain_token_surplus convert as ce"),
                 target_chain_token_surplus,
-                BALANCE_BIT_WIDTH
+                BALANCE_BIT_WIDTH,
             )?;
             let withdraw_ratio = div_based_on_u126(
                 cs.namespace(|| "calculate the proportion of the balance to all chain total"),
                 &branch.balance,
                 &all_chain_sum,
-                TOKEN_MAX_PRECISION
+                TOKEN_MAX_PRECISION,
             )?;
             let amount = multiply_based_on_u126(
                 cs.namespace(|| "calculate withdraw amount"),
@@ -192,9 +201,9 @@ impl<'a, E: RescueEngine> Circuit<E> for ZkLinkExitCircuit<'a, E> {
                 TOKEN_MAX_PRECISION,
             )?;
             CircuitElement::from_number_with_known_length(
-                cs.namespace(||"amount to CircuitElement"),
+                cs.namespace(|| "amount to CircuitElement"),
                 amount,
-                BALANCE_BIT_WIDTH
+                BALANCE_BIT_WIDTH,
             )?
         };
         {
@@ -235,22 +244,26 @@ fn require_source_token_and_target_token<E: RescueEngine, CS: ConstraintSystem<E
     l1_target_token_after_mapping: &CircuitElement<E>,
     l1_target_token: &CircuitElement<E>,
     l2_source_token: &CircuitElement<E>,
-)-> Result<Boolean, SynthesisError> {
+) -> Result<Boolean, SynthesisError> {
     let is_correct_usd = {
-        let real_l1_token = Expression::from(l1_target_token.get_number()) - Expression::u64::<CS>(USDX_TOKEN_ID_RANGE as u64);
+        let real_l1_token = Expression::from(l1_target_token.get_number())
+            - Expression::u64::<CS>(USDX_TOKEN_ID_RANGE as u64);
         let is_correct_l1_token: Boolean = Expression::equals(
             cs.namespace(|| "is_correct_l1_token"),
             real_l1_token,
             Expression::from(l1_target_token_after_mapping.get_number()),
-        )?.into();
+        )?
+        .into();
         let is_usd_l2_token: Boolean = Expression::equals(
             cs.namespace(|| "is usd token"),
             Expression::from(l2_source_token.get_number()),
             Expression::u64::<CS>(USD_TOKEN_ID as u64),
-        )?.into();
+        )?
+        .into();
         Boolean::and(
-            cs.namespace(||"is_correct_usd_constraint"),
-            &is_correct_l1_token, &is_usd_l2_token
+            cs.namespace(|| "is_correct_usd_constraint"),
+            &is_correct_l1_token,
+            &is_usd_l2_token,
         )?
     };
     let is_correct_token_range = {
@@ -258,12 +271,13 @@ fn require_source_token_and_target_token<E: RescueEngine, CS: ConstraintSystem<E
             let is_zero_token = Expression::equals(
                 cs.namespace(|| "is zero token"),
                 Expression::from(l2_source_token.get_number()),
-                Expression::u64::<CS>(0)
-            )?.into();
+                Expression::u64::<CS>(0),
+            )?
+            .into();
             let usdx_token_id_upper_bound = CircuitElement::from_fe_with_known_length(
                 cs.namespace(|| "usdx_token_id_upper_bound"),
                 || Ok(E::Fr::from_u64(USDX_TOKEN_ID_UPPER_BOUND as u64)),
-                USD_TOKEN_BIT
+                USD_TOKEN_BIT,
             )?;
             let is_gt_usdx_upper_bound = CircuitElement::less_than_fixed(
                 cs.namespace(|| "is_gt_usdx_upper_bound"),
@@ -271,26 +285,28 @@ fn require_source_token_and_target_token<E: RescueEngine, CS: ConstraintSystem<E
                 l2_source_token,
             )?;
             boolean_or(
-                cs.namespace(||"is_correct_token_range"),
-                &is_zero_token, &is_gt_usdx_upper_bound,
+                cs.namespace(|| "is_correct_token_range"),
+                &is_zero_token,
+                &is_gt_usdx_upper_bound,
             )?
         };
         let is_eq_token = CircuitElement::equals(
-            cs.namespace(||"is_eq_token"),
+            cs.namespace(|| "is_eq_token"),
             l2_source_token,
-            l1_target_token
+            l1_target_token,
         )?;
         Boolean::and(
             cs.namespace(|| "is correct l2 token range"),
-            &is_correct_token_range, &is_eq_token
+            &is_correct_token_range,
+            &is_eq_token,
         )?
     };
     boolean_or(
-        cs.namespace(||"check source token and target token"),
-        &is_correct_usd, &is_correct_token_range
+        cs.namespace(|| "check source token and target token"),
+        &is_correct_usd,
+        &is_correct_token_range,
     )
 }
-
 
 pub fn check_account_data<E: RescueEngine, CS: ConstraintSystem<E>>(
     mut cs: CS,
@@ -330,21 +346,21 @@ pub fn allocate_account_leaf_bits<E: RescueEngine, CS: ConstraintSystem<E>>(
     account_data.extend_from_slice(branch.account.address.get_bits_le());
 
     let is_account_empty = {
-        let zero = AllocatedNum::zero(cs.namespace(||"zero"))?;
+        let zero = AllocatedNum::zero(cs.namespace(|| "zero"))?;
         let is_nonce_zero = Boolean::from(AllocatedNum::equals(
             cs.namespace(|| "nonce is zero if empty"),
             branch.account.nonce.get_number(),
-            &zero
+            &zero,
         )?);
         let is_pubkey_hash_zero = Boolean::from(AllocatedNum::equals(
             cs.namespace(|| "pubkey hash is zero if empty"),
             branch.account.pub_key_hash.get_number(),
-            &zero
+            &zero,
         )?);
         let is_address_zero = Boolean::from(AllocatedNum::equals(
             cs.namespace(|| "address is zero if empty"),
             branch.account.address.get_number(),
-            &zero
+            &zero,
         )?);
         multi_and(
             cs.namespace(|| "check if all account words are empty"),
@@ -353,11 +369,17 @@ pub fn allocate_account_leaf_bits<E: RescueEngine, CS: ConstraintSystem<E>>(
     };
 
     // first we prove calculate root of the balance tree to obtain account_leaf_data:
-    let state_tree_root = branch.calculate_balance_tree_root(cs.namespace(||"calculate balance tree root"), params)?;
-    account_data.extend(state_tree_root.clone().into_padded_le_bits(FR_BIT_WIDTH_PADDED));
+    let state_tree_root = branch
+        .calculate_balance_tree_root(cs.namespace(|| "calculate balance tree root"), params)?;
+    account_data.extend(
+        state_tree_root
+            .clone()
+            .into_padded_le_bits(FR_BIT_WIDTH_PADDED),
+    );
 
     // third we prove calculate root of the order tree
-    let order_tree_root = branch.calculate_order_tree_root(cs.namespace(||"calculate order tree root"), params)?;
+    let order_tree_root =
+        branch.calculate_order_tree_root(cs.namespace(|| "calculate order tree root"), params)?;
     account_data.extend(order_tree_root);
 
     Ok((account_data, is_account_empty, state_tree_root))

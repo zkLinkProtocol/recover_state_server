@@ -1,16 +1,20 @@
 use std::collections::HashMap;
 // Built-in deps
-use std::time::Instant;
 use serde_json::Value;
+use std::time::Instant;
 // Workspace imports
-use zklink_types::{ChainId, BlockNumber, DepositOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp, ZkLinkAddress, ZkLinkTx, ZkLinkTxType};
+use zklink_types::{
+    BlockNumber, ChainId, DepositOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp,
+    ZkLinkAddress, ZkLinkTx, ZkLinkTxType,
+};
 // Local imports
-use self::records::{
-    NewExecutedTransaction, StoredAggregatedOperation, StoredSubmitTransaction
+use self::records::{NewExecutedTransaction, StoredAggregatedOperation, StoredSubmitTransaction};
+use crate::chain::account::records::{
+    StorageAccountCreation, StorageAccountOrderUpdate, StorageAccountPubkeyUpdate,
+    StorageAccountUpdate, StorageStateUpdates,
 };
 use crate::chain::operations::records::{AggType, StoredOnChainTx};
 use crate::{QueryResult, StorageProcessor};
-use crate::chain::account::records::{StorageAccountCreation, StorageAccountOrderUpdate, StorageAccountPubkeyUpdate, StorageAccountUpdate, StorageStateUpdates};
 
 pub mod records;
 
@@ -25,11 +29,12 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     pub async fn submit_priority_txs(
         &mut self,
         txs: Vec<StoredSubmitTransaction>,
-    ) -> QueryResult<()>{
+    ) -> QueryResult<()> {
         let mut transaction = self.0.start_transaction().await?;
 
         for tx in txs.into_iter() {
-            transaction.chain()
+            transaction
+                .chain()
                 .operations_schema()
                 .add_new_submit_tx(tx)
                 .await?;
@@ -77,8 +82,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             aggregated_action_type as AggType,
             block_number
         )
-            .fetch_optional(self.0.conn())
-            .await?;
+        .fetch_optional(self.0.conn())
+        .await?;
 
         let on_chain_txs = match op_id {
             Some(r) => {
@@ -90,9 +95,9 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                     WHERE b.op_id = $1"#,
                     r.id
                 )
-                    .fetch_all(self.0.conn())
-                    .await?
-            },
+                .fetch_all(self.0.conn())
+                .await?
+            }
             None => {
                 vec![]
             }
@@ -102,10 +107,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     }
 
     /// Add a new submit tx in the database.
-    pub async fn add_new_submit_tx(
-        &mut self,
-        tx: StoredSubmitTransaction,
-    ) -> QueryResult<()> {
+    pub async fn add_new_submit_tx(&mut self, tx: StoredSubmitTransaction) -> QueryResult<()> {
         let start = Instant::now();
 
         sqlx::query!(
@@ -170,14 +172,11 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             DepositOp::OP_CODE as i16,
             FullExitOp::OP_CODE as i16
         )
-            .fetch_optional(self.0.conn())
-            .await?
-            .map(|tx_data|serde_json::from_value(tx_data.tx_data).unwrap());
+        .fetch_optional(self.0.conn())
+        .await?
+        .map(|tx_data| serde_json::from_value(tx_data.tx_data).unwrap());
 
-        metrics::histogram!(
-            "sql.chain.operations.get_tx_by_serial_id",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.chain.operations.get_tx_by_serial_id", start.elapsed());
         Ok(tx_data)
     }
 
@@ -206,7 +205,10 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     }
 
     /// Retrieves all unprocessed priority transactions from the database.
-    pub async fn get_unprocessed_priority_txs(&mut self, chain_id: i16) -> QueryResult<Vec<(u64, ZkLinkTx)>> {
+    pub async fn get_unprocessed_priority_txs(
+        &mut self,
+        chain_id: i16,
+    ) -> QueryResult<Vec<(u64, ZkLinkTx)>> {
         let start = Instant::now();
 
         let tx_data = sqlx::query!(
@@ -214,13 +216,20 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             WHERE executed = false AND (op_type = $1 OR op_type = $2) AND chain_id = $3
             ORDER BY nonce ASC;
             ",
-            DepositOp::OP_CODE as i16, FullExitOp::OP_CODE as i16, chain_id
+            DepositOp::OP_CODE as i16,
+            FullExitOp::OP_CODE as i16,
+            chain_id
         )
-            .fetch_all(self.0.conn())
-            .await?
-            .into_iter()
-            .map(|record|(record.nonce as u64, serde_json::from_value(record.tx_data).unwrap()))
-            .collect();
+        .fetch_all(self.0.conn())
+        .await?
+        .into_iter()
+        .map(|record| {
+            (
+                record.nonce as u64,
+                serde_json::from_value(record.tx_data).unwrap(),
+            )
+        })
+        .collect();
 
         metrics::histogram!(
             "sql.chain.operations.get_unprocessed_priority_txs",
@@ -244,10 +253,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             .max
             .unwrap_or(-1);
 
-        metrics::histogram!(
-            "sql.chain.operations.get_tx_by_serial_id",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.chain.operations.get_tx_by_serial_id", start.elapsed());
         Ok(tx_data)
     }
 
@@ -262,36 +268,36 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         let address = address.as_bytes();
         let total_num = match tx_type {
             ZkLinkTxType::Deposit => sqlx::query!(
-                    r#"SELECT count(*) FROM submit_txs
+                r#"SELECT count(*) FROM submit_txs
                      WHERE op_type = $1 AND to_account = $2"#,
-                    DepositOp::OP_CODE as i16,
-                    address,
-                )
-                .fetch_one(self.0.conn())
-                .await?
-                .count
-                .unwrap_or(0),
+                DepositOp::OP_CODE as i16,
+                address,
+            )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or(0),
             ZkLinkTxType::Withdraw => sqlx::query!(
-                    r#"SELECT count(*) FROM submit_txs
+                r#"SELECT count(*) FROM submit_txs
                      WHERE op_type = $1 AND from_account = $2"#,
-                    WithdrawOp::OP_CODE as i16,
-                    address,
-                )
-                .fetch_one(self.0.conn())
-                .await?
-                .count
-                .unwrap_or(0),
+                WithdrawOp::OP_CODE as i16,
+                address,
+            )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or(0),
             ZkLinkTxType::Transfer => sqlx::query!(
-                    r#"SELECT count(*) FROM submit_txs
+                r#"SELECT count(*) FROM submit_txs
                      WHERE op_type = ANY($1) AND (from_account = $2 OR to_account = $2)"#,
-                    &[TransferOp::OP_CODE as i16, TransferToNewOp::OP_CODE as i16],
-                    address,
-                )
-                .fetch_one(self.0.conn())
-                .await?
-                .count
-                .unwrap_or(0),
-            _ => 0
+                &[TransferOp::OP_CODE as i16, TransferToNewOp::OP_CODE as i16],
+                address,
+            )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or(0),
+            _ => 0,
         };
         // no result
         if total_num == 0 {
@@ -310,7 +316,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         }
         let offset = page_index * count;
         let ops = match tx_type {
-            ZkLinkTxType::Deposit => sqlx::query_as!(
+            ZkLinkTxType::Deposit => {
+                sqlx::query_as!(
                     StoredSubmitTransaction,
                     r#"SELECT a.* FROM submit_txs a INNER JOIN
                     (SELECT id FROM submit_txs
@@ -323,8 +330,10 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                     count,
                 )
                 .fetch_all(self.0.conn())
-                .await?,
-            ZkLinkTxType::Withdraw => sqlx::query_as!(
+                .await?
+            }
+            ZkLinkTxType::Withdraw => {
+                sqlx::query_as!(
                     StoredSubmitTransaction,
                     r#"SELECT a.* FROM submit_txs a INNER JOIN
                      (SELECT id FROM submit_txs
@@ -337,8 +346,10 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                     count,
                 )
                 .fetch_all(self.0.conn())
-                .await?,
-            ZkLinkTxType::Transfer => sqlx::query_as!(
+                .await?
+            }
+            ZkLinkTxType::Transfer => {
+                sqlx::query_as!(
                     StoredSubmitTransaction,
                     r#"SELECT a.* FROM submit_txs a INNER JOIN
                      (SELECT id FROM submit_txs
@@ -351,23 +362,21 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                     count,
                 )
                 .fetch_all(self.0.conn())
-                .await?,
-            _ => vec![]
+                .await?
+            }
+            _ => vec![],
         };
 
         Ok((total_page_num, ops))
     }
 
-    pub async fn confirm_aggregated_operations(
-        &mut self,
-        op_ids: Vec<i64>,
-    ) -> QueryResult<()> {
+    pub async fn confirm_aggregated_operations(&mut self, op_ids: Vec<i64>) -> QueryResult<()> {
         sqlx::query!(
             "UPDATE aggregate_operations SET confirmed = true WHERE id = ANY($1)",
             &op_ids
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
 
         Ok(())
     }
@@ -414,8 +423,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             operation.op_type,
             operation.nonce,
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
         metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
         Ok(())
     }
@@ -448,7 +457,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     ) -> QueryResult<()> {
         let mut transaction = self.0.start_transaction().await?;
 
-        let op_id= transaction.chain()
+        let op_id = transaction
+            .chain()
             .operations_schema()
             .store_aggregated_action(&agg_op)
             .await?;
@@ -473,9 +483,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                 op_id,
                 eth_op_id
             )
-                .execute(transaction.conn())
-                .await?;
-
+            .execute(transaction.conn())
+            .await?;
         }
 
         transaction.commit().await?;
@@ -519,7 +528,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         &mut self,
         aggregated_action: AggType,
         block_number: BlockNumber,
-    ) -> QueryResult<Option<(i64,i64)>> {
+    ) -> QueryResult<Option<(i64, i64)>> {
         let aggregated_op = sqlx::query_as!(
             StoredAggregatedOperation,
             r#"SELECT id,action_type as "action_type:AggType",from_block,to_block,created_at,confirmed
@@ -557,7 +566,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     pub async fn count_sent_unconfirmed_eth_ops(
         &mut self,
         chain_id: i16,
-        op_type: AggType
+        op_type: AggType,
     ) -> QueryResult<i64> {
         let record = sqlx::query!(
             r#"SELECT count(*)
@@ -566,8 +575,8 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             chain_id,
             op_type as AggType
         )
-            .fetch_one(self.0.conn())
-            .await?;
+        .fetch_one(self.0.conn())
+        .await?;
         Ok(record.count.unwrap_or_default())
     }
 
@@ -584,14 +593,14 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             raw_tx,
             eth_op_id
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
         Ok(())
     }
 
     pub async fn get_tx_state_updates(
         &mut self,
-        block_number:i64,
+        block_number: i64,
         tx_hash: &[u8],
     ) -> QueryResult<StorageStateUpdates> {
         // no need to do update query in a transaction, because all updates
@@ -608,17 +617,17 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         let account_pubkey_updates = self
             .get_account_pubkey_updates_by_block_tx(block_number, tx_hash)
             .await?;
-        Ok(StorageStateUpdates{
+        Ok(StorageStateUpdates {
             account_creates,
             balance_updates,
             order_nonce_updates,
-            account_pubkey_updates
+            account_pubkey_updates,
         })
     }
 
     pub async fn get_account_creates_by_block_tx(
         &mut self,
-        block_number:i64,
+        block_number: i64,
         tx_hash: &[u8],
     ) -> QueryResult<Vec<StorageAccountCreation>> {
         let updates = sqlx::query_as!(
@@ -639,7 +648,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
 
     pub async fn get_account_balance_updates_by_block_tx(
         &mut self,
-        block_number:i64,
+        block_number: i64,
         tx_hash: &[u8],
     ) -> QueryResult<Vec<StorageAccountUpdate>> {
         let updates = sqlx::query_as!(
@@ -660,7 +669,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
 
     pub async fn get_account_order_updates_by_block_tx(
         &mut self,
-        block_number:i64,
+        block_number: i64,
         tx_hash: &[u8],
     ) -> QueryResult<Vec<StorageAccountOrderUpdate>> {
         let updates = sqlx::query_as!(
@@ -681,7 +690,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
 
     pub async fn get_account_pubkey_updates_by_block_tx(
         &mut self,
-        block_number:i64,
+        block_number: i64,
         tx_hash: &[u8],
     ) -> QueryResult<Vec<StorageAccountPubkeyUpdate>> {
         let updates = sqlx::query_as!(

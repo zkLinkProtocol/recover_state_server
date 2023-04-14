@@ -55,7 +55,7 @@ impl CommitCost {
             ZkLinkOp::ChangePubKeyOffchain(change_pubkey) => {
                 if change_pubkey.tx.is_onchain() {
                     Self::CHANGE_PUBKEY_COST_ONCHAIN
-                } else if change_pubkey.tx.eth_auth_data.is_eth_ecdsa(){
+                } else if change_pubkey.tx.eth_auth_data.is_eth_ecdsa() {
                     Self::CHANGE_PUBKEY_COST_ECDSA
                 } else {
                     Self::CHANGE_PUBKEY_COST_CREATE2
@@ -168,7 +168,6 @@ impl std::fmt::Display for WrongTransaction {
 impl std::error::Error for WrongTransaction {}
 
 impl GasCounter {
-
     pub fn new() -> Self {
         Self::default()
     }
@@ -220,8 +219,8 @@ pub const PROVE_COST_PER_BLOCK: usize = 6759;
 pub fn commit_gas_limit_aggregated(blocks: &[Block]) -> U256 {
     U256::from(BASE_COMMIT_BLOCKS_TX_COST)
         + blocks
-        .iter()
-        .fold(U256::zero(), |acc, block| acc + block.commit_gas_limit)
+            .iter()
+            .fold(U256::zero(), |acc, block| acc + block.commit_gas_limit)
 }
 
 pub fn prove_gas_limit_aggregated(block_num: usize) -> U256 {
@@ -231,17 +230,21 @@ pub fn prove_gas_limit_aggregated(block_num: usize) -> U256 {
 pub fn execute_gas_limit_aggregated(blocks: &[Block]) -> U256 {
     U256::from(BASE_EXECUTE_BLOCKS_TX_COST)
         + blocks
-        .iter()
-        .fold(U256::zero(), |acc, block| acc + block.verify_gas_limit)
+            .iter()
+            .fold(U256::zero(), |acc, block| acc + block.verify_gas_limit)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{operations::{
-        ChangePubKeyOp, DepositOp, ForcedExitOp, FullExitOp, NoopOp, TransferOp,
-        TransferToNewOp, WithdrawOp,
-    }, tx::{ChangePubKey, ForcedExit, Transfer, Withdraw}, Deposit, FullExit};
+    use crate::{
+        operations::{
+            ChangePubKeyOp, DepositOp, ForcedExitOp, FullExitOp, NoopOp, TransferOp,
+            TransferToNewOp, WithdrawOp,
+        },
+        tx::{ChangePubKey, ForcedExit, Transfer, Withdraw},
+        Deposit, FullExit,
+    };
 
     #[test]
     fn commit_and_verify_cost() {
@@ -259,7 +262,7 @@ mod tests {
                 Default::default(),
             ),
             account_id: AccountId(1),
-            address: Default::default()
+            address: Default::default(),
         };
         let deposit_op = DepositOp {
             tx: Deposit {
@@ -274,7 +277,7 @@ mod tests {
                 eth_hash: Default::default(),
             },
             account_id: AccountId(1),
-            l1_source_token_after_mapping: Default::default()
+            l1_source_token_after_mapping: Default::default(),
         };
         let transfer_op = TransferOp {
             tx: Transfer::new(
@@ -321,7 +324,7 @@ mod tests {
                 eth_hash: Default::default(),
             },
             exit_amount: Default::default(),
-            l1_target_token_after_mapping: Default::default()
+            l1_target_token_after_mapping: Default::default(),
         };
         let forced_exit_op = ForcedExitOp {
             tx: ForcedExit::new(
@@ -336,11 +339,11 @@ mod tests {
                 Default::default(),
                 Nonce(0),
                 None,
-                Default::default()
+                Default::default(),
             ),
             target_account_id: AccountId(1),
             withdraw_amount: 0u8.into(),
-            l1_target_token_after_mapping: Default::default()
+            l1_target_token_after_mapping: Default::default(),
         };
         let withdraw_op = WithdrawOp {
             tx: Withdraw::new(
@@ -359,7 +362,7 @@ mod tests {
                 Default::default(),
             ),
             account_id: AccountId(1),
-            l1_target_token_after_mapping: Default::default()
+            l1_target_token_after_mapping: Default::default(),
         };
 
         let test_vector_commit = vec![
@@ -408,10 +411,16 @@ mod tests {
         ];
 
         for (op, expected_cost) in test_vector_commit {
-            assert_eq!(CommitCost::op_cost_with_exec_chain(&op), U256::from(expected_cost));
+            assert_eq!(
+                CommitCost::op_cost_with_exec_chain(&op),
+                U256::from(expected_cost)
+            );
         }
         for (op, expected_cost) in test_vector_verify {
-            assert_eq!(VerifyCost::op_cost_with_exec_chain(&op), U256::from(expected_cost));
+            assert_eq!(
+                VerifyCost::op_cost_with_exec_chain(&op),
+                U256::from(expected_cost)
+            );
         }
     }
 
@@ -431,7 +440,7 @@ mod tests {
                 Default::default(),
             ),
             account_id: AccountId(1),
-            address: Default::default()
+            address: Default::default(),
         };
         let zklink_op = ZkLinkOp::from(change_pubkey_op);
 
@@ -441,10 +450,9 @@ mod tests {
         assert_eq!(gas_counter.verify_cost, U256::from(VerifyCost::BASE_COST));
 
         // Verify cost is 0, thus amount of operations is determined by the commit cost.
-        let tx_gas_limit : u64 = 4_000_000;
+        let tx_gas_limit: u64 = 4_000_000;
         let amount_ops_in_block = U256::from(tx_gas_limit)
-            - gas_counter.commit_gas_limit()
-            / U256::from(CommitCost::CHANGE_PUBKEY_COST_ONCHAIN);
+            - gas_counter.commit_gas_limit() / U256::from(CommitCost::CHANGE_PUBKEY_COST_ONCHAIN);
 
         for _ in 0..amount_ops_in_block.as_u64() {
             gas_counter.add_op(&zklink_op);

@@ -1,12 +1,15 @@
 // Built-in deps
 use std::{cmp, collections::HashMap, time::Instant};
 // External imports
-use num::BigInt;
 use num::bigint::ToBigInt;
+use num::BigInt;
 use sqlx::types::BigDecimal;
 use tracing::{debug, info};
 // Workspace imports
-use zklink_types::{helpers::{apply_updates, reverse_updates}, AccountId, AccountMap, AccountUpdate, AccountUpdates, BlockNumber, PubKeyHash,  H256, ChainId};
+use zklink_types::{
+    helpers::{apply_updates, reverse_updates},
+    AccountId, AccountMap, AccountUpdate, AccountUpdates, BlockNumber, ChainId, PubKeyHash, H256,
+};
 // Local imports
 use crate::chain::{
     account::{records::*, restore_account},
@@ -45,18 +48,16 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         // Simply go through the every account update, and update the corresponding table.
         // This may look scary, but every match arm is very simple by its nature.
 
-        let update_order_ids =
-            0..accounts_updated.len();
+        let update_order_ids = 0..accounts_updated.len();
 
         for (update_order_id, (id, upd, hash)) in update_order_ids.zip(accounts_updated.iter()) {
             debug!(
                 "Committing state update for account {} in block {}",
-                **id,
-                *block_number
+                **id, *block_number
             );
             let hash = hash.0.to_vec();
             match upd {
-                AccountUpdate::Create { ref address, ..} => {
+                AccountUpdate::Create { ref address, .. } => {
                     let account_id = i64::from(**id);
                     let block_number = i64::from(*block_number);
                     let address = address.as_bytes().to_vec();
@@ -72,8 +73,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                         .await?;
                 }
                 //  Close tx is removed
-                AccountUpdate::Delete { .. } => {
-                }
+                AccountUpdate::Delete { .. } => {}
                 AccountUpdate::UpdateBalance {
                     balance_update: (token, sub_account_id, ref old_balance, ref new_balance),
                     old_nonce,
@@ -112,7 +112,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                     slot_id,
                     sub_account_id,
                     old_order: old_order_nonce,
-                    new_order: new_order_nonce
+                    new_order: new_order_nonce,
                 } => {
                     let update_order_id = update_order_id as i32;
                     let account_id = i64::from(**id);
@@ -120,15 +120,17 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                     let slot_id = slot_id.0 as i32;
                     let sub_account_id = sub_account_id.0 as i32;
                     let old_order = (
-                        old_order_nonce.0.0 as i64,
+                        old_order_nonce.0 .0 as i64,
                         BigDecimal::from(old_order_nonce.1.to_bigint().unwrap()),
                     );
                     let new_order = (
-                        new_order_nonce.0.0 as i64,
+                        new_order_nonce.0 .0 as i64,
                         BigDecimal::from(new_order_nonce.1.to_bigint().unwrap()),
                     );
-                    let old_order_info = serde_json::to_string(&old_order).expect("value to json string");
-                    let new_order_info = serde_json::to_string(&new_order).expect("value to json string");
+                    let old_order_info =
+                        serde_json::to_string(&old_order).expect("value to json string");
+                    let new_order_info =
+                        serde_json::to_string(&new_order).expect("value to json string");
                     sqlx::query!(
                         r#"
                         INSERT INTO account_order_updates ( update_order_id, account_id, block_number,
@@ -173,20 +175,22 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             }
         }
 
-
         transaction.commit().await?;
 
         metrics::histogram!("sql.chain.state.commit_state_update", start.elapsed());
         Ok(())
     }
 
-
     pub async fn commit_failed_txs(
         &mut self,
         block_number: BlockNumber,
-        failed_txs: Vec<FailedExecutedTx>
+        failed_txs: Vec<FailedExecutedTx>,
     ) -> QueryResult<()> {
-        let mut transaction = self.0.start_transaction().await.expect("Failed initializing a DB transaction");
+        let mut transaction = self
+            .0
+            .start_transaction()
+            .await
+            .expect("Failed initializing a DB transaction");
         transaction
             .chain()
             .block_schema()
@@ -201,7 +205,10 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         Ok(())
     }
 
-    pub async fn apply_account_type_updates(&mut self, account_types: Vec<(AccountId, AccountType, ChainId)>) -> QueryResult<()> {
+    pub async fn apply_account_type_updates(
+        &mut self,
+        account_types: Vec<(AccountId, AccountType, ChainId)>,
+    ) -> QueryResult<()> {
         let mut transaction = self.0.start_transaction().await?;
         for (id, account_type, chain_id) in account_types {
             transaction
@@ -229,8 +236,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             "SELECT * FROM account_balance_updates WHERE block_number = $1",
             i64::from(*block_number)
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_creation_diff = sqlx::query_as!(
             StorageAccountCreation,
@@ -240,8 +247,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             ",
             i64::from(*block_number)
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_change_pubkey_diff = sqlx::query_as!(
             StorageAccountPubkeyUpdate,
@@ -251,16 +258,16 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             ",
             i64::from(*block_number)
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_order_diff = sqlx::query_as!(
             StorageAccountOrderUpdate,
             "SELECT * FROM account_order_updates WHERE block_number = $1 ",
             i64::from(*block_number),
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         // Collect the updates into one list of `StorageAccountDiff`.
         let account_updates: Vec<StorageAccountDiff> = {
@@ -275,11 +282,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                     .into_iter()
                     .map(StorageAccountDiff::from),
             );
-            account_diff.extend(
-                account_order_diff
-                    .into_iter()
-                    .map(StorageAccountDiff::from),
-            );
+            account_diff.extend(account_order_diff.into_iter().map(StorageAccountDiff::from));
             account_diff.extend(
                 account_change_pubkey_diff
                     .into_iter()
@@ -309,8 +312,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                         upd.sub_account_id,
                         upd.new_balance.clone(),
                     )
-                        .execute(transaction.conn())
-                        .await?;
+                    .execute(transaction.conn())
+                    .await?;
 
                     sqlx::query!(
                         r#"
@@ -322,8 +325,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                         upd.new_nonce,
                         upd.account_id,
                     )
-                        .execute(transaction.conn())
-                        .await?;
+                    .execute(transaction.conn())
+                    .await?;
                 }
 
                 StorageAccountDiff::Create(upd) => {
@@ -355,8 +358,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                         upd.new_pubkey_hash,
                         upd.account_id,
                     )
-                        .execute(transaction.conn())
-                        .await?;
+                    .execute(transaction.conn())
+                    .await?;
                 }
                 StorageAccountDiff::ChangeOrderNonce(upd) => {
                     let new_order_nonce: (i64, BigDecimal) =
@@ -389,19 +392,14 @@ impl<'a, 'c> StateSchema<'a, 'c> {
 
     /// Loads the state account map state along
     /// with a block number to which this state applies.
-    pub async fn load_circuit_state(
-        &mut self,
-        block: i64,
-    ) -> QueryResult<(i64, AccountMap)> {
+    pub async fn load_circuit_state(&mut self, block: i64) -> QueryResult<(i64, AccountMap)> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
 
-        let (last_block, mut accounts) =
-            StateSchema(&mut transaction).load_last_state().await?;
+        let (last_block, mut accounts) = StateSchema(&mut transaction).load_last_state().await?;
         debug!(
             "Verified state block: {}, accounts: {:#?}",
-            last_block,
-            accounts
+            last_block, accounts
         );
 
         let state_diff = StateSchema(&mut transaction)
@@ -421,7 +419,6 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         metrics::histogram!("sql.chain.state.load_committed_state", start.elapsed());
         result
     }
-
 
     /// Loads the verified account map state along with a block number
     /// to which this state applies.
@@ -455,8 +452,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                 "SELECT * FROM balances WHERE account_id = ANY($1)",
                 &stored_account_ids
             )
-                .fetch_all(transaction.conn())
-                .await?;
+            .fetch_all(transaction.conn())
+            .await?;
 
             let mut balances_for_id: HashMap<AccountId, Vec<StorageBalance>> = HashMap::new();
 
@@ -471,10 +468,11 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                 "SELECT * FROM account_order_nonces WHERE account_id = ANY($1)",
                 &stored_account_ids
             )
-                .fetch_all(transaction.conn())
-                .await?;
+            .fetch_all(transaction.conn())
+            .await?;
 
-            let mut order_nonces_for_id: HashMap<AccountId, Vec<StorageOrderNonce>> = HashMap::new();
+            let mut order_nonces_for_id: HashMap<AccountId, Vec<StorageOrderNonce>> =
+                HashMap::new();
             for order_nonce in order_nonces.into_iter() {
                 order_nonces_for_id
                     .entry(AccountId(order_nonce.account_id as u32))
@@ -507,9 +505,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
 
-        let (verified_block, mut accounts) = StateSchema(&mut transaction)
-            .load_last_state()
-            .await?;
+        let (verified_block, mut accounts) =
+            StateSchema(&mut transaction).load_last_state().await?;
         debug!(
             "Verified state block: {}, accounts: {:#?}",
             verified_block, accounts
@@ -556,9 +553,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                 .fetch_one(transaction.conn())
                 .await?;
 
-            last_block
-                .max
-                .unwrap_or(0i64)
+            last_block.max.unwrap_or(0i64)
         };
 
         // Determine the order: are we going forward or backwards.
@@ -580,8 +575,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             start_block,
             end_block,
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_creation_diff = sqlx::query_as!(
             StorageAccountCreation,
@@ -589,8 +584,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             start_block,
             end_block,
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_pubkey_diff = sqlx::query_as!(
             StorageAccountPubkeyUpdate,
@@ -598,8 +593,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             start_block,
             end_block,
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         let account_order_diff = sqlx::query_as!(
             StorageAccountOrderUpdate,
@@ -607,8 +602,8 @@ impl<'a, 'c> StateSchema<'a, 'c> {
             start_block,
             end_block,
         )
-            .fetch_all(transaction.conn())
-            .await?;
+        .fetch_all(transaction.conn())
+        .await?;
 
         transaction.commit().await?;
         debug!(
@@ -638,11 +633,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
                     .into_iter()
                     .map(StorageAccountDiff::from),
             );
-            account_diff.extend(
-                account_order_diff
-                    .into_iter()
-                    .map(StorageAccountDiff::from),
-            );
+            account_diff.extend(account_order_diff.into_iter().map(StorageAccountDiff::from));
             let last_block = account_diff
                 .iter()
                 .map(|acc| acc.block_number())
@@ -683,4 +674,3 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         }
     }
 }
-

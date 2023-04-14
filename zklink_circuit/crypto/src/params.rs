@@ -4,8 +4,8 @@ use lazy_static::lazy_static;
 use crate::franklin_crypto::alt_babyjubjub::AltJubjubBn256;
 use crate::franklin_crypto::rescue::bn256::Bn256RescueParams;
 use crate::merkle_tree::rescue_hasher::BabyRescueHasher;
-use zklink_basic_types::{AccountId, TokenId, SubAccountId, ChainId, SlotId, Nonce};
 use num::BigUint;
+use zklink_basic_types::{AccountId, ChainId, Nonce, SlotId, SubAccountId, TokenId};
 
 /// Maximum precision of token amount
 pub const TOKEN_MAX_PRECISION: u64 = 18;
@@ -20,7 +20,8 @@ pub const MAX_ORDER_NUMBER: usize = usize::pow(2, ORDER_SUB_TREE_DEPTH as u32);
 pub const MAX_CHAIN_ID: ChainId = ChainId(u8::pow(2, CHAIN_SUB_TREE_DEPTH as u32) - 1);
 /// Maximum number of tokens allowed => The width of every sub_account token partition.
 pub const MAX_TOKEN_NUMBER: usize = usize::pow(2, BALANCE_SUB_TREE_DEPTH as u32);
-pub const MAX_SUB_ACCOUNT_ID: SubAccountId = SubAccountId(u8::pow(2, SUB_ACCOUNT_TREE_DEPTH as u32) - 1);
+pub const MAX_SUB_ACCOUNT_ID: SubAccountId =
+    SubAccountId(u8::pow(2, SUB_ACCOUNT_TREE_DEPTH as u32) - 1);
 
 /// Depth of the account tree.
 pub const ACCOUNT_TREE_DEPTH: usize = 32;
@@ -60,7 +61,7 @@ pub fn order_tree_depth() -> usize {
 }
 /// balance tree depth.
 pub fn balance_tree_depth() -> usize {
-     SUB_ACCOUNT_TREE_DEPTH + BALANCE_SUB_TREE_DEPTH
+    SUB_ACCOUNT_TREE_DEPTH + BALANCE_SUB_TREE_DEPTH
 }
 /// account tree depth.
 pub fn account_tree_depth() -> usize {
@@ -275,7 +276,8 @@ pub const RECURSIVE_CIRCUIT_VK_TREE_DEPTH: usize = 4;
 /// The number of all ops: NoopOp(0x00)-OrderMatchingOp(0x08)
 pub const ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER: usize = 9;
 /// The number of ops compositions of circuits containing all op's.
-pub const EXEC_ALL_OPS_COMPOSITION_NUMBER: usize = 2usize.pow(ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER as u32) - 1;
+pub const EXEC_ALL_OPS_COMPOSITION_NUMBER: usize =
+    2usize.pow(ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER as u32) - 1;
 
 /// The gas token contract address of multi chains that interacts with zklink protocol.
 pub const GAS_TOKEN_CONTRACT_ADDRESS: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
@@ -291,7 +293,7 @@ pub const USDX_TOKEN_ID_RANGE: u32 = USDX_TOKEN_ID_UPPER_BOUND - USDX_TOKEN_ID_L
 pub const MAX_USD_TOKEN_ID: u32 = USDX_TOKEN_ID_UPPER_BOUND + USDX_TOKEN_ID_RANGE;
 
 /// jump tokens related USD(1-31) and zkl(32)
-pub fn calc_gas_token_by_chain_id(chain_id: ChainId) -> TokenId{
+pub fn calc_gas_token_by_chain_id(chain_id: ChainId) -> TokenId {
     TokenId(MAX_USD_TOKEN_ID + 1 + *chain_id as u32)
 }
 
@@ -357,9 +359,9 @@ pub const GLOBAL_ASSET_ACCOUNT_ADDR: &str = "0xfffffffffffffffffffffffffffffffff
 pub const MAIN_SUB_ACCOUNT_ID: SubAccountId = SubAccountId(0);
 
 /// All fee related values
-pub const FEE_RATIO_BIT_WIDTH:usize = 8;
-pub const FEE_DENOMINATOR:usize = 10usize.pow(FEE_PRECISION as u32);
-pub const FEE_PRECISION:u64 = 4;
+pub const FEE_RATIO_BIT_WIDTH: usize = 8;
+pub const FEE_DENOMINATOR: usize = 10usize.pow(FEE_PRECISION as u32);
+pub const FEE_PRECISION: u64 = 4;
 
 lazy_static! {
     pub static ref JUBJUB_PARAMS: AltJubjubBn256 = AltJubjubBn256::new();

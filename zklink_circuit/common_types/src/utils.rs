@@ -1,12 +1,12 @@
 //! Utilities used in tx module.
 
 // External uses.
-use std::convert::TryInto;
 use num::{BigUint, Zero};
 use serde::{
     de::{value::SeqAccessDeserializer, Error, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
+use std::convert::TryInto;
 
 // Workspace uses.
 use zklink_utils::format_units;
@@ -83,17 +83,17 @@ pub mod h256_as_vec {
     }
 }
 
-
 use std::convert::AsMut;
-use zklink_basic_types::{SlotId, SubAccountId, TokenId, ChainId};
+use zklink_basic_types::{ChainId, SlotId, SubAccountId, TokenId};
 use zklink_crypto::params::{
-    MAX_ORDER_NUMBER, MAX_TOKEN_NUMBER, USDX_TOKEN_ID_RANGE,USD_TOKEN_ID, USDX_TOKEN_ID_LOWER_BOUND, USDX_TOKEN_ID_UPPER_BOUND
+    MAX_ORDER_NUMBER, MAX_TOKEN_NUMBER, USDX_TOKEN_ID_LOWER_BOUND, USDX_TOKEN_ID_RANGE,
+    USDX_TOKEN_ID_UPPER_BOUND, USD_TOKEN_ID,
 };
 
 pub fn clone_into_array<A, T>(slice: &[T]) -> A
-    where
-        A: Default + AsMut<[T]>,
-        T: Clone,
+where
+    A: Default + AsMut<[T]>,
+    T: Clone,
 {
     let mut a = A::default();
     <A as AsMut<[T]>>::as_mut(&mut a).clone_from_slice(slice);
@@ -144,7 +144,10 @@ pub fn ethereum_sign_message_part(
 
 /// Check l1 token(deposited from layer one or withdraw to layer one) and l2 token(token exist in layer two)
 /// Returns the mapping token id in layer two of `l1_token`
-pub fn check_source_token_and_target_token(l2_token: TokenId, l1_token: TokenId) -> (bool, TokenId) {
+pub fn check_source_token_and_target_token(
+    l2_token: TokenId,
+    l1_token: TokenId,
+) -> (bool, TokenId) {
     let mut real_l1_token = l1_token;
     let is_required_tokens = if *l2_token == USD_TOKEN_ID {
         *real_l1_token = *l1_token - USDX_TOKEN_ID_RANGE;
@@ -157,36 +160,36 @@ pub fn check_source_token_and_target_token(l2_token: TokenId, l1_token: TokenId)
     (is_required_tokens, real_l1_token)
 }
 
-pub fn calculate_actual_slot(sub_account_id: SubAccountId, slot_id: SlotId) -> SlotId{
+pub fn calculate_actual_slot(sub_account_id: SubAccountId, slot_id: SlotId) -> SlotId {
     SlotId(*slot_id + *sub_account_id as u32 * MAX_ORDER_NUMBER as u32)
 }
 
-pub fn calculate_actual_token(sub_account_id: SubAccountId, token_id: TokenId) -> TokenId{
+pub fn calculate_actual_token(sub_account_id: SubAccountId, token_id: TokenId) -> TokenId {
     TokenId(*token_id + *sub_account_id as u32 * MAX_TOKEN_NUMBER as u32)
 }
 
-pub fn calculate_actual_token_by_chain(chain_id: ChainId, token_id: TokenId) -> TokenId{
+pub fn calculate_actual_token_by_chain(chain_id: ChainId, token_id: TokenId) -> TokenId {
     let token_id = *token_id - USDX_TOKEN_ID_RANGE;
     TokenId(token_id + *chain_id as u32 * MAX_TOKEN_NUMBER as u32)
 }
 
-pub fn recover_raw_slot(slot_id: SlotId) -> SlotId{
+pub fn recover_raw_slot(slot_id: SlotId) -> SlotId {
     SlotId(*slot_id % MAX_ORDER_NUMBER as u32)
 }
 
-pub fn recover_sub_account_by_slot(slot_id: SlotId) -> SubAccountId{
+pub fn recover_sub_account_by_slot(slot_id: SlotId) -> SubAccountId {
     SubAccountId((*slot_id / MAX_ORDER_NUMBER as u32).try_into().unwrap())
 }
 
-pub fn recover_raw_token(token_id: TokenId) -> TokenId{
+pub fn recover_raw_token(token_id: TokenId) -> TokenId {
     TokenId(*token_id % MAX_TOKEN_NUMBER as u32)
 }
 
-pub fn recover_sub_account_by_token(token_id: TokenId) -> SubAccountId{
+pub fn recover_sub_account_by_token(token_id: TokenId) -> SubAccountId {
     SubAccountId((*token_id / MAX_TOKEN_NUMBER as u32) as u8)
 }
 
 // The following is used for global asset account.
-pub fn recover_chain(token_id: TokenId) -> ChainId{
+pub fn recover_chain(token_id: TokenId) -> ChainId {
     ChainId((*token_id / MAX_TOKEN_NUMBER as u32) as u8)
 }

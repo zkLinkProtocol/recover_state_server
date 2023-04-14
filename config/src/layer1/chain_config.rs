@@ -1,7 +1,7 @@
-use serde::Deserialize;
-use zklink_types::ChainId;
 use crate::envy_load;
 use crate::layer1::ChainType;
+use serde::Deserialize;
+use zklink_types::ChainId;
 
 #[derive(Default, Debug, Deserialize, Clone, PartialEq)]
 pub struct ChainConfig {

@@ -1,20 +1,27 @@
 // External deps
 // Workspace deps
 use zklink_crypto::Fr;
-use zklink_types::{Account, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, H256, Token, ZkLinkAddress};
+use zklink_types::{
+    Account, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, Token, ZkLinkAddress, H256,
+};
 
 // Local deps
-use crate::{error, events_state::RollUpEvents, PRC_REQUEST_FREQUENT_ERROR_SETS, rollup_ops::RollupOpsBlock, storage_interactor::StorageInteractor, tree_state::TreeState};
+use crate::{
+    error, events_state::RollUpEvents, rollup_ops::RollupOpsBlock,
+    storage_interactor::StorageInteractor, tree_state::TreeState, PRC_REQUEST_FREQUENT_ERROR_SETS,
+};
 
+use crate::contract::update_token_events::{EvmTokenEvents, UpdateTokenEvents};
+use crate::contract::ZkLinkContract;
+use recover_state_config::{ChainType, RecoverStateConfig};
 use std::marker::PhantomData;
 use std::time::Duration;
 use tracing::{debug, info, warn};
 use zklink_crypto::convert::FeConvert;
-use zklink_crypto::params::{FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID, USD_TOKEN_ID};
-use recover_state_config::{ChainType, RecoverStateConfig};
+use zklink_crypto::params::{
+    FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID, USD_TOKEN_ID,
+};
 use zklink_storage::ConnectionPool;
-use crate::contract::update_token_events::{EvmTokenEvents, UpdateTokenEvents};
-use crate::contract::ZkLinkContract;
 
 /// Storage state update:
 /// - None - The state is updated completely last time - start from fetching the new events
@@ -102,11 +109,12 @@ where
         let mut storage = connection_pool.access_storage().await.unwrap();
         let tree_state = TreeState::new();
 
-        let last_watched_block_number = storage.recover_schema()
+        let last_watched_block_number = storage
+            .recover_schema()
             .last_watched_block_number(*zklink_contract.layer2_chain_id() as i16, "block")
             .await
             .expect("load last watched block number failed")
-            .map(|num|num.0 as u64)
+            .map(|num| num.0 as u64)
             .unwrap_or(deploy_block_number);
         let events_state = RollUpEvents {
             last_watched_block_number,
@@ -115,9 +123,11 @@ where
 
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
         for config in &config.layer1.chain_configs {
-            let token_events: Box<dyn UpdateTokenEvents> = match config.chain.chain_type{
-                ChainType::EVM => Box::new(EvmTokenEvents::new(config,connection_pool.clone()).await),
-                ChainType::STARKNET => panic!("supported chain type.")
+            let token_events: Box<dyn UpdateTokenEvents> = match config.chain.chain_type {
+                ChainType::EVM => {
+                    Box::new(EvmTokenEvents::new(config, connection_pool.clone()).await)
+                }
+                ChainType::STARKNET => panic!("supported chain type."),
             };
             update_token_events.push((config.chain.chain_id, Some(token_events)))
         }
@@ -138,12 +148,13 @@ where
 
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
-        for (chain_id, updating_event) in self.update_token_events.iter_mut(){
+        for (chain_id, updating_event) in self.update_token_events.iter_mut() {
             let mut updating_event = updating_event.take().unwrap();
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
                 info!("Starting {:?} update token events", chain_id);
-                let cur_block_number = updating_event.block_number()
+                let cur_block_number = updating_event
+                    .block_number()
                     .await
                     .expect("Failed to get current block number");
 
@@ -151,13 +162,20 @@ where
                     if !updating_event.reached_latest_block(cur_block_number) {
                         match updating_event.update_token_events().await {
                             Ok(last_sync_block_number) => {
-                                info!("{:?} updating token events to block number:{}", chain_id, last_sync_block_number);
+                                info!(
+                                    "{:?} updating token events to block number:{}",
+                                    chain_id, last_sync_block_number
+                                );
                             }
                             Err(err) => {
-                                if PRC_REQUEST_FREQUENT_ERROR_SETS.iter().any(|e|err.to_string().contains(e)) {
+                                if PRC_REQUEST_FREQUENT_ERROR_SETS
+                                    .iter()
+                                    .any(|e| err.to_string().contains(e))
+                                {
                                     warn!(
                                         "Rate limit was reached, as reported by {:?} node. \
-                                        Entering the sleep mode(30s)", chain_id
+                                        Entering the sleep mode(30s)",
+                                        chain_id
                                     );
                                     tokio::time::sleep(Duration::from_secs(30)).await;
                                 } else {
@@ -166,7 +184,10 @@ where
                             }
                         }
                     } else {
-                        info!("The update token events of {:?} client has completed!", chain_id);
+                        info!(
+                            "The update token events of {:?} client has completed!",
+                            chain_id
+                        );
                         break;
                     }
                 }
@@ -181,12 +202,14 @@ where
     /// Tree with inserted genesis account will be created.
     /// Used when restore driver is restarted.
     pub async fn set_genesis_state(&mut self, interactor: &mut I, config: RecoverStateConfig) {
-        let full_pubdata_chain_config = config.layer1
+        let full_pubdata_chain_config = config
+            .layer1
             .chain_configs
             .iter()
             .find(|chain| !chain.chain.is_commit_compressed_blocks)
             .unwrap();
-        let genesis_transaction = self.zklink_contract
+        let genesis_transaction = self
+            .zklink_contract
             .get_transaction(full_pubdata_chain_config.contract.genesis_tx_hash)
             .await
             .unwrap()
@@ -199,10 +222,14 @@ where
             .expect("Cant set genesis block number for events state");
         info!("genesis_block_number: {:?}", &last_watched_block_number);
 
-        let genesis_fee_account = self.zklink_contract
+        let genesis_fee_account = self
+            .zklink_contract
             .get_genesis_account(genesis_transaction)
             .expect("Cant get genesis account address");
-        info!("genesis fee account address: {}", genesis_fee_account.address.to_string());
+        info!(
+            "genesis fee account address: {}",
+            genesis_fee_account.address.to_string()
+        );
 
         // Init basic accounts.
         let mut account_map = AccountMap::default();
@@ -214,7 +241,9 @@ where
         };
         account_map.insert(FEE_ACCOUNT_ID, fee_account);
         // black hole address, for global asset account
-        let global_asset_account = Account::default_with_address(&GLOBAL_ASSET_ACCOUNT_ADDR.parse::<ZkLinkAddress>().unwrap());
+        let global_asset_account = Account::default_with_address(
+            &GLOBAL_ASSET_ACCOUNT_ADDR.parse::<ZkLinkAddress>().unwrap(),
+        );
         let db_global_account_update = AccountUpdate::Create {
             address: global_asset_account.address.clone(),
             nonce: global_asset_account.nonce,
@@ -222,17 +251,17 @@ where
         account_map.insert(GLOBAL_ASSET_ACCOUNT_ID, global_asset_account);
 
         // Init state tree
-        let last_serial_ids = self.update_token_events
+        let last_serial_ids = self
+            .update_token_events
             .iter()
-            .map(|(chain_id, _)|(*chain_id, -1))
+            .map(|(chain_id, _)| (*chain_id, -1))
             .collect();
-        let mut tree_state = TreeState::load(
-            BlockNumber(0),
-            last_serial_ids,
-            account_map,
-            AccountId(0),
-        );
-        tree_state.state.register_token(Token{ id: USD_TOKEN_ID.into(), chains: vec![] });
+        let mut tree_state =
+            TreeState::load(BlockNumber(0), last_serial_ids, account_map, AccountId(0));
+        tree_state.state.register_token(Token {
+            id: USD_TOKEN_ID.into(),
+            chains: vec![],
+        });
         let state_root = tree_state.root_hash();
         // add USD token
         info!("Genesis tree root: {:?}", state_root);
@@ -242,20 +271,21 @@ where
         // init basic accounts updates
         let account_updates = vec![
             (AccountId(0), db_fee_account_update, root_hash),
-            (AccountId(1), db_global_account_update, root_hash)
+            (AccountId(1), db_global_account_update, root_hash),
         ];
 
         // Init last watched block number for database
         let chain_id = full_pubdata_chain_config.chain.chain_id;
-        interactor.init_block_events_state(chain_id, last_watched_block_number).await;
-        for chain_config in config.layer1
-            .chain_configs
-            .iter()
-        {
-            interactor.init_token_event_progress(
-                chain_config.chain.chain_id,
-                chain_config.contract.deployment_block.into()
-            ).await;
+        interactor
+            .init_block_events_state(chain_id, last_watched_block_number)
+            .await;
+        for chain_config in config.layer1.chain_configs.iter() {
+            interactor
+                .init_token_event_progress(
+                    chain_config.chain.chain_id,
+                    chain_config.contract.deployment_block.into(),
+                )
+                .await;
         }
         // Init genesis tree state for database
         interactor.save_genesis_tree_state(&account_updates).await;
@@ -268,12 +298,13 @@ where
     pub async fn load_state_from_storage(&mut self, interactor: &mut I) -> bool {
         info!("Loading state from storage");
         let state = interactor.get_storage_state().await;
-        self.rollup_events = interactor.get_block_events_state_from_storage(
-            self.zklink_contract.layer2_chain_id()
-        ).await;
-        let chain_ids = self.update_token_events
+        self.rollup_events = interactor
+            .get_block_events_state_from_storage(self.zklink_contract.layer2_chain_id())
+            .await;
+        let chain_ids = self
+            .update_token_events
             .iter()
-            .map(|(chain_id, _)|*chain_id)
+            .map(|(chain_id, _)| *chain_id)
             .collect();
         let tree_state = interactor.get_tree_state(chain_ids).await;
         self.tree_state = TreeState::load(
@@ -286,20 +317,27 @@ where
         let new_ops_blocks = match state {
             StorageUpdateState::Events => self.load_op_from_events_and_save_op(interactor).await,
             StorageUpdateState::Operations => interactor.get_ops_blocks_from_storage().await,
-            StorageUpdateState::None => vec![]
+            StorageUpdateState::None => vec![],
         };
         info!("Continue Block[{:?}]", self.tree_state.state.block_number);
         self.update_tree_state(interactor, new_ops_blocks).await;
 
-        let total_verified_blocks = self.zklink_contract.get_total_verified_blocks().await.unwrap();
+        let total_verified_blocks = self
+            .zklink_contract
+            .get_total_verified_blocks()
+            .await
+            .unwrap();
         let last_verified_block = self.tree_state.state.block_number;
         info!(
             "State has been loaded, current block[{:?}] root hash: {}",
-            last_verified_block, self.tree_state.root_hash()
+            last_verified_block,
+            self.tree_state.root_hash()
         );
         info!(
             "Processed: {:?}, total verified: {:?}, remaining: {:?}",
-            *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
+            *last_verified_block,
+            total_verified_blocks,
+            total_verified_blocks - *last_verified_block
         );
 
         self.finite_mode && (total_verified_blocks == *last_verified_block)
@@ -329,20 +367,24 @@ where
                         let last_verified_block = self.tree_state.state.block_number;
                         info!(
                             "State updated, current block[{:?}] root hash: {}",
-                            last_verified_block, self.tree_state.root_hash()
+                            last_verified_block,
+                            self.tree_state.root_hash()
                         );
 
-                        let total_verified_blocks = match self.zklink_contract.get_total_verified_blocks().await {
-                            Ok(total_verified_blocks) => total_verified_blocks,
-                            Err(err) => {
-                                error!("Failed to get total_verified_blocks: {}", err);
-                                continue;
-                            }
-                        };
+                        let total_verified_blocks =
+                            match self.zklink_contract.get_total_verified_blocks().await {
+                                Ok(total_verified_blocks) => total_verified_blocks,
+                                Err(err) => {
+                                    error!("Failed to get total_verified_blocks: {}", err);
+                                    continue;
+                                }
+                            };
 
                         info!(
                             "Processed: {:?}, total verified: {:?}, remaining: {:?}",
-                            *last_verified_block, total_verified_blocks, total_verified_blocks - *last_verified_block
+                            *last_verified_block,
+                            total_verified_blocks,
+                            total_verified_blocks - *last_verified_block
                         );
 
                         // If there is an expected root hash, check if current root hash matches the observed
@@ -369,10 +411,10 @@ where
                             break;
                         }
                     }
-                },
+                }
                 Err(err) => {
                     error!("Failed to process block events: {}", err);
-                    continue
+                    continue;
                 }
                 _ => {}
             }
@@ -409,7 +451,10 @@ where
             )
             .await?;
         info!("Updating block events: {:?}", block_events);
-        info!("Updating block events to block_number: {}", last_watched_eth_block_number);
+        info!(
+            "Updating block events to block_number: {}",
+            last_watched_eth_block_number
+        );
 
         Ok(!block_events.is_empty())
     }
@@ -423,10 +468,15 @@ where
     async fn update_tree_state(&mut self, interactor: &mut I, new_ops_blocks: Vec<RollupOpsBlock>) {
         let mut blocks_and_updates = Vec::with_capacity(new_ops_blocks.len());
         for op_block in new_ops_blocks {
-            let (block, acc_updates) = self
-                .tree_state
-                .apply_ops_block(&op_block)
-                .unwrap_or_else(|e|panic!("Failed to applying {:?} tree state: {}", op_block.block_num, e));
+            let (block, acc_updates) =
+                self.tree_state
+                    .apply_ops_block(&op_block)
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "Failed to applying {:?} tree state: {}",
+                            op_block.block_num, e
+                        )
+                    });
             blocks_and_updates.push((block, acc_updates));
         }
         // To ensure collective update
@@ -454,7 +504,8 @@ where
         let mut blocks = Vec::new();
 
         let mut last_event_tx_hash = None;
-        for event in self.rollup_events
+        for event in self
+            .rollup_events
             .get_only_verified_committed_events()
             .into_iter()
         {
@@ -469,12 +520,13 @@ where
 
             let transaction_hash = event.transaction_hash;
             let rollup_blocks = loop {
-                match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, &event).await{
+                match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, &event).await {
                     Ok(res) => break res,
                     Err(e) => {
                         error!(
                             "Failed to get new operation block[{:?}] from events: {}\
-                            \nTry again to new operation blocks", event.block_num, e
+                            \nTry again to new operation blocks",
+                            event.block_num, e
                         );
                         tokio::time::sleep(Duration::from_secs(1)).await
                     }

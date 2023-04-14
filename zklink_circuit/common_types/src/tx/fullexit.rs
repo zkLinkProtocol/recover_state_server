@@ -1,8 +1,8 @@
-use crate::{TokenId, ChainId, AccountId, ZkLinkAddress};
-use serde::{Deserialize, Serialize};
-use zklink_basic_types::{H256, SubAccountId};
-use validator::Validate;
 use crate::tx::validators::*;
+use crate::{AccountId, ChainId, TokenId, ZkLinkAddress};
+use serde::{Deserialize, Serialize};
+use validator::Validate;
+use zklink_basic_types::{SubAccountId, H256};
 
 /// `Mapping` transaction performs a move of funds from one zklink account to another.
 #[derive(Debug, Clone, Serialize, Deserialize, Validate)]
@@ -21,12 +21,11 @@ pub struct FullExit {
     pub l2_source_token: TokenId,
     #[validate(custom = "token_validaotr")]
     pub l1_target_token: TokenId,
-    pub serial_id:u64,
+    pub serial_id: u64,
     pub eth_hash: H256,
 }
 
 impl FullExit {
-
     /// Creates transaction from all the required fields.
     ///
     /// While `signature` field is mandatory for new transactions, it may be `None`

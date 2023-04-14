@@ -1,6 +1,6 @@
 // Built-in deps
-use std::time::Instant;
 use chrono::Utc;
+use std::time::Instant;
 use tracing::info;
 // External imports
 // Workspace imports
@@ -17,18 +17,19 @@ pub struct ProverSchema<'a, 'c>(pub &'a mut StorageProcessor<'c>);
 
 impl<'a, 'c> ProverSchema<'a, 'c> {
     pub async fn get_stored_exit_proofs(&mut self, n: i64) -> QueryResult<Vec<StoredExitProof>> {
-        let exit_proofs = sqlx::query_as!(
-            StoredExitProof,
-            r#"SELECT * FROM exit_proofs LIMIT $1"#,
-            n
-        )
-            .fetch_all(self.0.conn())
-            .await?;
+        let exit_proofs =
+            sqlx::query_as!(StoredExitProof, r#"SELECT * FROM exit_proofs LIMIT $1"#, n)
+                .fetch_all(self.0.conn())
+                .await?;
 
         Ok(exit_proofs)
     }
 
-    pub async fn get_latest_proofs_by_id(&mut self, id: Option<i64>, num: i64) -> QueryResult<Vec<StoredExitProof>> {
+    pub async fn get_latest_proofs_by_id(
+        &mut self,
+        id: Option<i64>,
+        num: i64,
+    ) -> QueryResult<Vec<StoredExitProof>> {
         let exit_proofs = match id {
             Some(id_value) => {
                 sqlx::query_as!(
@@ -37,18 +38,16 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
                     id_value,
                     num
                 )
-                    .fetch_all(self.0.conn())
-                    .await?
+                .fetch_all(self.0.conn())
+                .await?
             }
-            None => {
-                sqlx::query_as!(
-                    StoredExitProof,
-                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL ORDER BY id DESC LIMIT $1"#,
-                    num
-                )
-                    .fetch_all(self.0.conn())
-                    .await?
-            }
+            None => sqlx::query_as!(
+                StoredExitProof,
+                r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL ORDER BY id DESC LIMIT $1"#,
+                num
+            )
+            .fetch_all(self.0.conn())
+            .await?,
         };
 
         Ok(exit_proofs)
@@ -57,7 +56,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     /// Loads the specified proof task by account_id and sub_account_id and token_id.
     pub async fn get_proof_by_exit_info(
         &mut self,
-        exit_info: StoredExitInfo
+        exit_info: StoredExitInfo,
     ) -> QueryResult<Option<StoredExitProof>> {
         let start = Instant::now();
 
@@ -65,11 +64,14 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             StoredExitProof,
             "SELECT * FROM exit_proofs WHERE chain_id=$1 AND account_id=$2 \
             AND sub_account_id=$3 AND l1_target_token=$4 AND l2_source_token=$5",
-            exit_info.chain_id, exit_info.account_id,
-            exit_info.sub_account_id, exit_info.l1_target_token, exit_info.l2_source_token
+            exit_info.chain_id,
+            exit_info.account_id,
+            exit_info.sub_account_id,
+            exit_info.l1_target_token,
+            exit_info.l2_source_token
         )
-            .fetch_optional(self.0.conn())
-            .await?;
+        .fetch_optional(self.0.conn())
+        .await?;
 
         metrics::histogram!("sql.recover_state.get_proof_by_exit_info", start.elapsed());
         Ok(stored_exit_proof)
@@ -80,7 +82,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         &mut self,
         account_id: i64,
         sub_account_id: i16,
-        l2_source_token: i32
+        l2_source_token: i32,
     ) -> QueryResult<Vec<StoredExitProof>> {
         let start = Instant::now();
 
@@ -97,44 +99,53 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Start the task of the specified generating exit proof.
-    async fn start_this_exit_proof_task(
-        &mut self,
-        exit_info: StoredExitInfo
-    ) -> QueryResult<()> {
+    async fn start_this_exit_proof_task(&mut self, exit_info: StoredExitInfo) -> QueryResult<()> {
         let start = Instant::now();
 
         let created_at: chrono::DateTime<chrono::Local> = chrono::Local::now();
         sqlx::query!(
             "UPDATE exit_proofs SET created_at=$6 WHERE chain_id=$1 AND account_id=$2 \
             AND sub_account_id=$3 AND l1_target_token=$4 AND l2_source_token=$5",
-            exit_info.chain_id, exit_info.account_id,
-            exit_info.sub_account_id, exit_info.l1_target_token, exit_info.l2_source_token,
+            exit_info.chain_id,
+            exit_info.account_id,
+            exit_info.sub_account_id,
+            exit_info.l1_target_token,
+            exit_info.l2_source_token,
             created_at
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
 
-        metrics::histogram!("sql.recover_state.start_this_exit_proof_task", start.elapsed());
+        metrics::histogram!(
+            "sql.recover_state.start_this_exit_proof_task",
+            start.elapsed()
+        );
         Ok(())
     }
 
     /// Cancel the task of the specified running exit proof.
     pub async fn cancel_this_exit_proof_task(
         &mut self,
-        exit_info: StoredExitInfo
+        exit_info: StoredExitInfo,
     ) -> QueryResult<()> {
         let start = Instant::now();
 
         sqlx::query!(
             "UPDATE exit_proofs SET created_at=NULL WHERE chain_id=$1 AND account_id=$2 \
             AND sub_account_id=$3 AND l1_target_token=$4 AND l2_source_token=$5",
-            exit_info.chain_id, exit_info.account_id,
-            exit_info.sub_account_id, exit_info.l1_target_token, exit_info.l2_source_token,
+            exit_info.chain_id,
+            exit_info.account_id,
+            exit_info.sub_account_id,
+            exit_info.l1_target_token,
+            exit_info.l2_source_token,
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
 
-        metrics::histogram!("sql.recover_state.cancel_this_exit_proof_task", start.elapsed());
+        metrics::histogram!(
+            "sql.recover_state.cancel_this_exit_proof_task",
+            start.elapsed()
+        );
         Ok(())
     }
 
@@ -147,8 +158,8 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             StoredExitProof,
             "SELECT * FROM exit_proofs WHERE created_at IS NULL LIMIT 1",
         )
-            .fetch_optional(transaction.conn())
-            .await?;
+        .fetch_optional(transaction.conn())
+        .await?;
         if let Some(exit_proof) = &stored_exit_proof {
             ProverSchema(&mut transaction)
                 .start_this_exit_proof_task(exit_proof.into())
@@ -163,7 +174,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     /// Query how many tasks are left until the specified task starts.
     pub async fn get_remaining_tasks_before_start(
         &mut self,
-        task: StoredExitInfo
+        task: StoredExitInfo,
     ) -> QueryResult<i64> {
         let start = Instant::now();
 
@@ -171,12 +182,15 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         let target_task_id = sqlx::query!(
             "SELECT id from exit_proofs WHERE chain_id=$1 AND account_id=$2 \
             AND sub_account_id=$3 AND l1_target_token=$4 AND l2_source_token=$5",
-            task.chain_id, task.account_id,
-            task.sub_account_id, task.l1_target_token, task.l2_source_token,
+            task.chain_id,
+            task.account_id,
+            task.sub_account_id,
+            task.l1_target_token,
+            task.l2_source_token,
         )
-            .fetch_one(self.0.conn())
-            .await?
-            .id;
+        .fetch_one(self.0.conn())
+        .await?
+        .id;
 
         // Query the number of tasks that were created before the target task and were not completed.
         let remaining_tasks = sqlx::query!(
@@ -188,7 +202,10 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             .count
             .unwrap_or_default();
 
-        metrics::histogram!("sql.recover_state.get_remaining_tasks_before_start", start.elapsed());
+        metrics::histogram!(
+            "sql.recover_state.get_remaining_tasks_before_start",
+            start.elapsed()
+        );
         Ok(remaining_tasks)
     }
 
@@ -200,10 +217,10 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         let count = sqlx::query!(
             "SELECT count(*) FROM exit_proofs WHERE created_at IS NOT NULL AND finished_at IS NULL",
         )
-            .fetch_one(self.0.conn())
-            .await?
-            .count
-            .unwrap_or_default();
+        .fetch_one(self.0.conn())
+        .await?
+        .count
+        .unwrap_or_default();
 
         metrics::histogram!("sql.recover_state.count_running_tasks", start.elapsed());
         Ok(count)
@@ -225,7 +242,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Stores exit proof that generated by exit task.
-    pub async fn store_exit_proof(&mut self, proof: StoredExitProof) -> QueryResult<()>{
+    pub async fn store_exit_proof(&mut self, proof: StoredExitProof) -> QueryResult<()> {
         let start = Instant::now();
 
         let finished_at = Utc::now();
@@ -245,7 +262,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Inserts task that generated exit proof.
-    pub async fn insert_exit_task(&mut self, task: StoredExitInfo) -> QueryResult<()>{
+    pub async fn insert_exit_task(&mut self, task: StoredExitInfo) -> QueryResult<()> {
         info!("Insert new exit task: {}", task);
         let start = Instant::now();
 
@@ -263,10 +280,14 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(())
     }
 
-    pub async fn insert_batch_exit_tasks(&mut self, batch_exit_tasks: Vec<StoredExitInfo>) -> QueryResult<()> {
+    pub async fn insert_batch_exit_tasks(
+        &mut self,
+        batch_exit_tasks: Vec<StoredExitInfo>,
+    ) -> QueryResult<()> {
         let mut transaction = self.0.start_transaction().await?;
         for exit_task in batch_exit_tasks {
-            transaction.prover_schema()
+            transaction
+                .prover_schema()
                 .insert_exit_task(exit_task)
                 .await?;
         }

@@ -1,27 +1,27 @@
-use std::collections::HashMap;
 use bigdecimal::num_bigint::{BigUint, ToBigInt};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use zklink_storage::chain::account::records::StorageBalance;
 use zklink_types::{ChainId, Deposit, SubAccountId, TokenId, ZkLinkAddress};
-use zklink_utils::{BigUintSerdeWrapper, BigUintSerdeAsRadix10Str};
-use serde::{Deserialize, Serialize};
+use zklink_utils::{BigUintSerdeAsRadix10Str, BigUintSerdeWrapper};
 
 pub type SerialId = u64;
 pub type SubAccountBalances = HashMap<SubAccountId, HashMap<TokenId, BigUintSerdeWrapper>>;
 
-#[derive(Debug, Serialize, Deserialize,Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UnprocessedPriorityOp {
     pub(crate) serial_id: SerialId,
-    pub(crate) pub_data: PublicData
+    pub(crate) pub_data: PublicData,
 }
 
-#[derive(Debug, Serialize, Deserialize,Clone)]
-pub enum PublicData{
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub enum PublicData {
     Deposit(DepositData),
-    FullExit
+    FullExit,
 }
 
-#[derive(Debug, Serialize, Deserialize,Clone)]
-pub struct DepositData{
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct DepositData {
     chain_id: ChainId,
     sub_account_id: SubAccountId,
     l2_target_token_id: TokenId,
@@ -33,7 +33,7 @@ pub struct DepositData{
 
 impl From<Deposit> for DepositData {
     fn from(value: Deposit) -> Self {
-        Self{
+        Self {
             chain_id: value.from_chain_id,
             sub_account_id: value.sub_account_id,
             l2_target_token_id: value.l2_target_token,

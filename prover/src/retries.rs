@@ -1,30 +1,32 @@
-use std::future::Future;
-use std::time::Duration;
 use anyhow::format_err;
 use backoff::future::retry_notify;
+use std::future::Future;
+use std::time::Duration;
 use tracing::warn;
 
 /// Repeats the function execution on the exponential backoff principle.
 pub async fn with_retries<I, E, Fn, Fut>(operation: Fn) -> anyhow::Result<I>
-    where
-        Fn: FnMut() -> Fut,
-        Fut: Future<Output = Result<I, backoff::Error<E>>>,
-        E: std::fmt::Display,
+where
+    Fn: FnMut() -> Fut,
+    Fut: Future<Output = Result<I, backoff::Error<E>>>,
+    E: std::fmt::Display,
 {
     let notify = |err, next_after: Duration| {
         let duration_secs = next_after.as_millis() as f32 / 1000.0f32;
         warn!(
             "Failed to reach server err: <{}>, retrying after: {:.1}s",
-            err,
-            duration_secs,
+            err, duration_secs,
         )
     };
 
     retry_notify(get_backoff(), operation, notify)
         .await
-        .map_err(|e|
-            format_err!("Process exit task, for the max elapsed time of the backoff: {}",e)
-        )
+        .map_err(|e| {
+            format_err!(
+                "Process exit task, for the max elapsed time of the backoff: {}",
+                e
+            )
+        })
 }
 
 /// Returns default prover options for backoff configuration.

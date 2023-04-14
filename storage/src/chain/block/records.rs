@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 use sqlx::FromRow;
 // Workspace imports
-use zklink_utils::{BytesToHexSerde, OptionBytesToHexSerde, SyncBlockPrefix, ZeroxPrefix};
 use crate::chain::operations::records::StoredOnChainTx;
+use zklink_utils::{BytesToHexSerde, OptionBytesToHexSerde, SyncBlockPrefix, ZeroxPrefix};
 // Local imports
 
 #[derive(Debug, FromRow)]
@@ -72,7 +72,6 @@ pub struct NewZkLinkTx {
     pub tx_data: Value,
 }
 
-
 impl BlockDetails {
     /// Checks if block is finalized, meaning that
     /// both Verify operation is performed for it, and this
@@ -83,7 +82,6 @@ impl BlockDetails {
         self.verified_at.is_some() && self.verify_tx_hash.is_some()
     }
 }
-
 
 #[derive(Clone, Debug)]
 pub struct StorageBlockOnChainState {

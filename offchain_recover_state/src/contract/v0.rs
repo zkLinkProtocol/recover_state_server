@@ -1,8 +1,8 @@
+use super::version::ZkLinkContractVersion;
+use crate::rollup_ops::RollupOpsBlock;
 use ethers::abi::{decode, ParamType, Token};
 use tracing::info;
 use zklink_types::{AccountId, BlockNumber, H256};
-use super::version::ZkLinkContractVersion;
-use crate::rollup_ops::RollupOpsBlock;
 
 fn decode_commitment_parameters(input_data: Vec<u8>) -> anyhow::Result<Vec<Token>> {
     let stored_block = ParamType::Tuple(vec![
@@ -18,14 +18,12 @@ fn decode_commitment_parameters(input_data: Vec<u8>) -> anyhow::Result<Vec<Token
         ParamType::FixedBytes(32), // bytes32 encoded_root,
         ParamType::Bytes,          // bytes calldata _publicData,
         ParamType::Uint(256),      // uint256 _timestamp,
-        ParamType::Array(Box::new(
-            ParamType::Tuple(vec![
-                ParamType::Bytes,    // bytes eht_witness
-                ParamType::Uint(32), //uint32 public_data_offset
-            ])
-        )),
+        ParamType::Array(Box::new(ParamType::Tuple(vec![
+            ParamType::Bytes,    // bytes eht_witness
+            ParamType::Uint(32), //uint32 public_data_offset
+        ]))),
         ParamType::Uint(32), // uint32 _blockNumber,
-        ParamType::Uint(32) // uint32 _feeAccount,
+        ParamType::Uint(32), // uint32 _feeAccount,
     ]);
     decode(
         vec![stored_block, ParamType::Array(Box::new(commit_operation))].as_slice(),
@@ -59,21 +57,20 @@ pub(super) fn rollup_ops_blocks_from_bytes_inner(
     let decoded_commitment_parameters = decode_commitment_parameters(data)?;
     assert_eq!(decoded_commitment_parameters.len(), 2);
 
-    let mut previous_block_root_hash =
-        if let Token::Tuple(prev_stored) = &decoded_commitment_parameters[0] {
-            if let Token::FixedBytes(root_hash) =
-                &prev_stored[previous_block_root_hash_argument_id]
-            {
-                H256::from_slice(root_hash)
-            } else {
-                panic!("can't parse root hash param: {:#?}", prev_stored);
-            }
+    let mut previous_block_root_hash = if let Token::Tuple(prev_stored) =
+        &decoded_commitment_parameters[0]
+    {
+        if let Token::FixedBytes(root_hash) = &prev_stored[previous_block_root_hash_argument_id] {
+            H256::from_slice(root_hash)
         } else {
-            panic!(
-                "can't parse root hash param: {:#?}",
-                decoded_commitment_parameters
-            );
-        };
+            panic!("can't parse root hash param: {:#?}", prev_stored);
+        }
+    } else {
+        panic!(
+            "can't parse root hash param: {:#?}",
+            decoded_commitment_parameters
+        );
+    };
 
     // Destruct deserialized parts of transaction input data for getting operations
     // Input data consists of stored block and operations
@@ -108,23 +105,21 @@ pub(super) fn rollup_ops_blocks_from_bytes_inner(
 
                     previous_block_root_hash = H256::from_slice(root_hash);
                 } else {
-                    return Err(
-                        std::io::Error::new(
-                            std::io::ErrorKind::NotFound,
-                            "can't parse operation parameters"
-                        ).into()
-                    );
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::NotFound,
+                        "can't parse operation parameters",
+                    )
+                    .into());
                 }
             }
         }
         Ok(blocks)
     } else {
-        Err(
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "can't parse commitment parameters"
-            ).into()
+        Err(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "can't parse commitment parameters",
         )
+        .into())
     }
 }
 

@@ -1,6 +1,6 @@
 // Built-in deps
-use std::{fmt, time::Instant};
 use std::time::Duration;
+use std::{fmt, time::Instant};
 // External imports
 use async_trait::async_trait;
 use deadpool::managed::{Manager, PoolConfig, RecycleResult, Timeouts};
@@ -95,10 +95,11 @@ impl ConnectionPool {
 
     pub async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
         let start = Instant::now();
-        let connection = self.pool
+        let connection = self
+            .pool
             .get()
             .await
-            .map_err(|e|anyhow::format_err!("Failed to get connection to db: {}", e))?;
+            .map_err(|e| anyhow::format_err!("Failed to get connection to db: {}", e))?;
         metrics::histogram!("sql.connection_acquire", start.elapsed());
 
         Ok(StorageProcessor::from_pool(connection))
@@ -118,10 +119,10 @@ impl ConnectionPool {
                     warn!(
                         "Failed to get connection to db: {}. \
                         Backing off for 1 second, retry_count: {:?}",
-                        e ,retry_count
+                        e, retry_count
                     );
                     retry_count += 1
-                },
+                }
             }
 
             // Backing off for one second if facing an error

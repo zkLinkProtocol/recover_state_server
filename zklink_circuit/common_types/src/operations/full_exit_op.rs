@@ -1,13 +1,16 @@
-use crate::{FullExit, AccountId, TokenId, ZkLinkAddress};
+use crate::operations::GetPublicData;
+use crate::utils::check_source_token_and_target_token;
+use crate::{AccountId, FullExit, TokenId, ZkLinkAddress};
 use anyhow::{ensure, format_err};
 use num::{BigUint, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use zklink_basic_types::{ChainId, SubAccountId};
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, CHUNK_BYTES, ETH_ADDRESS_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, CHUNK_BYTES,
+    ETH_ADDRESS_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
 use zklink_utils::BigUintSerdeAsRadix10Str;
-use crate::operations::GetPublicData;
-use crate::utils::check_source_token_and_target_token;
 
 /// FullExit operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,10 +19,10 @@ pub struct FullExitOp {
     /// None if withdraw was unsuccessful
     #[serde(with = "BigUintSerdeAsRadix10Str")]
     pub exit_amount: BigUint,
-    pub l1_target_token_after_mapping: TokenId
+    pub l1_target_token_after_mapping: TokenId,
 }
 
-impl GetPublicData for FullExitOp{
+impl GetPublicData for FullExitOp {
     fn get_public_data(&self) -> Vec<u8> {
         let withdraw_amount = self.exit_amount.clone();
         let mut data = Vec::new();
@@ -30,12 +33,7 @@ impl GetPublicData for FullExitOp{
         data.extend_from_slice(self.tx.exit_address.as_bytes());
         data.extend_from_slice(&(*self.tx.l1_target_token as u16).to_be_bytes());
         data.extend_from_slice(&(*self.tx.l2_source_token as u16).to_be_bytes());
-        data.extend_from_slice(
-            &withdraw_amount
-                .to_u128()
-                .unwrap()
-                .to_be_bytes()
-        );
+        data.extend_from_slice(&withdraw_amount.to_u128().unwrap().to_be_bytes());
         data.resize(Self::CHUNKS * CHUNK_BYTES, 0x00);
         data
     }
@@ -51,12 +49,7 @@ impl FullExitOp {
         data.extend_from_slice(&self.tx.to_chain_id.to_be_bytes());
         data.extend_from_slice(self.tx.exit_address.as_bytes());
         data.extend_from_slice(&(*self.tx.l2_source_token as u16).to_be_bytes());
-        data.extend_from_slice(
-            &withdraw_amount
-                .to_u128()
-                .unwrap()
-                .to_be_bytes()
-        );
+        data.extend_from_slice(&withdraw_amount.to_u128().unwrap().to_be_bytes());
         data
     }
 
@@ -79,9 +72,11 @@ impl FullExitOp {
         let account_id = u32::from_bytes(&bytes[account_id_offset..sub_account_id_offset])
             .ok_or_else(|| format_err!("Cant get account id from full exit pubdata"))?;
         let sub_account_id = bytes[sub_account_id_offset];
-        let exit_address = ZkLinkAddress::from_slice(&bytes[exit_address_offset..l1_target_token_offset])?;
-        let l1_target_token = u16::from_bytes(&bytes[l1_target_token_offset..l2_source_token_offset])
-            .ok_or_else(|| format_err!("Cant get token id from full exit pubdata"))?;
+        let exit_address =
+            ZkLinkAddress::from_slice(&bytes[exit_address_offset..l1_target_token_offset])?;
+        let l1_target_token =
+            u16::from_bytes(&bytes[l1_target_token_offset..l2_source_token_offset])
+                .ok_or_else(|| format_err!("Cant get token id from full exit pubdata"))?;
         let l2_source_token = u16::from_bytes(&bytes[l2_source_token_offset..amount_offset])
             .ok_or_else(|| format_err!("Cant get real token id from full exit pubdata"))?;
         let amount = BigUint::from(
@@ -92,7 +87,10 @@ impl FullExitOp {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             check_source_token_and_target_token(l2_source_token.into(), l1_target_token.into());
-        ensure!(is_required, "Source token or target token is mismatching in FullExit pubdata");
+        ensure!(
+            is_required,
+            "Source token or target token is mismatching in FullExit pubdata"
+        );
 
         Ok(Self {
             tx: FullExit {
@@ -106,7 +104,7 @@ impl FullExitOp {
                 eth_hash: Default::default(),
             },
             exit_amount: amount,
-            l1_target_token_after_mapping
+            l1_target_token_after_mapping,
         })
     }
 

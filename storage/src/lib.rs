@@ -83,9 +83,9 @@ use crate::connection::{holder::ConnectionHolder, PooledConnection};
 pub mod chain;
 pub mod connection;
 pub mod diff;
-pub mod tokens;
-pub mod recover_state;
 pub mod prover;
+pub mod recover_state;
+pub mod tokens;
 
 pub use crate::connection::ConnectionPool;
 pub type QueryResult<T, E = anyhow::Error> = Result<T, E>;
@@ -123,7 +123,8 @@ impl From<ActionType> for StorageActionType {
 impl<'a> StorageProcessor<'a> {
     /// Creates a `StorageProcessor` using an unique sole connection to the database.
     pub async fn mock() -> QueryResult<StorageProcessor<'a>> {
-        let connection = PgConnection::connect("postgres://postgres:postgres@localhost/plasma").await?;
+        let connection =
+            PgConnection::connect("postgres://postgres:postgres@localhost/plasma").await?;
         Ok(StorageProcessor {
             conn: ConnectionHolder::Direct(connection),
             in_transaction: false,
@@ -139,9 +140,7 @@ impl<'a> StorageProcessor<'a> {
         })
     }
 
-    pub async fn start_transaction(
-        &mut self,
-    ) -> Result<StorageProcessor<'_>, anyhow::Error> {
+    pub async fn start_transaction(&mut self) -> Result<StorageProcessor<'_>, anyhow::Error> {
         let transaction = self.conn().begin().await?;
 
         let mut processor = StorageProcessor::from_transaction(transaction);
@@ -208,6 +207,3 @@ impl<'a> StorageProcessor<'a> {
         recover_state::RecoverSchema(self)
     }
 }
-
-
-

@@ -1,16 +1,18 @@
-use num::{BigUint, Zero, ToPrimitive};
-use validator::Validate;
+use crate::helpers::{pack_fee_amount, pack_token_amount};
+use crate::tx::validators::*;
+use crate::tx::TxSignature;
+use crate::PubKeyHash;
+use num::{BigUint, ToPrimitive, Zero};
 use serde::{Deserialize, Serialize};
+use validator::Validate;
+use zklink_basic_types::{AccountId, Nonce, SlotId, SubAccountId, TokenId};
+use zklink_crypto::franklin_crypto::eddsa::PrivateKey;
+use zklink_crypto::params::{
+    ORDERS_BYTES, PRICE_BIT_WIDTH, SIGNED_ORDER_BIT_WIDTH, SIGNED_ORDER_MATCHING_BIT_WIDTH,
+};
+use zklink_crypto::primitives::rescue_hash_order;
 use zklink_crypto::Engine;
 use zklink_utils::{format_units, BigUintSerdeAsRadix10Str};
-use zklink_basic_types::{AccountId, Nonce, SlotId, TokenId, SubAccountId};
-use zklink_crypto::franklin_crypto::eddsa::PrivateKey;
-use zklink_crypto::params::{PRICE_BIT_WIDTH, SIGNED_ORDER_MATCHING_BIT_WIDTH, SIGNED_ORDER_BIT_WIDTH, ORDERS_BYTES};
-use zklink_crypto::primitives::rescue_hash_order;
-use crate::helpers::{pack_fee_amount, pack_token_amount};
-use crate::PubKeyHash;
-use crate::tx::TxSignature;
-use crate::tx::validators::*;
 
 /// `OrderMatching` transaction was used to match two orders.
 #[derive(Default, Debug, Clone, Serialize, Deserialize, Validate)]
@@ -121,7 +123,7 @@ impl Order {
         fee_ratio1: u8,
         fee_ratio2: u8,
         signature: Option<TxSignature>,
-    ) -> Self{
+    ) -> Self {
         Self {
             account_id,
             sub_account_id,
@@ -131,7 +133,7 @@ impl Order {
             quote_token_id,
             amount,
             price,
-            is_sell: if is_sell{ 1u8 } else { 0u8 },
+            is_sell: if is_sell { 1u8 } else { 0u8 },
             fee_ratio1,
             fee_ratio2,
             signature: signature.unwrap_or_default(),
@@ -188,7 +190,7 @@ impl Order {
             price = self.price,
             nonce = self.nonce
         )
-            .as_str();
+        .as_str();
         message
     }
 
@@ -207,11 +209,7 @@ impl Order {
         fee_ratio2: u8,
         private_key: &PrivateKey<Engine>,
     ) -> Result<Self, anyhow::Error> {
-        let is_sell = if is_sell{
-            1u8
-        } else {
-            0u8
-        };
+        let is_sell = if is_sell { 1u8 } else { 0u8 };
         let mut tx = Self {
             account_id,
             sub_account_id,
@@ -308,7 +306,7 @@ impl OrderMatching {
         out.push(Self::TX_TYPE);
         out.extend_from_slice(&self.account_id.to_be_bytes());
         out.extend_from_slice(&self.sub_account_id.to_be_bytes());
-        out.extend(rescue_hash_order(&orders_bytes) );
+        out.extend(rescue_hash_order(&orders_bytes));
         out.extend_from_slice(&(*self.fee_token as u16).to_be_bytes());
         out.extend_from_slice(&pack_fee_amount(&self.fee));
         out.extend_from_slice(&self.expect_base_amount.to_u128().unwrap().to_be_bytes());
@@ -318,10 +316,8 @@ impl OrderMatching {
 
     pub fn check_correctness(&self) -> bool {
         match self.validate() {
-            Ok(_) => {
-                self.maker.check_correctness() && self.taker.check_correctness()
-            }
-            Err(_) => false
+            Ok(_) => self.maker.check_correctness() && self.taker.check_correctness(),
+            Err(_) => false,
         }
     }
 

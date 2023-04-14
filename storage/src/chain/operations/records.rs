@@ -1,10 +1,10 @@
 // External imports
 use chrono::prelude::*;
 use num::bigint::ToBigInt;
-use serde_json::value::Value;
-use sqlx::FromRow;
 use serde::{Deserialize, Serialize};
+use serde_json::value::Value;
 use sqlx::types::BigDecimal;
+use sqlx::FromRow;
 use zklink_types::{ChainId, Deposit, FullExit, PriorityDeposit, PriorityFullExit, ZkLinkTx};
 // Local imports
 use crate::StorageActionType;
@@ -22,11 +22,7 @@ pub enum AggType {
     ExecuteBlocks,
 }
 
-
-
-#[derive(Serialize, Deserialize)]
-#[derive(Debug, Clone, FromRow)]
-#[derive(Default)]
+#[derive(Serialize, Deserialize, Debug, Clone, FromRow, Default)]
 pub struct StoredSubmitTransaction {
     pub id: i64,
     pub chain_id: i16,
@@ -48,7 +44,7 @@ pub struct StoredSubmitTransaction {
     pub operation: Option<Value>,
 }
 
-impl From<&PriorityDeposit> for StoredSubmitTransaction{
+impl From<&PriorityDeposit> for StoredSubmitTransaction {
     fn from(deposit: &PriorityDeposit) -> Self {
         let tx = Deposit::new(
             ChainId(deposit.chain_id),
@@ -67,7 +63,7 @@ impl From<&PriorityDeposit> for StoredSubmitTransaction{
         let tx_value = serde_json::to_value(zklink_tx).unwrap();
         let created_at = Utc::now();
 
-        StoredSubmitTransaction{
+        StoredSubmitTransaction {
             chain_id: deposit.chain_id as i16,
             op_type: Deposit::TX_TYPE as i16,
             from_account: deposit.from.as_bytes().to_vec(),
@@ -82,7 +78,7 @@ impl From<&PriorityDeposit> for StoredSubmitTransaction{
     }
 }
 
-impl From<&PriorityFullExit> for StoredSubmitTransaction{
+impl From<&PriorityFullExit> for StoredSubmitTransaction {
     fn from(full_exit: &PriorityFullExit) -> Self {
         let tx = FullExit::new(
             full_exit.chain_id,
@@ -99,7 +95,7 @@ impl From<&PriorityFullExit> for StoredSubmitTransaction{
         let tx_value = serde_json::to_value(zklink_tx).unwrap();
         let created_at = Utc::now();
 
-        StoredSubmitTransaction{
+        StoredSubmitTransaction {
             chain_id: full_exit.chain_id as i16,
             op_type: FullExit::TX_TYPE as i16,
             from_account: full_exit.initiator.as_bytes().to_vec(),
@@ -112,8 +108,6 @@ impl From<&PriorityFullExit> for StoredSubmitTransaction{
         }
     }
 }
-
-
 
 #[derive(Debug, Clone, FromRow)]
 pub struct StoredOperation {
@@ -138,8 +132,7 @@ pub struct StoredExecutedPriorityOperation {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug, Clone, FromRow)]
+#[derive(Serialize, Deserialize, Debug, Clone, FromRow)]
 pub struct StoredExecutedTransaction {
     pub block_number: i64,
     pub block_index: i32,
@@ -220,11 +213,10 @@ pub struct StoredAggregatedOperationConfirmed {
     pub confirmed: bool,
 }
 
-
 #[derive(Debug, Clone, FromRow)]
 pub struct StoredConfirmMask {
     pub id: bool,
-    pub mask: Vec<bool>
+    pub mask: Vec<bool>,
 }
 
 #[derive(Debug, FromRow)]
@@ -235,7 +227,7 @@ pub struct StorageTxHash {
 #[derive(Debug, FromRow)]
 pub struct StorageTxHashData {
     pub tx_hash: Vec<u8>,
-    pub tx_data: Value
+    pub tx_data: Value,
 }
 
 #[derive(Debug, Clone, FromRow)]

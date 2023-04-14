@@ -1,31 +1,29 @@
 //! zklink network L2 transactions.
 
-mod zklink_tx;
 mod change_pubkey;
 mod forced_exit;
+mod order_matching;
 mod primitives;
 mod transfer;
 mod withdraw;
-mod order_matching;
+mod zklink_tx;
 
-#[cfg(test)]
-mod tests;
 mod deposit;
 mod fullexit;
+#[cfg(test)]
+mod tests;
 pub mod validators;
 
 // Re-export transactions.
 #[doc(hidden)]
 pub use self::{
-    change_pubkey::{
-        ChangePubKey, CREATE2Data, EthECDSAData, ChangePubKeyAuthData,
-    },
+    change_pubkey::{CREATE2Data, ChangePubKey, ChangePubKeyAuthData, EthECDSAData},
+    deposit::Deposit,
     forced_exit::ForcedExit,
+    fullexit::FullExit,
+    order_matching::{Order, OrderMatching},
     transfer::Transfer,
     withdraw::Withdraw,
-    deposit::Deposit,
-    fullexit::FullExit,
-    order_matching::{OrderMatching, Order},
     zklink_tx::{EthSignData, ZkLinkTx, ZkLinkTxType},
 };
 
@@ -34,7 +32,7 @@ pub use self::primitives::{
     eip1271_signature::EIP1271Signature, layer1_signature::TxLayer1Signature,
     packed_eth_signature::PackedEthSignature, packed_public_key::PackedPublicKey,
     packed_signature::PackedSignature, signature::TxSignature,
-    tx_hash::TxHash, stark_ecdsa_signature::StarkECDSASignature,
+    stark_ecdsa_signature::StarkECDSASignature, tx_hash::TxHash,
 };
 
 pub(crate) static TRANSACTION_SIGNATURE_ERROR: &str = "\

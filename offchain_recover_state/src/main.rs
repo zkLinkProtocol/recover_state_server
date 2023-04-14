@@ -1,19 +1,22 @@
 use dotenvy::dotenv;
+use offchain_recover_state::data_restore_driver::RecoverStateDriver;
+use offchain_recover_state::log::init;
+use offchain_recover_state::{
+    database_storage_interactor::DatabaseStorageInteractor, get_fully_on_chain_zklink_contract,
+    END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
+};
+use recover_state_config::RecoverStateConfig;
 use structopt::StructOpt;
 use tracing::info;
 use zklink_crypto::convert::FeConvert;
 use zklink_storage::ConnectionPool;
-use offchain_recover_state::{
-    database_storage_interactor::DatabaseStorageInteractor,
-    END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
-    get_fully_on_chain_zklink_contract,
-};
-use offchain_recover_state::data_restore_driver::RecoverStateDriver;
-use offchain_recover_state::log::init;
-use recover_state_config::RecoverStateConfig;
 
 #[derive(StructOpt)]
-#[structopt(name = "Recover state driver", author = "N Labs", rename_all = "snake_case")]
+#[structopt(
+    name = "Recover state driver",
+    author = "N Labs",
+    rename_all = "snake_case"
+)]
 struct Opt {
     /// Restores data with provided genesis (zero) block
     #[structopt(long)]
@@ -41,8 +44,9 @@ async fn main() {
     let config = RecoverStateConfig::from_env();
 
     let connection_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
-    let final_hash = opt.final_hash
-        .filter(|_|opt.finite)
+    let final_hash = opt
+        .final_hash
+        .filter(|_| opt.finite)
         .map(|value| FeConvert::from_hex(&value).expect("Can't parse the final hash"));
 
     info!("Restoring ZkLink state from the contract");
@@ -57,7 +61,8 @@ async fn main() {
         final_hash,
         deploy_block_number,
         connection_pool.clone(),
-    ).await;
+    )
+    .await;
 
     // Init storage
     let storage = connection_pool.access_storage().await.unwrap();

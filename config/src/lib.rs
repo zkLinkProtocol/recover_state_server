@@ -1,25 +1,27 @@
 pub use crate::{
-    database::DBConfig, runtime::RuntimeConfig, api::ApiConfig,
-    layer1::{ChainType, MultiChainConfigs, ClientConfig, ContractConfig, Layer1Config}
+    api::ApiConfig,
+    database::DBConfig,
+    layer1::{ChainType, ClientConfig, ContractConfig, Layer1Config, MultiChainConfigs},
+    runtime::RuntimeConfig,
 };
 
-mod runtime;
-mod database;
-mod layer1;
 mod api;
+mod database;
 mod evn_tools;
+mod layer1;
+mod runtime;
 
 #[derive(Debug, Clone)]
-pub struct RecoverStateConfig{
+pub struct RecoverStateConfig {
     pub runtime: RuntimeConfig,
     pub api: ApiConfig,
     pub db: DBConfig,
-    pub layer1: MultiChainConfigs
+    pub layer1: MultiChainConfigs,
 }
 
 impl RecoverStateConfig {
-    pub fn from_env() -> Self{
-        Self{
+    pub fn from_env() -> Self {
+        Self {
             runtime: RuntimeConfig::from_env(),
             api: ApiConfig::from_env(),
             db: DBConfig::from_env(),

@@ -10,7 +10,7 @@ use std::num::ParseIntError;
 use std::ops::{Add, Deref, DerefMut, Sub};
 use std::str::FromStr;
 
-pub use ethers::{types::{H160, U128, U256, H256}};
+pub use ethers::types::{H160, H256, U128, U256};
 
 basic_type!(
     /// Unique identifier of the slot in the zklink network.
@@ -70,4 +70,3 @@ basic_type!(
     SubAccountId,
     u8
 );
-

@@ -1,21 +1,25 @@
 #![allow(unused_doc_comments)]
+use crate::helpers::{is_fee_amount_packable, is_token_amount_packable};
+use crate::ZkLinkAddress;
 use num::BigUint;
 use validator::ValidationError;
-use zklink_basic_types::{AccountId, ChainId, SlotId, SubAccountId, TokenId, Nonce};
-use zklink_crypto::params::{GLOBAL_ASSET_ACCOUNT_ID, MAX_ACCOUNT_ID, MAX_CHAIN_ID, MAX_NONCE, MAX_PRICE, MAX_REAL_TOKEN_ID, MAX_REAL_SLOT_ID, MAX_SUB_ACCOUNT_ID, MIN_PRICE, TOKEN_ID_ZERO, USDX_TOKEN_ID_LOWER_BOUND, USDX_TOKEN_ID_UPPER_BOUND};
-use crate::ZkLinkAddress;
-use crate::helpers::{is_token_amount_packable, is_fee_amount_packable};
+use zklink_basic_types::{AccountId, ChainId, Nonce, SlotId, SubAccountId, TokenId};
+use zklink_crypto::params::{
+    GLOBAL_ASSET_ACCOUNT_ID, MAX_ACCOUNT_ID, MAX_CHAIN_ID, MAX_NONCE, MAX_PRICE, MAX_REAL_SLOT_ID,
+    MAX_REAL_TOKEN_ID, MAX_SUB_ACCOUNT_ID, MIN_PRICE, TOKEN_ID_ZERO, USDX_TOKEN_ID_LOWER_BOUND,
+    USDX_TOKEN_ID_UPPER_BOUND,
+};
 
 /// Check transaction account value validation
 ///
 /// - account id should <= MAX_ACCOUNT_ID
 /// - account id should not be GLOBAL_ASSET_ACCOUNT_ID(not invalid in transaction)
-pub fn account_validator(account_id: &AccountId) -> Result<(), ValidationError>{
+pub fn account_validator(account_id: &AccountId) -> Result<(), ValidationError> {
     if *account_id > MAX_ACCOUNT_ID {
-        return Err(ValidationError::new("account id out of range"))
+        return Err(ValidationError::new("account id out of range"));
     }
     if *account_id == GLOBAL_ASSET_ACCOUNT_ID {
-        return Err(ValidationError::new("account eq GLOBAL_ASSET_ACCOUNT_ID"))
+        return Err(ValidationError::new("account eq GLOBAL_ASSET_ACCOUNT_ID"));
     }
     Ok(())
 }
@@ -25,18 +29,17 @@ pub fn account_validator(account_id: &AccountId) -> Result<(), ValidationError>{
 /// - sub_account id should <= MAX_SUB_ACCOUNT_ID
 pub fn sub_account_validator(sub_account_id: &SubAccountId) -> Result<(), ValidationError> {
     if *sub_account_id > MAX_SUB_ACCOUNT_ID {
-        return Err(ValidationError::new("sub_account id out of range"))
+        return Err(ValidationError::new("sub_account id out of range"));
     }
     Ok(())
 }
-
 
 /// Check layer1 unpackable amount value validation
 ///
 /// - amount should <= u128::MAX
 pub fn amount_unpackable(amount: &BigUint) -> Result<(), ValidationError> {
     if *amount > BigUint::from(u128::MAX) {
-        return Err(ValidationError::new("amount out of range"))
+        return Err(ValidationError::new("amount out of range"));
     }
     Ok(())
 }
@@ -47,7 +50,7 @@ pub fn amount_unpackable(amount: &BigUint) -> Result<(), ValidationError> {
 /// - amount should keep same after pack and unpack
 pub fn amount_packable(amount: &BigUint) -> Result<(), ValidationError> {
     if !is_token_amount_packable(amount) {
-        return Err(ValidationError::new("amount is not packable"))
+        return Err(ValidationError::new("amount is not packable"));
     }
     Ok(())
 }
@@ -58,7 +61,7 @@ pub fn amount_packable(amount: &BigUint) -> Result<(), ValidationError> {
 /// - fee should keep same after pack and unpack
 pub fn fee_packable(fee: &BigUint) -> Result<(), ValidationError> {
     if !is_fee_amount_packable(fee) {
-        return Err(ValidationError::new("fee is not packable"))
+        return Err(ValidationError::new("fee is not packable"));
     }
     Ok(())
 }
@@ -69,10 +72,12 @@ pub fn fee_packable(fee: &BigUint) -> Result<(), ValidationError> {
 /// - token id should not use 0 and [2,16]
 pub fn token_validaotr(token_id: &TokenId) -> Result<(), ValidationError> {
     if *token_id > MAX_REAL_TOKEN_ID {
-        return Err(ValidationError::new("token id out of range"))
+        return Err(ValidationError::new("token id out of range"));
     }
-    if **token_id == TOKEN_ID_ZERO || (**token_id >= USDX_TOKEN_ID_LOWER_BOUND && **token_id <= USDX_TOKEN_ID_UPPER_BOUND) {
-        return Err(ValidationError::new("token id should not use 0 or [2, 16]"))
+    if **token_id == TOKEN_ID_ZERO
+        || (**token_id >= USDX_TOKEN_ID_LOWER_BOUND && **token_id <= USDX_TOKEN_ID_UPPER_BOUND)
+    {
+        return Err(ValidationError::new("token id should not use 0 or [2, 16]"));
     }
     Ok(())
 }
@@ -82,10 +87,12 @@ pub fn token_validaotr(token_id: &TokenId) -> Result<(), ValidationError> {
 /// - zklink address should not be 0 and GLOBAL_ASSET_ACCOUNT_ADDRESS 0xffffffffffffffffffffffffffffffffffffffff
 pub fn zklink_address_validator(zklink_address: &ZkLinkAddress) -> Result<(), ValidationError> {
     if zklink_address.is_zero() {
-        return Err(ValidationError::new("zklink address is 0"))
+        return Err(ValidationError::new("zklink address is 0"));
     }
     if zklink_address.is_global_account_address() {
-        return Err(ValidationError::new("zklink address is global asset account address"))
+        return Err(ValidationError::new(
+            "zklink address is global asset account address",
+        ));
     }
     Ok(())
 }
@@ -95,7 +102,7 @@ pub fn zklink_address_validator(zklink_address: &ZkLinkAddress) -> Result<(), Va
 /// - chain id should <= MAX_CHAIN_ID
 pub fn chain_id_validator(chain_id: &ChainId) -> Result<(), ValidationError> {
     if *chain_id > MAX_CHAIN_ID {
-        return Err(ValidationError::new("chain id out of range"))
+        return Err(ValidationError::new("chain id out of range"));
     }
     Ok(())
 }
@@ -105,7 +112,7 @@ pub fn chain_id_validator(chain_id: &ChainId) -> Result<(), ValidationError> {
 /// - boolean should be 0 or 1
 pub fn boolean_validator(boolean: u8) -> Result<(), ValidationError> {
     if boolean > 1u8 {
-        return Err(ValidationError::new("boolean value should be 0 or 1"))
+        return Err(ValidationError::new("boolean value should be 0 or 1"));
     }
     Ok(())
 }
@@ -115,7 +122,7 @@ pub fn boolean_validator(boolean: u8) -> Result<(), ValidationError> {
 /// - withdraw_fee_ratio should <= 10000
 pub fn withdraw_fee_ratio_validator(withdraw_fee_ratio: u16) -> Result<(), ValidationError> {
     if withdraw_fee_ratio > 10000u16 {
-        return Err(ValidationError::new("withdraw fee ratio out of range"))
+        return Err(ValidationError::new("withdraw fee ratio out of range"));
     }
     Ok(())
 }
@@ -125,8 +132,8 @@ pub fn withdraw_fee_ratio_validator(withdraw_fee_ratio: u16) -> Result<(), Valid
 /// - price should > MIN_PRICE(1)
 /// - price should < MAX_PRICE(\[(2 ** 15 - 1)/10 ^18\] * 10^18 = 1329227995784915872000000000000000000)
 pub fn price_validator(price: &BigUint) -> Result<(), ValidationError> {
-    if *price <= BigUint::from(MIN_PRICE) || *price >=  BigUint::from(MAX_PRICE) {
-        return Err(ValidationError::new("price value out of range"))
+    if *price <= BigUint::from(MIN_PRICE) || *price >= BigUint::from(MAX_PRICE) {
+        return Err(ValidationError::new("price value out of range"));
     }
     Ok(())
 }
@@ -136,7 +143,7 @@ pub fn price_validator(price: &BigUint) -> Result<(), ValidationError> {
 /// - slot_id should <= MAX_SLOT_ID
 pub fn slot_id_validator(slot_id: &SlotId) -> Result<(), ValidationError> {
     if *slot_id > MAX_REAL_SLOT_ID {
-        return Err(ValidationError::new("slot id out of range"))
+        return Err(ValidationError::new("slot id out of range"));
     }
     Ok(())
 }
@@ -146,11 +153,10 @@ pub fn slot_id_validator(slot_id: &SlotId) -> Result<(), ValidationError> {
 /// - nonce should < MAX_NONCE
 pub fn nonce_validator(nonce: &Nonce) -> Result<(), ValidationError> {
     if *nonce >= MAX_NONCE {
-        return Err(ValidationError::new("The nonce has reached its maximum."))
+        return Err(ValidationError::new("The nonce has reached its maximum."));
     }
     Ok(())
 }
-
 
 #[cfg(test)]
 mod validators_tests {
@@ -162,7 +168,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "account_validator")]
-            pub account_id: AccountId
+            pub account_id: AccountId,
         }
 
         impl Mock {
@@ -186,7 +192,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "sub_account_validator")]
-            pub sub_account_id: SubAccountId
+            pub sub_account_id: SubAccountId,
         }
 
         impl Mock {
@@ -207,7 +213,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "amount_unpackable")]
-            pub amount: BigUint
+            pub amount: BigUint,
         }
 
         impl Mock {
@@ -228,7 +234,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "amount_packable")]
-            pub amount: BigUint
+            pub amount: BigUint,
         }
 
         impl Mock {
@@ -252,7 +258,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "fee_packable")]
-            pub fee: BigUint
+            pub fee: BigUint,
         }
 
         impl Mock {
@@ -273,7 +279,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "token_validaotr")]
-            pub token_id: TokenId
+            pub token_id: TokenId,
         }
 
         impl Mock {
@@ -301,7 +307,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "zklink_address_validator")]
-            pub zklink_address: ZkLinkAddress
+            pub zklink_address: ZkLinkAddress,
         }
 
         impl Mock {
@@ -328,7 +334,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "boolean_validator")]
-            pub boolean: u8
+            pub boolean: u8,
         }
 
         impl Mock {
@@ -351,7 +357,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "chain_id_validator")]
-            pub chain_id: ChainId
+            pub chain_id: ChainId,
         }
 
         impl Mock {
@@ -372,7 +378,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "withdraw_fee_ratio_validator")]
-            pub withdraw_fee_ratio: u16
+            pub withdraw_fee_ratio: u16,
         }
 
         impl Mock {
@@ -393,7 +399,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "price_validator")]
-            pub price: BigUint
+            pub price: BigUint,
         }
 
         impl Mock {
@@ -418,7 +424,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "slot_id_validator")]
-            pub slot_id: SlotId
+            pub slot_id: SlotId,
         }
 
         impl Mock {
@@ -439,7 +445,7 @@ mod validators_tests {
         #[derive(Debug, Validate)]
         struct Mock {
             #[validate(custom = "nonce_validator")]
-            pub nonce: Nonce
+            pub nonce: Nonce,
         }
 
         impl Mock {

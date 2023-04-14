@@ -1,17 +1,16 @@
-use std::collections::HashMap;
-use anyhow::{ensure, Error, format_err};
+use crate::handler::TxHandler;
+use anyhow::{ensure, format_err, Error};
 use num::BigUint;
-use zklink_types::{
-    operations::{
-        TransferOp, TransferToNewOp, ZkLinkOp, NoopOp
-    },
-    Account, AccountId, AccountMap, AccountTree, AccountUpdate, AccountUpdates, BlockNumber, ZkLinkPriorityOp,
-    ZkLinkTx, SlotId, ChainId, Token, SubAccountId, TokenId, ZkLinkAddress, PubKeyHash,Fr
-};
-use zklink_crypto::params::{self, MAIN_SUB_ACCOUNT_ID, FEE_ACCOUNT_ID, MAX_ACCOUNT_ID};
+use std::collections::HashMap;
+use zklink_crypto::params::{self, FEE_ACCOUNT_ID, MAIN_SUB_ACCOUNT_ID, MAX_ACCOUNT_ID};
 use zklink_types::account::TidyOrder;
 use zklink_types::utils::{calculate_actual_slot, calculate_actual_token};
-use crate::handler::TxHandler;
+use zklink_types::{
+    operations::{NoopOp, TransferOp, TransferToNewOp, ZkLinkOp},
+    Account, AccountId, AccountMap, AccountTree, AccountUpdate, AccountUpdates, BlockNumber,
+    ChainId, Fr, PubKeyHash, SlotId, SubAccountId, Token, TokenId, ZkLinkAddress, ZkLinkPriorityOp,
+    ZkLinkTx,
+};
 
 #[derive(Debug)]
 pub struct OpSuccess {
@@ -50,7 +49,7 @@ impl TransferOutcome {
 
 impl From<TransferOutcome> for ZkLinkOp {
     fn from(op: TransferOutcome) -> Self {
-        match op{
+        match op {
             TransferOutcome::Transfer(transfer) => transfer.into(),
             TransferOutcome::TransferToNew(transfer) => transfer.into(),
         }
@@ -95,12 +94,15 @@ impl ZkLinkState {
     pub fn register_token(&mut self, token: Token) {
         self.token_by_id
             .entry(token.id)
-            .or_insert(Token{ id: token.id, chains: vec![] })
+            .or_insert(Token {
+                id: token.id,
+                chains: vec![],
+            })
             .chains
             .extend(token.chains);
     }
 
-    pub fn ensure_token_supported(&self, token_id: &TokenId) -> Result<(), Error>{
+    pub fn ensure_token_supported(&self, token_id: &TokenId) -> Result<(), Error> {
         anyhow::ensure!(
             self.is_token_supported(token_id),
             "Token {:?} does not exist.",
@@ -109,19 +111,25 @@ impl ZkLinkState {
         Ok(())
     }
 
-    pub fn ensure_token_of_chain_supported(&self, token_id: &TokenId, chain_id: &ChainId) -> Result<(), Error>{
+    pub fn ensure_token_of_chain_supported(
+        &self,
+        token_id: &TokenId,
+        chain_id: &ChainId,
+    ) -> Result<(), Error> {
         anyhow::ensure!(
-                self.is_token_of_chain_supported(token_id, chain_id),
-                "Token {:?} does not exist on target chain {:?}.",
-                token_id, chain_id
-            );
+            self.is_token_of_chain_supported(token_id, chain_id),
+            "Token {:?} does not exist on target chain {:?}.",
+            token_id,
+            chain_id
+        );
         Ok(())
     }
 
     pub fn assert_token_supported(&self, token_id: &TokenId) {
         assert!(
             self.is_token_supported(token_id),
-            "{:?} does not exist", token_id
+            "{:?} does not exist",
+            token_id
         );
     }
 
@@ -129,16 +137,18 @@ impl ZkLinkState {
         assert!(
             self.is_token_of_chain_supported(token_id, chain_id),
             "Token {:?} does not exist on target chain {:?}.",
-            token_id, chain_id
+            token_id,
+            chain_id
         );
     }
 
-    pub fn check_token_supported(&self, token: &TokenId, chain_id: &ChainId) -> Result<(), Error>{
+    pub fn check_token_supported(&self, token: &TokenId, chain_id: &ChainId) -> Result<(), Error> {
         if let Some(token) = self.token_by_id.get(token) {
             anyhow::ensure!(
                 token.chains.contains(chain_id),
                 "Token {:?} does not exist on target chain {:?}.",
-                token, chain_id
+                token,
+                chain_id
             );
             Ok(())
         } else {
@@ -158,7 +168,11 @@ impl ZkLinkState {
         }
     }
 
-    pub fn ensure_account_active_and_tx_pk_correct(&self, account_id: AccountId, tx_pk: PubKeyHash) -> Result<Account, Error> {
+    pub fn ensure_account_active_and_tx_pk_correct(
+        &self,
+        account_id: AccountId,
+        tx_pk: PubKeyHash,
+    ) -> Result<Account, Error> {
         let account = self
             .get_account(account_id)
             .ok_or_else(|| format_err!("Account does not exist"))?;
@@ -184,7 +198,12 @@ impl ZkLinkState {
             .collect()
     }
 
-    pub fn collect_fee(&mut self, token: TokenId, fee: &BigUint, updates: &mut Vec<(AccountId, AccountUpdate)>){
+    pub fn collect_fee(
+        &mut self,
+        token: TokenId,
+        fee: &BigUint,
+        updates: &mut Vec<(AccountId, AccountUpdate)>,
+    ) {
         let mut fee_account = self.get_account(FEE_ACCOUNT_ID).unwrap();
         // collect fee to MAIN_SUB_ACCOUNT_ID
         let sub_account_id = MAIN_SUB_ACCOUNT_ID;
@@ -203,11 +222,14 @@ impl ZkLinkState {
         self.insert_account(FEE_ACCOUNT_ID, fee_account);
     }
 
-    pub fn get_actual_slot(sub_account_id: SubAccountId, slot_id: SlotId) -> SlotId{
+    pub fn get_actual_slot(sub_account_id: SubAccountId, slot_id: SlotId) -> SlotId {
         calculate_actual_slot(sub_account_id, slot_id)
     }
 
-    pub fn get_actual_token_by_sub_account(sub_account_id: SubAccountId, token_id: TokenId) -> TokenId{
+    pub fn get_actual_token_by_sub_account(
+        sub_account_id: SubAccountId,
+        token_id: TokenId,
+    ) -> TokenId {
         calculate_actual_token(sub_account_id, token_id)
     }
 
@@ -294,19 +316,20 @@ impl ZkLinkState {
                     slot_id,
                     sub_account_id,
                     old_order: _old_order_nonce,
-                    new_order: new_order_nonce
+                    new_order: new_order_nonce,
                 } => {
                     let mut account = self
                         .get_account(account_id)
                         .expect("account to update order nonce must exist");
                     // assert_eq!(old_order_nonce.0, account.order_slots[&slot_id].nonce);
-                    let slot_id = calculate_actual_slot(sub_account_id,slot_id);
+                    let slot_id = calculate_actual_slot(sub_account_id, slot_id);
                     account.order_slots.insert(
                         slot_id,
-                        TidyOrder{
+                        TidyOrder {
                             nonce: new_order_nonce.0,
                             residue: new_order_nonce.1.into(),
-                        });
+                        },
+                    );
                     self.insert_account(account_id, account);
                 }
             }
@@ -353,7 +376,8 @@ impl ZkLinkState {
 
     #[doc(hidden)] // Public for benches.
     pub fn insert_account(&mut self, id: AccountId, account: Account) {
-        self.account_id_by_address.insert(account.address.clone(), id);
+        self.account_id_by_address
+            .insert(account.address.clone(), id);
         self.balance_tree.insert(*id, account);
     }
 
@@ -382,8 +406,8 @@ impl ZkLinkState {
     pub fn priority_op_to_zklink_op(&self, op: ZkLinkPriorityOp) -> ZkLinkOp {
         match op {
             // ZkLinkPriorityOp::Deposit(op) => self.create_op(op).unwrap().into(),
-            ZkLinkPriorityOp::FullExit(_) => ZkLinkOp::Noop(NoopOp{}),
-            ZkLinkPriorityOp::Deposit(_) => ZkLinkOp::Noop(NoopOp{}),
+            ZkLinkPriorityOp::FullExit(_) => ZkLinkOp::Noop(NoopOp {}),
+            ZkLinkPriorityOp::Deposit(_) => ZkLinkOp::Noop(NoopOp {}),
         }
     }
 
@@ -451,7 +475,8 @@ impl ZkLinkState {
                 AccountUpdate::UpdateTidyOrder {
                     slot_id,
                     sub_account_id,
-                    new_order: new_order_nonce, ..
+                    new_order: new_order_nonce,
+                    ..
                 } => {
                     let mut account = self
                         .get_account(*account_id)
@@ -459,16 +484,15 @@ impl ZkLinkState {
                     let slot_id = calculate_actual_slot(*sub_account_id, *slot_id);
                     account.order_slots.insert(
                         slot_id,
-                        TidyOrder{
+                        TidyOrder {
                             nonce: new_order_nonce.0,
                             residue: new_order_nonce.1.clone().into(),
-                        }
+                        },
                     );
                 }
             }
         }
     }
-
 
     pub fn get_balance_tree(&self) -> AccountTree {
         self.balance_tree.clone()

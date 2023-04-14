@@ -1,18 +1,18 @@
 // Built-in deps
 use std::time::Instant;
 use tracing::info;
-use zklink_types::{AccountId, BlockNumber, ChainId, AccountUpdate, H256};
+use zklink_types::{AccountId, AccountUpdate, BlockNumber, ChainId, H256};
 // External imports
 // Workspace imports
 // Local imports
 use self::records::{
-    NewBlockEvent, NewRollupOpsBlock, NewStorageState, StoredBlockEvent,
-    StoredRollupOpsBlock, StoredStorageState,
+    NewBlockEvent, NewRollupOpsBlock, NewStorageState, StoredBlockEvent, StoredRollupOpsBlock,
+    StoredStorageState,
 };
-use crate::chain::operations::OperationsSchema;
-use crate::{chain::state::StateSchema};
-use crate::{QueryResult, StorageProcessor};
 use crate::chain::operations::records::StoredAggregatedOperation;
+use crate::chain::operations::OperationsSchema;
+use crate::chain::state::StateSchema;
+use crate::{QueryResult, StorageProcessor};
 
 pub mod records;
 
@@ -45,7 +45,6 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
                 .apply_state_update(block_number.into())
                 .await?;
         }
-
 
         transaction.commit().await?;
         metrics::histogram!("sql.recover_state.save_block_operations", start.elapsed());
@@ -92,7 +91,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         chain_id: i16,
         event_type: &str,
         block_number: i64,
-        last_serial_id: i64
+        last_serial_id: i64,
     ) -> QueryResult<()> {
         let start = Instant::now();
 
@@ -117,7 +116,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
     pub async fn last_watched_block_number(
         &mut self,
         chain_id: i16,
-        event_type: &str
+        event_type: &str,
     ) -> QueryResult<Option<(i64, i64)>> {
         let start = Instant::now();
         let stored = sqlx::query!(
@@ -186,7 +185,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
                 *chain_id as i16,
                 "block",
                 last_watched_block_number as i64,
-                0
+                0,
             )
             .await?;
         RecoverSchema(&mut transaction)
@@ -218,7 +217,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
                 *chain_id as i16,
                 "block",
                 last_watched_block_number as i64,
-                0
+                0,
             )
             .await?;
         RecoverSchema(&mut transaction)
@@ -244,7 +243,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             .await?;
 
         for block in rollup_blocks {
-            let operations= serde_json::to_value(block.ops).unwrap();
+            let operations = serde_json::to_value(block.ops).unwrap();
             sqlx::query!(
                 "INSERT INTO recover_state_rollup_ops (block_num, operation, fee_account, created_at, previous_block_root_hash, contract_version)
                 VALUES ($1, $2, $3, $4, $5, $6)",
@@ -315,8 +314,8 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             "INSERT INTO recover_state_storage_state_update (storage_state) VALUES ($1)",
             state.storage_state,
         )
-            .execute(transaction.conn())
-            .await?;
+        .execute(transaction.conn())
+        .await?;
         transaction.commit().await?;
 
         metrics::histogram!("sql.recover_state.update_storage_state", start.elapsed());

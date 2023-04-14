@@ -7,7 +7,7 @@ pub struct AccountContent<E: RescueEngine> {
     pub address: CircuitElement<E>,
 }
 
-impl<E:RescueEngine> std::fmt::Debug for AccountContent<E>{
+impl<E: RescueEngine> std::fmt::Debug for AccountContent<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AllocatedOperationBranch")
             .field("nonce", &self.nonce.get_number().get_value())

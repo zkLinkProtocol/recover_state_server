@@ -1,17 +1,17 @@
-use std::collections::HashMap;
+pub use self::{account_update::AccountUpdate, pubkey_hash::PubKeyHash};
+use super::{AccountId, AccountUpdates, Fr, Nonce, Order, TokenId};
+use crate::utils::{calculate_actual_slot, calculate_actual_token};
+use crate::ZkLinkAddress;
 use num::{BigUint, Zero};
 use serde::{Deserialize, Serialize};
-use zklink_crypto::primitives::GetBits;
-use zklink_utils::BigUintSerdeWrapper;
-use zklink_crypto::franklin_crypto::bellman::pairing::ff::PrimeField;
-use zklink_crypto::params::{MAX_SLOT_ID, MAX_TOKEN_ID, total_slots};
+use std::collections::HashMap;
 use zklink_basic_types::SlotId;
 use zklink_crypto::circuit::account::{Balance, CircuitAccount, CircuitTidyOrder};
 use zklink_crypto::convert::FeConvert;
-use super::{Order, AccountId, Fr, AccountUpdates, Nonce, TokenId};
-use crate::utils::{calculate_actual_slot, calculate_actual_token};
-pub use self::{account_update::AccountUpdate, pubkey_hash::PubKeyHash};
-use crate::ZkLinkAddress;
+use zklink_crypto::franklin_crypto::bellman::pairing::ff::PrimeField;
+use zklink_crypto::params::{total_slots, MAX_SLOT_ID, MAX_TOKEN_ID};
+use zklink_crypto::primitives::GetBits;
+use zklink_utils::BigUintSerdeWrapper;
 
 mod account_update;
 mod pubkey_hash;
@@ -42,15 +42,17 @@ pub struct TidyOrder {
 }
 
 impl TidyOrder {
-    pub fn update(&mut self, actual_exchanged: &BigUint, order: &Order){
+    pub fn update(&mut self, actual_exchanged: &BigUint, order: &Order) {
         if self.residue.is_zero() || order.nonce > self.nonce {
             self.residue.0 = order.amount.clone();
-            if order.nonce > self.nonce{
+            if order.nonce > self.nonce {
                 self.nonce = order.nonce;
             }
         }
         self.residue.0 -= actual_exchanged;
-        if self.residue.is_zero(){ *self.nonce += 1; }
+        if self.residue.is_zero() {
+            *self.nonce += 1;
+        }
     }
 }
 
@@ -69,7 +71,7 @@ pub struct Account {
     /// order to not allow double spend, and the nonce must increment by one after each operation.
     pub nonce: Nonce,
     /// Current nonce and residue of all order slots.
-    pub order_slots: HashMap<SlotId, TidyOrder>
+    pub order_slots: HashMap<SlotId, TidyOrder>,
 }
 
 impl PartialEq for Account {
@@ -88,7 +90,9 @@ impl From<Account> for CircuitAccount<super::Engine> {
             .map(|(id, b)| {
                 (
                     *id,
-                    Balance { value: Fr::from_big_uint(b.reserve0.0.clone()).unwrap() }
+                    Balance {
+                        value: Fr::from_big_uint(b.reserve0.0.clone()).unwrap(),
+                    },
                 )
             })
             .collect();
@@ -102,10 +106,10 @@ impl From<Account> for CircuitAccount<super::Engine> {
             .map(|(id, b)| {
                 (
                     *id,
-                    CircuitTidyOrder{
+                    CircuitTidyOrder {
                         nonce: Fr::from_repr((*b.nonce as u64).into()).unwrap(),
                         residue: Fr::from_big_uint(b.residue.0.clone()).unwrap(),
-                    }
+                    },
                 )
             })
             .collect();
@@ -126,8 +130,8 @@ impl Default for Account {
             balances: HashMap::new(),
             nonce: Nonce(0),
             pub_key_hash: PubKeyHash::default(),
-            address: ZkLinkAddress::from(vec![0;32]),
-            order_slots: HashMap::new()
+            address: ZkLinkAddress::from(vec![0; 32]),
+            order_slots: HashMap::new(),
         }
     }
 }
@@ -178,7 +182,9 @@ impl Account {
     /// Overrides the token balance value.
     pub fn set_balance(&mut self, token: TokenId, amount: BigUint) {
         assert!(token < MAX_TOKEN_ID);
-        let node = BalanceNode{ reserve0: BigUintSerdeWrapper(amount) };
+        let node = BalanceNode {
+            reserve0: BigUintSerdeWrapper(amount),
+        };
         self.balances.insert(token, node);
     }
 
@@ -225,11 +231,11 @@ impl Account {
             Some(mut account) => match update {
                 AccountUpdate::Delete { .. } => None,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (token, sub_account_id,_, amount),
+                    balance_update: (token, sub_account_id, _, amount),
                     new_nonce,
                     ..
                 } => {
-                    let real_token= calculate_actual_token(sub_account_id, token);
+                    let real_token = calculate_actual_token(sub_account_id, token);
                     account.set_balance(real_token, amount);
                     account.nonce = new_nonce;
                     Some(account)
@@ -246,15 +252,17 @@ impl Account {
                 AccountUpdate::UpdateTidyOrder {
                     slot_id,
                     sub_account_id,
-                    new_order: new_order_nonce, ..
+                    new_order: new_order_nonce,
+                    ..
                 } => {
                     let slot_id = calculate_actual_slot(sub_account_id, slot_id);
                     account.order_slots.insert(
                         slot_id,
-                        TidyOrder{
+                        TidyOrder {
                             nonce: new_order_nonce.0,
                             residue: new_order_nonce.1.into(),
-                        });
+                        },
+                    );
                     Some(account)
                 }
                 _ => {
@@ -296,11 +304,11 @@ impl Account {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::helpers::{pack_token_amount, unpack_token_amount};
     use crate::{
         helpers::{apply_updates, reverse_updates},
-        AccountMap, AccountUpdates,SubAccountId
+        AccountMap, AccountUpdates, SubAccountId,
     };
-    use crate::helpers::{pack_token_amount, unpack_token_amount};
 
     #[test]
     fn test_default_account() {

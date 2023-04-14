@@ -4,13 +4,19 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use ethers::prelude::H256;
 use num::One;
 // Workspace deps
-use zklink_storage::{recover_state::records::{NewRollupOpsBlock}, StorageProcessor};
 use zklink_crypto::convert::FeConvert;
 use zklink_crypto::params::{USD_SYMBOL, USD_TOKEN_ID};
-use zklink_types::{AccountId, {block::Block, AccountUpdate}, ChainId, TokenId, Token, BlockNumber};
-use zklink_storage::chain::operations::records::{AggType, StoredAggregatedOperation, StoredSubmitTransaction};
+use zklink_storage::chain::operations::records::{
+    AggType, StoredAggregatedOperation, StoredSubmitTransaction,
+};
 use zklink_storage::tokens::records::{DbToken, DbTokenOfChain};
+use zklink_storage::{recover_state::records::NewRollupOpsBlock, StorageProcessor};
+use zklink_types::{
+    AccountId, BlockNumber, ChainId, Token, TokenId,
+    {block::Block, AccountUpdate},
+};
 // Local deps
+use crate::contract::utils::NewToken;
 use crate::storage_interactor::StoredTreeState;
 use crate::{
     data_restore_driver::StorageUpdateState,
@@ -22,7 +28,6 @@ use crate::{
         stored_ops_block_into_ops_block, StorageInteractor,
     },
 };
-use crate::contract::utils::NewToken;
 
 pub struct DatabaseStorageInteractor<'a> {
     storage: StorageProcessor<'a>,
@@ -40,7 +45,7 @@ impl<'a> DatabaseStorageInteractor<'a> {
 
 #[async_trait::async_trait]
 impl StorageInteractor for DatabaseStorageInteractor<'_> {
-    async fn load_tokens(&mut self) -> HashMap<TokenId, Token>{
+    async fn load_tokens(&mut self) -> HashMap<TokenId, Token> {
         self.storage
             .tokens_schema()
             .load_tokens_from_db()
@@ -58,8 +63,8 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         symbols: Vec<String>,
     ) {
         let mut transaction = self.storage.start_transaction().await.unwrap();
-        for (symbol, token) in symbols.into_iter().zip(token_events.iter()){
-            let db_token = DbToken{
+        for (symbol, token) in symbols.into_iter().zip(token_events.iter()) {
+            let db_token = DbToken {
                 token_id: token.id as i32,
                 symbol,
                 price_id: "".to_string(),
@@ -74,17 +79,17 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         }
         transaction
             .tokens_schema()
-            .save_tokens(token_events.iter()
-                .map(|token_event|
-                    DbTokenOfChain {
+            .save_tokens(
+                token_events
+                    .iter()
+                    .map(|token_event| DbTokenOfChain {
                         id: token_event.id as i32,
                         chain_id: *chain_id as i16,
                         address: token_event.address.as_bytes().to_vec(),
                         decimals: 18,
-                        fast_withdraw: false
-                    }
-                )
-                .collect()
+                        fast_withdraw: false,
+                    })
+                    .collect(),
             )
             .await
             .expect("failed to store token");
@@ -100,7 +105,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 *chain_id as i16,
                 "token",
                 last_watched_block_number as i64,
-                last_serial_id
+                last_serial_id,
             )
             .await
             .expect("failed to update last_watched_block_number");
@@ -111,9 +116,12 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         let mut ops = Vec::with_capacity(blocks.len());
 
         for block in blocks {
-            let timestamp = block.timestamp.map(|timestamp|
-                DateTime::from_utc(NaiveDateTime::from_timestamp_millis(timestamp as i64).unwrap(), Utc)
-            );
+            let timestamp = block.timestamp.map(|timestamp| {
+                DateTime::from_utc(
+                    NaiveDateTime::from_timestamp_millis(timestamp as i64).unwrap(),
+                    Utc,
+                )
+            });
 
             ops.push(NewRollupOpsBlock {
                 block_num: block.block_num,
@@ -132,7 +140,10 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Cant update rollup operations");
     }
 
-    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>) {
+    async fn store_blocks_and_updates(
+        &mut self,
+        blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>,
+    ) {
         let new_state = self.storage.recover_schema().new_storage_state("None");
         let mut transaction = self
             .storage
@@ -147,7 +158,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 from_block: block_number.into(),
                 to_block: block_number.into(),
                 created_at: Utc::now(),
-                confirmed: true
+                confirmed: true,
             };
             let execute_aggregated_operation = StoredAggregatedOperation {
                 id: 0,
@@ -155,7 +166,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 from_block: block_number.into(),
                 to_block: block_number.into(),
                 created_at: Utc::now(),
-                confirmed: true
+                confirmed: true,
             };
 
             transaction
@@ -189,9 +200,14 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Unable to commit DB transaction");
     }
 
-    async fn init_token_event_progress(&mut self, chain_id: ChainId, last_block_number: BlockNumber) {
+    async fn init_token_event_progress(
+        &mut self,
+        chain_id: ChainId,
+        last_block_number: BlockNumber,
+    ) {
         // add USD token to token_price table
-        self.storage.tokens_schema()
+        self.storage
+            .tokens_schema()
             .store_token_price(DbToken {
                 token_id: USD_TOKEN_ID as i32,
                 symbol: String::from(USD_SYMBOL),
@@ -207,17 +223,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 *chain_id as i16,
                 "token",
                 *last_block_number as i64,
-                -1
+                -1,
             )
             .await
             .expect("failed to initialize last watched block number");
     }
 
-    async fn init_block_events_state(
-        &mut self,
-        chain_id: ChainId,
-        last_watched_block_number: u64,
-    ) {
+    async fn init_block_events_state(&mut self, chain_id: ChainId, last_watched_block_number: u64) {
         self.storage
             .recover_schema()
             .insert_block_events_state(chain_id, last_watched_block_number)
@@ -231,7 +243,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         block_events: &[BlockEvent],
         last_watched_block_number: u64,
     ) -> anyhow::Result<()> {
-        let block_events= block_events
+        let block_events = block_events
             .iter()
             .map(block_event_into_stored_block_event)
             .collect::<Vec<_>>();
@@ -243,8 +255,12 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         Ok(())
     }
 
-    async fn save_genesis_tree_state(&mut self, genesis_updates: &[(AccountId, AccountUpdate, H256)]) {
-        let root_hash = FeConvert::from_bytes(genesis_updates.first().unwrap().2.as_bytes()).unwrap();
+    async fn save_genesis_tree_state(
+        &mut self,
+        genesis_updates: &[(AccountId, AccountUpdate, H256)],
+    ) {
+        let root_hash =
+            FeConvert::from_bytes(genesis_updates.first().unwrap().2.as_bytes()).unwrap();
         let (last_committed, accounts) = self
             .storage
             .chain()
@@ -330,8 +346,9 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("There are no last block in storage - restart driver");
 
         let mut last_serial_ids = HashMap::with_capacity(chain_ids.len());
-        for chain_id in chain_ids{
-            let last_serial_id = self.storage
+        for chain_id in chain_ids {
+            let last_serial_id = self
+                .storage
                 .chain()
                 .operations_schema()
                 .get_last_serial_id(*chain_id as i16)

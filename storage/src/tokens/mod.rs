@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use zklink_types::{Token, TokenId};
 // Workspace imports
-use self::records::{DbTokenOfChain, DbToken};
+use self::records::{DbToken, DbTokenOfChain};
 use crate::{QueryResult, StorageProcessor};
 
 pub mod records;
@@ -47,8 +47,8 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
             ORDER BY token_id ASC
             "#,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         metrics::histogram!("sql.token.load_tokens_price", start.elapsed());
         Ok(tokens)
@@ -66,8 +66,8 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
             token.last_update_time,
             token.token_id
         )
-            .execute(self.0.conn())
-            .await?;
+        .execute(self.0.conn())
+        .await?;
 
         metrics::histogram!("sql.token.store_token", start.elapsed());
         Ok(())
@@ -99,20 +99,16 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
             SELECT * FROM tokens
             "#
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(chain_tokens)
     }
 
     pub async fn load_tokens_from_db(&mut self) -> QueryResult<HashMap<TokenId, Token>> {
-        let tokens = self
-            .load_tokens()
-            .await?;
-        let chain_tokens = self
-            .load_chain_tokens()
-            .await?;
-        let mut token_by_id:HashMap<TokenId, Token> = HashMap::new();
+        let tokens = self.load_tokens().await?;
+        let chain_tokens = self.load_chain_tokens().await?;
+        let mut token_by_id: HashMap<TokenId, Token> = HashMap::new();
         for token in &tokens {
             let mut t = Token::new(token.token_id.into());
             for chain_token in &chain_tokens {
@@ -145,7 +141,6 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
         )
                 .execute(transaction.conn())
                 .await?;
-
         }
         transaction.commit().await?;
 
@@ -153,9 +148,8 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
         Ok(())
     }
 
-
     /// Get token from Database by id
-    pub async fn get_token(&mut self, token_id:i32) -> QueryResult<Option<DbToken>> {
+    pub async fn get_token(&mut self, token_id: i32) -> QueryResult<Option<DbToken>> {
         let start = Instant::now();
         let token = sqlx::query_as!(
             DbToken,
@@ -172,7 +166,11 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
     }
 
     /// Get token of chain from Database by id
-    pub async fn get_chain_token(&mut self, token_id: i32, chain_id: i16) -> QueryResult<Option<DbTokenOfChain>> {
+    pub async fn get_chain_token(
+        &mut self,
+        token_id: i32,
+        chain_id: i16,
+    ) -> QueryResult<Option<DbTokenOfChain>> {
         let chain_token = sqlx::query_as!(
             DbTokenOfChain,
             r#"
@@ -181,8 +179,8 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
             token_id,
             chain_id
         )
-            .fetch_optional(self.0.conn())
-            .await?;
+        .fetch_optional(self.0.conn())
+        .await?;
 
         Ok(chain_token)
     }

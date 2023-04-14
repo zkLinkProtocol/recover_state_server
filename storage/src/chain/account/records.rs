@@ -1,11 +1,11 @@
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
-use chrono::{DateTime, Utc};
 // External imports
 use serde::{Deserialize, Serialize};
-use sqlx::{types::BigDecimal, FromRow };
 use serde_json::value::Value;
+use sqlx::{types::BigDecimal, FromRow};
 
 #[derive(Debug, Clone, FromRow)]
 pub struct StorageAccount {
@@ -24,11 +24,10 @@ pub struct StorageAccountCreation {
     pub address: Vec<u8>,
     pub block_number: i64,
     pub update_order_id: i32,
-    pub tx_hash: Vec<u8>
+    pub tx_hash: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug, FromRow)]
+#[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct StorageAccountUpdate {
     pub balance_update_id: i64,
     pub account_id: i64,
@@ -40,7 +39,7 @@ pub struct StorageAccountUpdate {
     pub new_nonce: i64,
     pub block_number: i64,
     pub update_order_id: i32,
-    pub tx_hash: Vec<u8>
+    pub tx_hash: Vec<u8>,
 }
 
 #[derive(Debug, FromRow)]
@@ -53,11 +52,10 @@ pub struct StorageAccountPubkeyUpdate {
     pub new_nonce: i64,
     pub block_number: i64,
     pub update_order_id: i32,
-    pub tx_hash: Vec<u8>
+    pub tx_hash: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize)]
-#[derive(Debug, FromRow)]
+#[derive(Serialize, Deserialize, Debug, FromRow)]
 pub struct StorageAccountOrderUpdate {
     pub order_nonce_update_id: i64,
     pub account_id: i64,
@@ -67,7 +65,7 @@ pub struct StorageAccountOrderUpdate {
     pub new_order_nonce: Value,
     pub block_number: i64,
     pub update_order_id: i32,
-    pub tx_hash: Vec<u8>
+    pub tx_hash: Vec<u8>,
 }
 
 #[derive(Debug, Default)]
@@ -75,12 +73,12 @@ pub struct StorageStateUpdates {
     pub account_creates: Vec<StorageAccountCreation>,
     pub balance_updates: Vec<StorageAccountUpdate>,
     pub order_nonce_updates: Vec<StorageAccountOrderUpdate>,
-    pub account_pubkey_updates: Vec<StorageAccountPubkeyUpdate>
+    pub account_pubkey_updates: Vec<StorageAccountPubkeyUpdate>,
 }
 
 impl StorageStateUpdates {
     pub fn group_by_tx_hash(self) -> HashMap<Vec<u8>, StorageStateUpdates> {
-        let mut groups: HashMap<Vec<u8>, StorageStateUpdates>= HashMap::new();
+        let mut groups: HashMap<Vec<u8>, StorageStateUpdates> = HashMap::new();
         for u in self.account_creates {
             groups
                 .entry(u.tx_hash.clone())
@@ -128,7 +126,6 @@ pub struct StorageBalance {
     pub balance: BigDecimal,
 }
 
-
 #[derive(Debug, FromRow, Clone)]
 pub struct StorageOrderNonce {
     pub account_id: i64,
@@ -150,12 +147,12 @@ pub struct StorageOriginalOrderNonce {
 #[sqlx(type_name = "layer1_account_type")]
 pub enum AccountType {
     Unknown,
-    EthOwned, // check l1 signature by ECDSA off chain
+    EthOwned,   // check l1 signature by ECDSA off chain
     EthCREATE2, // check l1 signature by EIP1271 on chain
-    StarkContract
+    StarkContract,
 }
 
-impl Display for AccountType{
+impl Display for AccountType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         fmt::Debug::fmt(self, f)
     }
@@ -171,7 +168,7 @@ pub struct StorageAccountType {
 pub struct StorageAccountState {
     pub account: Option<StorageAccount>,
     pub balances: Vec<StorageBalance>,
-    pub orders: Vec<StorageOrderNonce>
+    pub orders: Vec<StorageOrderNonce>,
 }
 
 #[derive(Debug, FromRow)]

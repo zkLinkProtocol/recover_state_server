@@ -1,6 +1,6 @@
-use std::ops::Sub;
-use num::BigUint;
 use crate::{exit_circuit::*, utils::*};
+use num::BigUint;
+use std::ops::Sub;
 
 #[derive(Clone)]
 pub struct CircuitElement<E: Engine> {
@@ -63,8 +63,10 @@ impl<E: Engine> CircuitElement<E> {
         max_length: usize,
     ) -> Result<Self, SynthesisError> {
         assert!(max_length <= E::Fr::NUM_BITS as usize);
-        let number =
-            AllocatedNum::alloc_constant(cs.namespace(|| "number from field element"), field_element)?;
+        let number = AllocatedNum::alloc_constant(
+            cs.namespace(|| "number from field element"),
+            field_element,
+        )?;
         CircuitElement::from_number_with_known_length(
             cs.namespace(|| "circuit_element"),
             number,
@@ -209,13 +211,15 @@ impl<E: Engine> CircuitElement<E> {
     pub fn enforce_specified_length<CS: ConstraintSystem<E>>(
         &self,
         mut cs: CS,
-        length: usize
+        length: usize,
     ) -> Result<(), SynthesisError> {
         if self.length <= length {
             Ok(())
         } else {
-            let number_repacked =
-                pack_bits_to_element(cs.namespace(|| "pack truncated bits"), &self.bits_le[0..length])?;
+            let number_repacked = pack_bits_to_element(
+                cs.namespace(|| "pack truncated bits"),
+                &self.bits_le[0..length],
+            )?;
             cs.enforce(
                 || format!("number can be represented in {} bits", length),
                 |lc| lc + self.number.get_variable(),
@@ -354,9 +358,9 @@ impl<E: Engine> CircuitElement<E> {
         let base = E::Fr::from_big_uint(
             BigUint::from(2u8)
                 .pow(length as u32)
-                .sub(BigUint::from(1u8))
-        ).unwrap();
-
+                .sub(BigUint::from(1u8)),
+        )
+        .unwrap();
 
         let expr = Expression::constant::<CS>(base) - x.get_number() + y.get_number();
         let bits = expr.into_bits_le_fixed(cs.namespace(|| "diff bits"), length + 1)?;
@@ -381,24 +385,28 @@ impl<E: Engine> CircuitElement<E> {
         let base = E::Fr::from_big_uint(
             BigUint::from(2u8)
                 .pow(length as u32)
-                .sub(BigUint::from(1u8))
-        ).unwrap();
+                .sub(BigUint::from(1u8)),
+        )
+        .unwrap();
 
         let expr = Expression::constant::<CS>(base) - x.get_number() + y.get_number();
         let bits = expr.into_bits_le_fixed(cs.namespace(|| "diff bits"), length + 1)?;
 
         let diff = Expression::equals(
             cs.namespace(|| "pack bits to element"),
-            expr, Expression::constant::<CS>(base)
+            expr,
+            Expression::constant::<CS>(base),
         )?;
 
         let less_equal = Boolean::and(
             cs.namespace(|| "less equal"),
             &Boolean::from(diff).not(),
-            &bits.last()
+            &bits
+                .last()
                 .expect("expr bit representation should always contain at least one bit")
-                .not()
-        )?.not();
+                .not(),
+        )?
+        .not();
 
         Ok(less_equal)
     }
@@ -415,7 +423,9 @@ impl<E: Engine> CircuitElement<E> {
         &self.bits_le
     }
 
-    pub fn bits_length(&self) -> usize{ self.length }
+    pub fn bits_length(&self) -> usize {
+        self.length
+    }
 
     pub fn get_bits_be(&self) -> Vec<Boolean> {
         let mut bits_be = self.bits_le.clone();

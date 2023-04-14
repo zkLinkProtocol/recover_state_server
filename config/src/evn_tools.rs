@@ -10,9 +10,9 @@ pub fn get_env(name: &str) -> String {
 /// Obtains the environment variable value and parses it using the `FromStr` type implementation.
 /// Panics if there is no environment variable with provided name set, or the value cannot be parsed.
 pub fn parse_env<F>(name: &str) -> F
-    where
-        F: FromStr,
-        F::Err: std::fmt::Debug,
+where
+    F: FromStr,
+    F::Err: std::fmt::Debug,
 {
     get_env(name)
         .parse()
@@ -21,10 +21,10 @@ pub fn parse_env<F>(name: &str) -> F
 
 /// Similar to `parse_env`, but also takes a function to change the variable value before parsing.
 pub fn parse_env_with<T, F>(name: &str, f: F) -> T
-    where
-        T: FromStr,
-        T::Err: std::fmt::Debug,
-        F: FnOnce(&str) -> &str,
+where
+    T: FromStr,
+    T::Err: std::fmt::Debug,
+    F: FnOnce(&str) -> &str,
 {
     let env_var = get_env(name);
 
@@ -36,9 +36,9 @@ pub fn parse_env_with<T, F>(name: &str, f: F) -> T
 /// Obtains the environment variable value and on success parses it using the `FromStr` type implementation.
 /// Panics if value cannot be parsed.
 pub fn parse_env_if_exists<F>(name: &str) -> Option<F>
-    where
-        F: FromStr,
-        F::Err: std::fmt::Debug,
+where
+    F: FromStr,
+    F::Err: std::fmt::Debug,
 {
     env::var(name)
         .map(|var| {
@@ -51,10 +51,10 @@ pub fn parse_env_if_exists<F>(name: &str) -> Option<F>
 
 /// Obtains the environment comma separated variables into collection.
 pub fn parse_env_to_collection<F, I>(name: &str) -> F
-    where
-        I: FromStr,
-        I::Err: std::fmt::Debug,
-        F: FromIterator<I>,
+where
+    I: FromStr,
+    I::Err: std::fmt::Debug,
+    F: FromIterator<I>,
 {
     get_env(name)
         .split(',')
@@ -63,18 +63,14 @@ pub fn parse_env_to_collection<F, I>(name: &str) -> F
 }
 
 pub fn parse_env_to_vec_if_exists<F, I>(name: &str) -> Option<F>
-    where
-        I: FromStr,
-        I::Err: std::fmt::Debug,
-        F: FromIterator<I>,
+where
+    I: FromStr,
+    I::Err: std::fmt::Debug,
+    F: FromIterator<I>,
 {
     env::var(name)
-        .map(|s|
-            s.split(',')
-                .map(|p| p.parse::<I>().unwrap())
-                .collect()
-        ).ok()
-
+        .map(|s| s.split(',').map(|p| p.parse::<I>().unwrap()).collect())
+        .ok()
 }
 
 #[cfg(test)]
@@ -98,7 +94,7 @@ mod test {
         assert_eq!(parsed, 123);
 
         env::set_var(KEY, "1,2,3");
-        let parsed:Vec<u8> = parse_env_to_collection(KEY);
-        assert_eq!(parsed, vec![1,2,3]);
+        let parsed: Vec<u8> = parse_env_to_collection(KEY);
+        assert_eq!(parsed, vec![1, 2, 3]);
     }
 }

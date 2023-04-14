@@ -1,11 +1,14 @@
+use super::GetPublicData;
 use crate::helpers::{pack_fee_amount, unpack_fee_amount};
 use crate::tx::ChangePubKey;
-use crate::{PubKeyHash, AccountId, Nonce, TokenId, ZkLinkAddress};
+use crate::{AccountId, Nonce, PubKeyHash, TokenId, ZkLinkAddress};
 use anyhow::{ensure, format_err};
 use serde::{Deserialize, Serialize};
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, ETH_ADDRESS_BIT_WIDTH, CHUNK_BYTES, NONCE_BIT_WIDTH, TOKEN_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, FEE_BIT_WIDTH, NEW_PUBKEY_HASH_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, CHUNK_BYTES, ETH_ADDRESS_BIT_WIDTH, FEE_BIT_WIDTH,
+    NEW_PUBKEY_HASH_WIDTH, NONCE_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
-use super::GetPublicData;
 
 /// ChangePubKey operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +18,7 @@ pub struct ChangePubKeyOp {
     pub address: ZkLinkAddress,
 }
 
-impl GetPublicData for ChangePubKeyOp{
+impl GetPublicData for ChangePubKeyOp {
     fn get_public_data(&self) -> Vec<u8> {
         let mut data = Vec::new();
         data.push(Self::OP_CODE); // opcode
@@ -80,7 +83,7 @@ impl ChangePubKeyOp {
                 Default::default(),
             ),
             account_id: AccountId(account_id),
-            address
+            address,
         })
     }
 

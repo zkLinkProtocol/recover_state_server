@@ -1,15 +1,15 @@
 #![allow(dead_code)]
 use super::{SETUP_MAX_POW2, SETUP_MIN_POW2};
 use anyhow::format_err;
-use std::fs::{create_dir_all, File, remove_file};
+use std::fs::{create_dir_all, remove_file, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use tracing::info;
 use zklink_crypto::bellman::kate_commitment::{Crs, CrsForLagrangeForm, CrsForMonomialForm};
-use zklink_crypto::franklin_crypto::bellman::plonk::better_cs::adaptor::*;
 use zklink_crypto::bellman::plonk::{make_verification_key, setup, transpile_with_gates_count};
-use zklink_crypto::Engine;
+use zklink_crypto::franklin_crypto::bellman::plonk::better_cs::adaptor::*;
 use zklink_crypto::franklin_crypto::bellman::Circuit;
+use zklink_crypto::Engine;
 
 /// Generates PLONK verification key for given circuit and saves key at the given path.
 /// Returns used setup power of two. (e.g. 22)
@@ -25,7 +25,7 @@ fn generate_verification_key<C: Circuit<Engine> + Clone, P: AsRef<Path>>(
         path.display()
     );
     {
-        println!("path is {:?}",path);
+        println!("path is {:?}", path);
         let parent_dir = path.parent().unwrap();
         if !parent_dir.exists() {
             create_dir_all(parent_dir).expect("can't create verification key parent dir");
@@ -88,8 +88,8 @@ fn generate_verification_key<C: Circuit<Engine> + Clone, P: AsRef<Path>>(
         gates_count, size_log2
     );
 
-    let key_monomial_form =
-        get_universal_setup_monomial_form(zklink_home,size_log2).expect("Failed to read setup file.");
+    let key_monomial_form = get_universal_setup_monomial_form(zklink_home, size_log2)
+        .expect("Failed to read setup file.");
 
     info!("Generating setup");
     let setup = setup(circuit, &transpilation_hints).expect("failed to make setup");
@@ -122,7 +122,7 @@ pub fn get_universal_setup_monomial_form(
 /// Returns universal setup in lagrange form of the given power of two (range: SETUP_MIN_POW2..=SETUP_MAX_POW2). Checks if file exists
 pub fn get_universal_setup_lagrange_form(
     power_of_two: u32,
-    zklink_home: &str
+    zklink_home: &str,
 ) -> Result<Crs<Engine, CrsForLagrangeForm>, anyhow::Error> {
     anyhow::ensure!(
         (SETUP_MIN_POW2..=SETUP_MAX_POW2).contains(&power_of_two),

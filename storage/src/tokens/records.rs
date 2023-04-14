@@ -4,7 +4,7 @@ use sqlx::{types::BigDecimal, FromRow};
 // Workspace imports
 // Local imports
 use chrono::{DateTime, Utc};
-use zklink_types::{Token, TokenId, ChainId};
+use zklink_types::{ChainId, Token, TokenId};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, FromRow)]
 pub struct DbTokenOfChain {
@@ -17,7 +17,7 @@ pub struct DbTokenOfChain {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, FromRow)]
 pub struct DbTokenId {
-   pub id: Option<i32>,
+    pub id: Option<i32>,
 }
 
 impl From<DbTokenOfChain> for Token {
@@ -35,5 +35,5 @@ pub struct DbToken {
     pub symbol: String,
     pub price_id: String,
     pub usd_price: BigDecimal,
-    pub last_update_time: DateTime<Utc>
+    pub last_update_time: DateTime<Utc>,
 }

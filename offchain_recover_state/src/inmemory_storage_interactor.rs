@@ -1,11 +1,15 @@
+use ethers::prelude::H256;
 use std::cmp::max;
 use std::collections::HashMap;
-use ethers::prelude::H256;
-use zklink_types::block::Block;
-use zklink_types::{Account, AccountId, AccountMap, AccountUpdate, Action, BlockNumber, ChainId, Operation, Token, TokenId, ZkLinkAddress};
-use zklink_types::utils::calculate_actual_token;
 use zklink_storage::chain::operations::records::StoredSubmitTransaction;
+use zklink_types::block::Block;
+use zklink_types::utils::calculate_actual_token;
+use zklink_types::{
+    Account, AccountId, AccountMap, AccountUpdate, Action, BlockNumber, ChainId, Operation, Token,
+    TokenId, ZkLinkAddress,
+};
 
+use crate::contract::utils::NewToken;
 use crate::{
     data_restore_driver::StorageUpdateState,
     events::{BlockEvent, EventType},
@@ -14,7 +18,6 @@ use crate::{
     storage_interactor::StorageInteractor,
     storage_interactor::StoredTreeState,
 };
-use crate::contract::utils::NewToken;
 
 pub struct InMemoryStorageInteractor {
     rollups: Vec<RollupOpsBlock>,
@@ -49,7 +52,7 @@ impl StorageInteractor for InMemoryStorageInteractor {
         token_events: Vec<NewToken>,
         _symbols: Vec<String>,
     ) {
-        for token in token_events{
+        for token in token_events {
             let token = Token {
                 id: token.id.into(),
                 chains: vec![chain_id],
@@ -63,7 +66,10 @@ impl StorageInteractor for InMemoryStorageInteractor {
         self.storage_state = StorageUpdateState::Operations
     }
 
-    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>) {
+    async fn store_blocks_and_updates(
+        &mut self,
+        blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>,
+    ) {
         for (block, accounts_updated) in blocks_and_updates {
             let commit_op = Operation {
                 action: Action::Commit,
@@ -87,11 +93,19 @@ impl StorageInteractor for InMemoryStorageInteractor {
         }
     }
 
-    async fn init_token_event_progress(&mut self, _chain_id: ChainId, _last_block_number: BlockNumber) {
+    async fn init_token_event_progress(
+        &mut self,
+        _chain_id: ChainId,
+        _last_block_number: BlockNumber,
+    ) {
         todo!()
     }
 
-    async fn init_block_events_state(&mut self, _chain_id: ChainId, _last_watched_block_number: u64) {
+    async fn init_block_events_state(
+        &mut self,
+        _chain_id: ChainId,
+        _last_watched_block_number: u64,
+    ) {
         todo!()
     }
 
@@ -108,7 +122,10 @@ impl StorageInteractor for InMemoryStorageInteractor {
         Ok(())
     }
 
-    async fn save_genesis_tree_state(&mut self, genesis_updates: &[(AccountId, AccountUpdate, H256)]) {
+    async fn save_genesis_tree_state(
+        &mut self,
+        genesis_updates: &[(AccountId, AccountUpdate, H256)],
+    ) {
         self.commit_state_update(0, genesis_updates);
     }
 
@@ -127,7 +144,7 @@ impl StorageInteractor for InMemoryStorageInteractor {
     async fn get_tree_state(&mut self, chain_ids: Vec<ChainId>) -> StoredTreeState {
         let last_serial_ids = chain_ids
             .into_iter()
-            .map(|chain_id|(chain_id, -1))
+            .map(|chain_id| (chain_id, -1))
             .collect();
         // TODO find a way how to get unprocessed_prior_ops and fee_acc_id
         StoredTreeState {
@@ -200,7 +217,7 @@ impl InMemoryStorageInteractor {
     fn commit_state_update(
         &mut self,
         first_update_order_id: u32,
-        accounts_updated: &[(AccountId, AccountUpdate, H256)]
+        accounts_updated: &[(AccountId, AccountUpdate, H256)],
     ) {
         let update_order_ids =
             first_update_order_id..first_update_order_id + accounts_updated.len() as u32;

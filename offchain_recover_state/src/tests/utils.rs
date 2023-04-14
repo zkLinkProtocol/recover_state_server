@@ -1,9 +1,9 @@
-use std::future::Future;
+use crate::contract::ZkLinkContract;
 use anyhow::Error;
 use async_trait::async_trait;
 use ethers::prelude::{Bytes, Log};
+use std::future::Future;
 use zklink_types::{Account, BlockNumber, ChainId, H160, H256};
-use crate::contract::ZkLinkContract;
 
 // #[derive(Debug, Clone)]
 // pub(crate) struct FakeContract;

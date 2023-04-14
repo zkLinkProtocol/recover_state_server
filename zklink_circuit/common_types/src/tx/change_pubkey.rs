@@ -1,15 +1,15 @@
+use super::{PackedEthSignature, StarkECDSASignature, TxSignature};
+use crate::account::PubKeyHash;
+use crate::tx::validators::*;
+use crate::{helpers::pack_fee_amount, AccountId};
 use ethers::types::Address;
 use num::{BigUint, Zero};
 use parity_crypto::Keccak256;
 use serde::{Deserialize, Serialize};
 use validator::Validate;
-use zklink_basic_types::{TokenId, ChainId, H256, TimeStamp, Nonce, SubAccountId};
+use zklink_basic_types::{ChainId, Nonce, SubAccountId, TimeStamp, TokenId, H256};
 use zklink_crypto::PrivateKey;
 use zklink_utils::{format_units, BigUintSerdeAsRadix10Str};
-use super::{PackedEthSignature, TxSignature, StarkECDSASignature};
-use crate::{helpers::pack_fee_amount, AccountId};
-use crate::account::PubKeyHash;
-use crate::tx::validators::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -91,12 +91,11 @@ impl ChangePubKeyAuthData {
                 bytes.push(v);
                 bytes
             }
-            ChangePubKeyAuthData::EthCREATE2(
-                CREATE2Data {
-                    creator_address,
-                    salt_arg,
-                    code_hash,
-             }) => {
+            ChangePubKeyAuthData::EthCREATE2(CREATE2Data {
+                creator_address,
+                salt_arg,
+                code_hash,
+            }) => {
                 let mut bytes = Vec::new();
                 bytes.push(0x01);
                 bytes.extend_from_slice(creator_address.as_bytes());
@@ -104,7 +103,10 @@ impl ChangePubKeyAuthData {
                 bytes.extend_from_slice(code_hash.as_bytes());
                 bytes
             }
-            ChangePubKeyAuthData::StarkECDSA(StarkECDSAData{signature, public_key}) =>{
+            ChangePubKeyAuthData::StarkECDSA(StarkECDSAData {
+                signature,
+                public_key,
+            }) => {
                 let mut bytes = Vec::new();
                 bytes.push(0x02);
                 bytes.extend_from_slice(&signature.0);
@@ -173,11 +175,7 @@ impl ChangePubKey {
         ts: TimeStamp,
     ) -> Self {
         let eth_auth_data = eth_signature
-            .map(|eth_signature| {
-                ChangePubKeyAuthData::EthECDSA(EthECDSAData {
-                    eth_signature,
-                })
-            })
+            .map(|eth_signature| ChangePubKeyAuthData::EthECDSA(EthECDSAData { eth_signature }))
             .unwrap_or(ChangePubKeyAuthData::Onchain);
 
         Self {
@@ -277,7 +275,7 @@ impl ChangePubKey {
                     fee = format_units(&self.fee, decimals),
                     token = token_symbol,
                 )
-                    .as_str(),
+                .as_str(),
             );
         }
         message

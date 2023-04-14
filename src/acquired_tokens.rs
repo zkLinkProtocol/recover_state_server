@@ -1,12 +1,14 @@
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
-use zklink_types::{ChainId, TokenId, ZkLinkAddress};
-use zklink_crypto::params::{MAX_USD_TOKEN_ID, USD_SYMBOL, USD_TOKEN_ID, USDX_TOKEN_ID_UPPER_BOUND};
-use zklink_storage::ConnectionPool;
 use crate::response::{ExodusResponse, ExodusStatus};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use zklink_crypto::params::{
+    MAX_USD_TOKEN_ID, USDX_TOKEN_ID_UPPER_BOUND, USD_SYMBOL, USD_TOKEN_ID,
+};
+use zklink_storage::ConnectionPool;
+use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
 #[derive(Debug, Clone)]
-pub struct AcquiredTokens{
+pub struct AcquiredTokens {
     /// All tokens that layer2 registered
     pub token_by_id: HashMap<TokenId, TokenInfo>,
     /// All usdx(usdt, usdc, etc) tokens
@@ -15,7 +17,8 @@ pub struct AcquiredTokens{
 
 impl AcquiredTokens {
     pub(crate) async fn load_from_storage(conn_pool: &ConnectionPool) -> Self {
-        let mut storage = conn_pool.access_storage_with_retry()
+        let mut storage = conn_pool
+            .access_storage_with_retry()
             .await
             .expect("Failed to access storage");
         let stored_tokens = storage
@@ -24,15 +27,17 @@ impl AcquiredTokens {
             .await
             .expect("reload token from db failed");
         let mut token_by_id = HashMap::new();
-        for (token_id, token) in stored_tokens{
+        for (token_id, token) in stored_tokens {
             let mut token_info = TokenInfo::new(token.id);
-            for chain_id in token.chains{
-                let db_token = storage.tokens_schema()
+            for chain_id in token.chains {
+                let db_token = storage
+                    .tokens_schema()
                     .get_chain_token(*token.id as i32, *chain_id as i16)
                     .await
                     .expect("Failed to get chain token")
                     .expect("Db chain token cannot be None");
-                let token = storage.tokens_schema()
+                let token = storage
+                    .tokens_schema()
                     .get_token(*token.id as i32)
                     .await
                     .expect("Failed to get chain token")
@@ -45,27 +50,29 @@ impl AcquiredTokens {
 
         let usdx_tokens = token_by_id
             .iter()
-            .filter_map(|(&token_id, token)|
-                if USDX_TOKEN_ID_UPPER_BOUND < *token_id
-                    && *token_id <= MAX_USD_TOKEN_ID
-                { Some((token_id, token.clone())) } else { None}
-            )
+            .filter_map(|(&token_id, token)| {
+                if USDX_TOKEN_ID_UPPER_BOUND < *token_id && *token_id <= MAX_USD_TOKEN_ID {
+                    Some((token_id, token.clone()))
+                } else {
+                    None
+                }
+            })
             .collect();
-        Self{ token_by_id, usdx_tokens }
+        Self {
+            token_by_id,
+            usdx_tokens,
+        }
     }
 
     pub(crate) async fn get_token(&self, token_id: TokenId) -> Result<TokenInfo, ExodusStatus> {
-        if let Some(token) = self.token_by_id
-            .get(&token_id)
-            .cloned()
-        {
+        if let Some(token) = self.token_by_id.get(&token_id).cloned() {
             Ok(token)
         } else {
             Err(ExodusStatus::TokenNotExist)
         }
     }
 
-    pub(crate) fn tokens(&self) -> ExodusResponse<HashMap<TokenId, TokenInfo>>{
+    pub(crate) fn tokens(&self) -> ExodusResponse<HashMap<TokenId, TokenInfo>> {
         ExodusResponse::Ok().data(self.token_by_id.clone())
     }
 }
@@ -79,19 +86,23 @@ pub struct TokenInfo {
 
 impl TokenInfo {
     fn new(token_id: TokenId) -> Self {
-        let symbol = if token_id == USD_TOKEN_ID.into(){ USD_SYMBOL.to_string() } else { "".to_string() };
-        Self{
+        let symbol = if token_id == USD_TOKEN_ID.into() {
+            USD_SYMBOL.to_string()
+        } else {
+            "".to_string()
+        };
+        Self {
             token_id,
             symbol,
-            addresses: HashMap::new()
+            addresses: HashMap::new(),
         }
     }
 
-    fn insert_token_address(&mut self, chain_id: ChainId, address:ZkLinkAddress){
+    fn insert_token_address(&mut self, chain_id: ChainId, address: ZkLinkAddress) {
         self.addresses.insert(chain_id, address);
     }
 
-    fn set_symbol(&mut self, symbol: String){
+    fn set_symbol(&mut self, symbol: String) {
         self.symbol = symbol;
     }
 }

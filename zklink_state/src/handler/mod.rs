@@ -5,10 +5,9 @@ mod change_pubkey;
 mod deposit;
 mod forced_exit;
 mod full_exit;
+mod order_matching;
 mod transfer;
 mod withdraw;
-mod order_matching;
-
 
 /// TxHandler trait encapsulates the logic of each individual transaction
 /// handling. By transactions we assume both zkLink network transactions,
@@ -39,16 +38,10 @@ pub trait TxHandler<Tx> {
     }
 
     /// Applies the operation.
-    fn apply_op(
-        &mut self,
-        op: &mut Self::Op,
-    ) -> Result<AccountUpdates, anyhow::Error>;
+    fn apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, anyhow::Error>;
 
     /// Applies the operation unsafely for recovering state.
-    fn unsafe_apply_op(
-        &mut self,
-        _op: &mut Self::Op,
-    ) -> Result<AccountUpdates, anyhow::Error>{
+    fn unsafe_apply_op(&mut self, _op: &mut Self::Op) -> Result<AccountUpdates, anyhow::Error> {
         Ok(vec![])
     }
 }

@@ -3,14 +3,13 @@ use serde::{Deserialize, Serialize};
 use validator::{Validate, ValidationErrors};
 use zklink_basic_types::SubAccountId;
 
-use crate::{
-    ChangePubKeyOp, DepositOp,
-    ForcedExitOp, FullExit, FullExitOp, Nonce, OrderMatching,
-    TransferOp, TransferToNewOp, tx::{
-        ChangePubKey, Deposit, ForcedExit, Transfer, TxHash, TxLayer1Signature, Withdraw,
-    }, utils::deserialize_eth_message, WithdrawOp
-};
 use crate::operations::OrderMatchingOp;
+use crate::{
+    tx::{ChangePubKey, Deposit, ForcedExit, Transfer, TxHash, TxLayer1Signature, Withdraw},
+    utils::deserialize_eth_message,
+    ChangePubKeyOp, DepositOp, ForcedExitOp, FullExit, FullExitOp, Nonce, OrderMatching,
+    TransferOp, TransferToNewOp, WithdrawOp,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EthSignData {
@@ -28,19 +27,19 @@ pub enum ZkLinkTxType {
     Transfer,
     Withdraw,
     ForcedExit,
-    OrderMatching
+    OrderMatching,
 }
 
 impl ZkLinkTxType {
     pub fn op_codes(&self) -> Vec<u8> {
         match self {
             ZkLinkTxType::Deposit => vec![DepositOp::OP_CODE],
-            ZkLinkTxType::Transfer => vec![TransferOp::OP_CODE,TransferToNewOp::OP_CODE],
+            ZkLinkTxType::Transfer => vec![TransferOp::OP_CODE, TransferToNewOp::OP_CODE],
             ZkLinkTxType::Withdraw => vec![WithdrawOp::OP_CODE],
             ZkLinkTxType::FullExit => vec![FullExitOp::OP_CODE],
             ZkLinkTxType::ChangePubKey => vec![ChangePubKeyOp::OP_CODE],
             ZkLinkTxType::ForcedExit => vec![ForcedExitOp::OP_CODE],
-            ZkLinkTxType::OrderMatching => vec![OrderMatchingOp::OP_CODE]
+            ZkLinkTxType::OrderMatching => vec![OrderMatchingOp::OP_CODE],
         }
     }
 }
@@ -96,7 +95,9 @@ impl From<ForcedExit> for ZkLinkTx {
 }
 
 impl From<OrderMatching> for ZkLinkTx {
-    fn from(tx: OrderMatching) -> Self { Self::OrderMatching(Box::new(tx)) }
+    fn from(tx: OrderMatching) -> Self {
+        Self::OrderMatching(Box::new(tx))
+    }
 }
 
 impl ZkLinkTx {
@@ -152,7 +153,7 @@ impl ZkLinkTx {
             // account pay fee
             // sub account ids of order are same as tx.sub_account_id
             ZkLinkTx::OrderMatching(tx) => vec![tx.sub_account_id],
-            _ => vec![]
+            _ => vec![],
         }
     }
 
@@ -163,9 +164,9 @@ impl ZkLinkTx {
             ZkLinkTx::Withdraw(tx) => tx.nonce,
             ZkLinkTx::ChangePubKey(tx) => tx.nonce,
             ZkLinkTx::ForcedExit(tx) => tx.nonce,
-            ZkLinkTx::OrderMatching(_tx) => {Nonce(u32::MAX)}
-            ZkLinkTx::FullExit(tx) => {Nonce((tx.serial_id & 0xffffffff) as u32)}
-            ZkLinkTx::Deposit(tx) => {Nonce((tx.serial_id & 0xffffffff) as u32)}
+            ZkLinkTx::OrderMatching(_tx) => Nonce(u32::MAX),
+            ZkLinkTx::FullExit(tx) => Nonce((tx.serial_id & 0xffffffff) as u32),
+            ZkLinkTx::Deposit(tx) => Nonce((tx.serial_id & 0xffffffff) as u32),
         }
     }
 

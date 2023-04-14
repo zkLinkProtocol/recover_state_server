@@ -1,9 +1,9 @@
-use std::fmt::{Display, Formatter};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::FromRow;
-use serde::{Serialize, Deserialize};
 use sqlx::types::BigDecimal;
+use sqlx::FromRow;
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct StoredExitProof {
@@ -48,7 +48,7 @@ impl Display for StoredExitInfo {
 
 impl From<&StoredExitProof> for StoredExitInfo {
     fn from(value: &StoredExitProof) -> Self {
-        Self{
+        Self {
             chain_id: value.chain_id,
             account_id: value.account_id,
             sub_account_id: value.sub_account_id,

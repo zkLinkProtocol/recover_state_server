@@ -1,21 +1,5 @@
 pub(crate) mod utils;
 
-use std::cmp::max;
-use std::{collections::HashMap, future::Future};
-use chrono::Utc;
-use ethers::abi::{ethabi, Tokenize};
-use ethers::prelude::{Log, Transaction};
-use futures::future;
-use jsonrpc_core::Params;
-use num::BigUint;
-use serde_json::{json, Value};
-use aggegate::agg_op::commit_op::BlocksCommitOperation;
-use zklink_storage::{chain::account::AccountSchema, recover_state::RecoverSchema, StorageProcessor};
-use zklink_types::{
-    block::Block, AccountId, BlockNumber, Deposit, DepositOp, ExecutedTx, Nonce,
-    TokenId, Withdraw, WithdrawOp, ZkLinkOp, H256, H160, ZkLinkAddress, SubAccountId, ChainId
-};
-use zklink_blockchain::eth::contract::{load_abi, ZKLINK_JSON};
 use crate::{
     data_restore_driver::RecoverStateDriver,
     database_storage_interactor::DatabaseStorageInteractor,
@@ -23,12 +7,26 @@ use crate::{
     tests::utils::{create_log, u32_to_32bytes},
     END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
 };
+use aggegate::agg_op::commit_op::BlocksCommitOperation;
+use chrono::Utc;
+use ethers::abi::{ethabi, Tokenize};
+use ethers::prelude::{Log, Transaction};
+use futures::future;
+use jsonrpc_core::Params;
+use num::BigUint;
+use serde_json::{json, Value};
+use std::cmp::max;
+use std::{collections::HashMap, future::Future};
+use zklink_blockchain::eth::contract::{load_abi, ZKLINK_JSON};
+use zklink_storage::{
+    chain::account::AccountSchema, recover_state::RecoverSchema, StorageProcessor,
+};
+use zklink_types::{
+    block::Block, AccountId, BlockNumber, ChainId, Deposit, DepositOp, ExecutedTx, Nonce,
+    SubAccountId, TokenId, Withdraw, WithdrawOp, ZkLinkAddress, ZkLinkOp, H160, H256,
+};
 
-fn create_withdraw_operations(
-    account_id: AccountId,
-    to: ZkLinkAddress,
-    amount: u32,
-) -> ExecutedTx {
+fn create_withdraw_operations(account_id: AccountId, to: ZkLinkAddress, amount: u32) -> ExecutedTx {
     let withdraw_op = ZkLinkOp::Withdraw(Box::new(WithdrawOp {
         tx: Withdraw::new(
             account_id,
@@ -80,7 +78,7 @@ fn create_deposit(from: ZkLinkAddress, to: ZkLinkAddress, amount: u32) -> Execut
         fail_reason: None,
         block_index: Some(0),
         created_at: Utc::now(),
-        success: false
+        success: false,
     }
 }
 

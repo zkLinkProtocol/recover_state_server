@@ -1,12 +1,12 @@
 //! Generate exit proof for exodus mode given account and token
 //! correct verified state should be present in the db (could be restored using `data-restore` module)
 
+use recover_state_config::RecoverStateConfig;
 use std::time::Instant;
 use structopt::StructOpt;
 use tracing::info;
-use recover_state_config::RecoverStateConfig;
 use zklink_prover::exit_type::ExitInfo;
-use zklink_prover::{ExodusProver, run_exodus_prover};
+use zklink_prover::{run_exodus_prover, ExodusProver};
 
 #[derive(StructOpt)]
 #[structopt(
@@ -17,7 +17,7 @@ use zklink_prover::{ExodusProver, run_exodus_prover};
 enum Opt {
     /// Runs prover tasks module(Running programmer)
     #[structopt(name = "tasks")]
-    Tasks{
+    Tasks {
         /// The number of workers required to run
         #[structopt(short = "w", long = "workers_num")]
         workers_num: Option<usize>,
@@ -51,8 +51,8 @@ async fn main() {
     let opt = Opt::from_args();
     let recover_state_config = RecoverStateConfig::from_env();
 
-    match opt{
-        Opt::Tasks{ workers_num } => {
+    match opt {
+        Opt::Tasks { workers_num } => {
             info!("Run the task mode of exodus prover for exit proof tasks!");
             run_exodus_prover(recover_state_config, workers_num).await;
         }
@@ -61,11 +61,11 @@ async fn main() {
             account_id,
             sub_account_id,
             l1_target_token,
-            l2_source_token
+            l2_source_token,
         } => {
             info!("Run the command mode of exodus command for generating single exit proof!");
             info!("Construct exit info");
-            let exit_info = ExitInfo{
+            let exit_info = ExitInfo {
                 chain_id: chain_id.into(),
                 account_address: Default::default(),
                 account_id: account_id.into(),
@@ -82,15 +82,20 @@ async fn main() {
                 .expect("Failed to create exit proof");
             info!("End proving, elapsed time: {} s", timer.elapsed().as_secs());
 
-            let stored_block_info = prover.last_executed_block.stored_block_info(chain_id.into());
+            let stored_block_info = prover
+                .last_executed_block
+                .stored_block_info(chain_id.into());
 
             println!("\n\n");
             println!("==========================");
             println!("Generating proof completed!");
-            println!("Below you can see the input data for the exit transaction on ZkLink contract");
+            println!(
+                "Below you can see the input data for the exit transaction on ZkLink contract"
+            );
             println!(
                 "Look up the manuals of your desired smart wallet in order to know how to sign \
-                and send this transaction to the blockchain of {:?}", proof_data.exit_info.chain_id
+                and send this transaction to the blockchain of {:?}",
+                proof_data.exit_info.chain_id
             );
             println!("==========================");
 

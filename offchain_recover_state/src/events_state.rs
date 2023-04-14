@@ -5,7 +5,9 @@ use std::convert::TryFrom;
 // Workspace deps
 use zklink_types::{BlockNumber, U256};
 // Local deps
-use crate::contract::{BlockChain, LogInfo, TransactionInfo, ZkLinkContract, ZkLinkContractVersion};
+use crate::contract::{
+    BlockChain, LogInfo, TransactionInfo, ZkLinkContract, ZkLinkContractVersion,
+};
 use crate::events::{BlockEvent, EventType};
 
 /// Rollup contract events states description
@@ -42,7 +44,8 @@ impl RollUpEvents {
         &mut self,
         genesis_transaction: &T::Transaction,
     ) -> Result<u64, anyhow::Error> {
-        let genesis_block_number = genesis_transaction.block_number()
+        let genesis_block_number = genesis_transaction
+            .block_number()
             .ok_or_else(|| format_err!("No block number info in tx"))?;
         self.last_watched_block_number = genesis_block_number;
         Ok(genesis_block_number)
@@ -70,14 +73,13 @@ impl RollUpEvents {
     ) -> Result<(Vec<BlockEvent>, u64), anyhow::Error> {
         self.remove_verified_events();
 
-        let (block_events, to_block_number) =
-            Self::get_block_events_and_last_watched_block(
-                zklink_contract,
-                self.last_watched_block_number,
-                view_blocks_step,
-                end_block_offset,
-            )
-            .await?;
+        let (block_events, to_block_number) = Self::get_block_events_and_last_watched_block(
+            zklink_contract,
+            self.last_watched_block_number,
+            view_blocks_step,
+            end_block_offset,
+        )
+        .await?;
         // Parse the initial contract version.
         let init_contract_version = ZkLinkContractVersion::try_from(init_contract_version)
             .expect("invalid initial contract version provided");
@@ -94,10 +96,7 @@ impl RollUpEvents {
         let mut events_to_return = self.committed_events.clone();
         events_to_return.extend(self.verified_events.clone());
 
-        Ok((
-            events_to_return,
-            self.last_watched_block_number,
-        ))
+        Ok((events_to_return, self.last_watched_block_number))
     }
 
     /// Returns blocks logs, added token logs and the new last watched block number
@@ -122,18 +121,17 @@ impl RollUpEvents {
         }
 
         let from_block_number = last_watched_block_number + 1;
-        let to_block_number = min(from_block_number + view_blocks_step, latest_block_minus_delta);
+        let to_block_number = min(
+            from_block_number + view_blocks_step,
+            latest_block_minus_delta,
+        );
 
-        let block_logs = zklink_contract.get_block_logs(
-            from_block_number.into(),
-            to_block_number.into(),
-        )
+        let block_logs = zklink_contract
+            .get_block_logs(from_block_number.into(), to_block_number.into())
             .await?;
 
         Ok((block_logs, to_block_number))
     }
-
-
 
     /// Updates committed and verified blocks state by extending their arrays
     /// Returns flag that indicates if there are any logs
@@ -151,7 +149,9 @@ impl RollUpEvents {
         contract_upgraded_blocks: &[u64],
         init_contract_version: ZkLinkContractVersion,
     ) {
-        if logs.is_empty() { return }
+        if logs.is_empty() {
+            return;
+        }
 
         let block_verified_topic = contract.get_event_signature("BlockExecuted");
         let block_committed_topic = contract.get_event_signature("BlockCommit");
@@ -182,7 +182,9 @@ impl RollUpEvents {
             // Go into new blocks
             let transaction_hash = log.transaction_hash();
             // Restore the number of contract upgrades using layer1 block numbers.
-            let log_block_number = log.block_number().expect("no Layer1 block number for block log");
+            let log_block_number = log
+                .block_number()
+                .expect("no Layer1 block number for block log");
 
             let num = contract_upgraded_blocks
                 .iter()
@@ -222,9 +224,9 @@ impl RollUpEvents {
 
 #[cfg(test)]
 mod test {
+    use super::RollUpEvents;
     use ethers::prelude::Bytes;
     use zklink_types::H160;
-    use super::RollUpEvents;
 
     use crate::contract::{ZkLinkContractVersion, ZkLinkEvmContract};
     use crate::tests::utils::{create_log, u32_to_32bytes};

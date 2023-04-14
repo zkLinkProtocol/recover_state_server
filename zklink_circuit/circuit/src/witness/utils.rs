@@ -1,7 +1,7 @@
 // External deps
 // Workspace deps
-use zklink_crypto::circuit::account::{CircuitAccount, CircuitTidyOrder};
 use zklink_crypto::bellman::bn256::Bn256;
+use zklink_crypto::circuit::account::{CircuitAccount, CircuitTidyOrder};
 use zklink_crypto::Fr;
 use zklink_types::utils::{calculate_actual_slot, calculate_actual_token};
 // Local deps
@@ -18,7 +18,7 @@ pub fn get_audits(
     slot_id: u32,
 ) -> AllBranchAuditPath {
     let token_id = calculate_actual_token(sub_account_id.into(), token.into());
-    let slot_id = calculate_actual_slot( sub_account_id.into(), slot_id.into()).0;
+    let slot_id = calculate_actual_slot(sub_account_id.into(), slot_id.into()).0;
     let default_account = CircuitAccount::default();
     let audit_account: Vec<Option<Fr>> = tree
         .merkle_path(account_id)
@@ -54,7 +54,7 @@ pub fn get_leaf_values(
     let account_witness = AccountWitness::from_circuit_account(account);
 
     let token_id = calculate_actual_token(sub_account_id.into(), token_id.into());
-    let slot_id = calculate_actual_slot(sub_account_id.into(),slot_id.into()).0;
+    let slot_id = calculate_actual_slot(sub_account_id.into(), slot_id.into()).0;
 
     let balance = account
         .subtree
@@ -62,17 +62,7 @@ pub fn get_leaf_values(
         .cloned()
         .unwrap_or_default()
         .value;
-    let order = account
-        .order_tree
-        .get(slot_id)
-        .cloned()
-        .unwrap_or_default();
+    let order = account.order_tree.get(slot_id).cloned().unwrap_or_default();
 
-    (
-        account_witness,
-        balance,
-        order,
-    )
+    (account_witness, balance, order)
 }
-
-

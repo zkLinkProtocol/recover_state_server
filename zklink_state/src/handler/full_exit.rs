@@ -1,12 +1,10 @@
-use std::cmp::min;
 use num::Zero;
-use zklink_crypto::params::{GLOBAL_ASSET_ACCOUNT_ID};
-use zklink_types::{AccountUpdate, AccountUpdates, FullExit, FullExitOp, SubAccountId, Nonce};
+use std::cmp::min;
+use zklink_crypto::params::GLOBAL_ASSET_ACCOUNT_ID;
 use zklink_types::utils::check_source_token_and_target_token;
+use zklink_types::{AccountUpdate, AccountUpdates, FullExit, FullExitOp, Nonce, SubAccountId};
 
-use crate::{
-    handler::TxHandler, state::ZkLinkState,
-};
+use crate::{handler::TxHandler, state::ZkLinkState};
 
 impl TxHandler<FullExit> for ZkLinkState {
     type Op = FullExitOp;
@@ -22,9 +20,13 @@ impl TxHandler<FullExit> for ZkLinkState {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
-        assert!(is_required, "Source token or target token is mismatching in creating FullExitOp");
+        assert!(
+            is_required,
+            "Source token or target token is mismatching in creating FullExitOp"
+        );
 
-        let user_token = Self::get_actual_token_by_sub_account(tx.sub_account_id, tx.l2_source_token);
+        let user_token =
+            Self::get_actual_token_by_sub_account(tx.sub_account_id, tx.l2_source_token);
         // If exit address not equal to exit account address, for example, account A full exit account B
         // FullExit will still be executed but there will be no effect on account B
         let account_balance = self
@@ -33,27 +35,25 @@ impl TxHandler<FullExit> for ZkLinkState {
             .map(|account| account.get_balance(user_token));
 
         // Use chain id as sub account id
-        let global_real_token = Self::get_actual_token_by_chain(tx.to_chain_id, l1_target_token_after_mapping);
+        let global_real_token =
+            Self::get_actual_token_by_chain(tx.to_chain_id, l1_target_token_after_mapping);
         let account = self.get_account(GLOBAL_ASSET_ACCOUNT_ID).unwrap();
         let global_asset_remain = account.get_balance(global_real_token);
         // The exit amount must not exceed the balance of global account of chain exit to
-        let exit_amount = account_balance.map(
-            |balance| min(balance , global_asset_remain)
-        ).unwrap_or_default();
+        let exit_amount = account_balance
+            .map(|balance| min(balance, global_asset_remain))
+            .unwrap_or_default();
 
         let op = FullExitOp {
             tx,
             exit_amount,
-            l1_target_token_after_mapping
+            l1_target_token_after_mapping,
         };
 
         Ok(op)
     }
 
-    fn apply_op(
-        &mut self,
-        op: &mut Self::Op,
-    ) -> Result<AccountUpdates, anyhow::Error> {
+    fn apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, anyhow::Error> {
         let mut updates = Vec::new();
         let Some(mut account) = self.get_account(op.tx.account_id) else {
             // Although the account does not exist, we also want to have an update without transition.
@@ -78,7 +78,8 @@ impl TxHandler<FullExit> for ZkLinkState {
 
         let mut global_account = self.get_account(GLOBAL_ASSET_ACCOUNT_ID).unwrap();
         {
-            let real_token = Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.l2_source_token);
+            let real_token =
+                Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.l2_source_token);
             let old_balance = account.get_balance(real_token);
             let old_nonce = account.nonce;
             account.sub_balance(real_token, &op.exit_amount);
@@ -88,7 +89,12 @@ impl TxHandler<FullExit> for ZkLinkState {
             updates.push((
                 op.tx.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (op.tx.l2_source_token, op.tx.sub_account_id, old_balance, new_balance),
+                    balance_update: (
+                        op.tx.l2_source_token,
+                        op.tx.sub_account_id,
+                        old_balance,
+                        new_balance,
+                    ),
                     old_nonce,
                     new_nonce,
                 },
@@ -96,7 +102,10 @@ impl TxHandler<FullExit> for ZkLinkState {
         }
 
         {
-            let real_token = Self::get_actual_token_by_chain(op.tx.to_chain_id, op.l1_target_token_after_mapping);
+            let real_token = Self::get_actual_token_by_chain(
+                op.tx.to_chain_id,
+                op.l1_target_token_after_mapping,
+            );
             let global_old_amount = global_account.get_balance(real_token);
             global_account.sub_balance(real_token, &op.exit_amount);
             let global_new_amount = global_account.get_balance(real_token);
@@ -104,7 +113,12 @@ impl TxHandler<FullExit> for ZkLinkState {
             updates.push((
                 GLOBAL_ASSET_ACCOUNT_ID,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (op.l1_target_token_after_mapping, SubAccountId(*op.tx.to_chain_id), global_old_amount, global_new_amount),
+                    balance_update: (
+                        op.l1_target_token_after_mapping,
+                        SubAccountId(*op.tx.to_chain_id),
+                        global_old_amount,
+                        global_new_amount,
+                    ),
                     old_nonce: Nonce(0),
                     new_nonce: Nonce(0),
                 },

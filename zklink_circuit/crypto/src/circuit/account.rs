@@ -1,14 +1,14 @@
 use lazy_static::lazy_static;
 
-use franklin_crypto::bellman::pairing::ff::{Field, PrimeField};
-use franklin_crypto::bellman::pairing::Engine;
-use franklin_crypto::bellman::pairing::bn256::{Bn256, Fr};
-use franklin_crypto::rescue::RescueEngine;
+use crate::convert::FeConvert;
 use crate::merkle_tree::hasher::Hasher;
 use crate::merkle_tree::{RescueHasher, SparseMerkleTree};
-use crate::primitives::{GetBits, GetBitsFixed};
-use crate::convert::FeConvert;
 use crate::params;
+use crate::primitives::{GetBits, GetBitsFixed};
+use franklin_crypto::bellman::pairing::bn256::{Bn256, Fr};
+use franklin_crypto::bellman::pairing::ff::{Field, PrimeField};
+use franklin_crypto::bellman::pairing::Engine;
+use franklin_crypto::rescue::RescueEngine;
 
 /// Account tree used in the `zklink_circuit`.
 pub type CircuitAccountTree = SparseMerkleTree<CircuitAccount<Bn256>, Fr, RescueHasher<Bn256>>;
@@ -33,7 +33,7 @@ pub struct CircuitAccount<E: RescueEngine> {
     pub nonce: E::Fr,
     pub pub_key_hash: E::Fr,
     pub address: E::Fr,
-    pub order_tree: SparseMerkleTree<CircuitTidyOrder<E>, E::Fr, RescueHasher<E>>
+    pub order_tree: SparseMerkleTree<CircuitTidyOrder<E>, E::Fr, RescueHasher<E>>,
 }
 
 impl<E: RescueEngine> GetBits for CircuitAccount<E> {
@@ -47,18 +47,24 @@ impl<E: RescueEngine> GetBits for CircuitAccount<E> {
 
         leaf_content.extend(self.nonce.get_bits_le_fixed(params::NONCE_BIT_WIDTH));
         leaf_content.extend(
-            self.pub_key_hash.get_bits_le_fixed(params::NEW_PUBKEY_HASH_WIDTH));
+            self.pub_key_hash
+                .get_bits_le_fixed(params::NEW_PUBKEY_HASH_WIDTH),
+        );
         leaf_content.extend(
-            self.address.get_bits_le_fixed(params::ETH_ADDRESS_BIT_WIDTH));
+            self.address
+                .get_bits_le_fixed(params::ETH_ADDRESS_BIT_WIDTH),
+        );
 
-        { // calculate hash of the subroot using algebraic hash
+        {
+            // calculate hash of the subroot using algebraic hash
             let state_root = self.get_state_root();
             let mut state_tree_hash_bits = state_root.get_bits_le_fixed(params::FR_BIT_WIDTH);
             state_tree_hash_bits.resize(params::FR_BIT_WIDTH_PADDED, false);
             leaf_content.extend(state_tree_hash_bits.into_iter());
         }
 
-        { // calculate hash of the OrderTree using algebraic hash
+        {
+            // calculate hash of the OrderTree using algebraic hash
             let order_root = self.get_order_root();
             let mut order_tree_hash_bits = order_root.get_bits_le_fixed(params::FR_BIT_WIDTH);
             order_tree_hash_bits.resize(params::FR_BIT_WIDTH_PADDED, false);
@@ -111,9 +117,9 @@ pub struct CircuitTidyOrder<E: Engine> {
     pub residue: E::Fr,
 }
 
-impl<E: Engine> Default for CircuitTidyOrder<E>  {
+impl<E: Engine> Default for CircuitTidyOrder<E> {
     fn default() -> Self {
-        CircuitTidyOrder{
+        CircuitTidyOrder {
             nonce: E::Fr::zero(),
             residue: E::Fr::zero(),
         }
@@ -130,17 +136,17 @@ impl<E: Engine> GetBits for CircuitTidyOrder<E> {
 }
 
 impl<E: Engine> CircuitTidyOrder<E> {
-    pub fn update(&mut self,actual_exchanged: E::Fr, (amount, nonce): (E::Fr, u32)){
+    pub fn update(&mut self, actual_exchanged: E::Fr, (amount, nonce): (E::Fr, u32)) {
         let is_refresh_order = nonce > self.nonce.into_usize() as u32;
 
-        if self.residue == E::Fr::zero() ||  is_refresh_order{
+        if self.residue == E::Fr::zero() || is_refresh_order {
             self.residue = amount;
-            if is_refresh_order{
+            if is_refresh_order {
                 self.nonce = E::Fr::from_u64(nonce as u64);
             }
         }
         self.residue.sub_assign(&actual_exchanged);
-        if self.residue.is_zero(){
+        if self.residue.is_zero() {
             assert_ne!(self.nonce, E::Fr::from_u64(*params::MAX_NONCE as u64));
             self.nonce.add_assign(&E::Fr::one());
         }
@@ -178,6 +184,5 @@ impl<E: Engine> std::default::Default for Balance<E> {
 lazy_static! {
     static ref BALANCE_TREE: CircuitBalanceTree =
         SparseMerkleTree::new(params::balance_tree_depth());
-    static ref ORDER_TREE: CircuitOrderTree =
-        SparseMerkleTree::new(params::order_tree_depth());
+    static ref ORDER_TREE: CircuitOrderTree = SparseMerkleTree::new(params::order_tree_depth());
 }

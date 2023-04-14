@@ -1,20 +1,20 @@
-use std::collections::HashMap;
+use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
+use std::collections::HashMap;
 use tracing::info;
+use zklink_crypto::convert::FeConvert;
 use zklink_crypto::Fr;
+use zklink_state::state::TransferOutcome;
 use zklink_state::{
     handler::TxHandler,
     state::{OpSuccess, ZkLinkState},
 };
-use zklink_crypto::convert::FeConvert;
 use zklink_types::block::{Block, ExecutedTx};
 use zklink_types::operations::ZkLinkOp;
 use zklink_types::{
-    AccountId, AccountMap, ZkLinkAddress, BlockNumber, H256, Account, AccountUpdate,
-    Deposit, Transfer, Withdraw, ForcedExit, FullExit, ChangePubKey, OrderMatching, ChainId
+    Account, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, ChangePubKey, Deposit,
+    ForcedExit, FullExit, OrderMatching, Transfer, Withdraw, ZkLinkAddress, H256,
 };
-use zklink_state::state::TransferOutcome;
-use crate::rollup_ops::RollupOpsBlock;
 
 type BlockAndUpdates = (Block, Vec<(AccountId, AccountUpdate, H256)>);
 
@@ -80,8 +80,10 @@ impl TreeState {
         info!("Applying ops_block[{:?}]", ops_block.block_num);
         assert_eq!(self.state.block_number + 1, ops_block.block_num);
         assert_eq!(
-            ops_block.previous_block_root_hash, H256::from_slice(&self.root_hash().to_bytes()),
-            "There was an error in processing the last block[{:?}] ", ops_block.block_num - 1
+            ops_block.previous_block_root_hash,
+            H256::from_slice(&self.root_hash().to_bytes()),
+            "There was an error in processing the last block[{:?}] ",
+            ops_block.block_num - 1
         );
         let operations = ops_block.ops.clone();
 
@@ -94,10 +96,14 @@ impl TreeState {
                 ZkLinkOp::Deposit(op) => {
                     let mut op = <ZkLinkState as TxHandler<Deposit>>::create_op(&self.state, op.tx)
                         .map_err(|e| format_err!("Create Deposit fail: {}", e))?;
-                    let updates = <ZkLinkState as TxHandler<Deposit>>::apply_op(&mut self.state, &mut op)
-                        .map_err(|e| format_err!("Apply Deposit fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: op.into()};
-                    
+                    let updates =
+                        <ZkLinkState as TxHandler<Deposit>>::apply_op(&mut self.state, &mut op)
+                            .map_err(|e| format_err!("Apply Deposit fail: {}", e))?;
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: op.into(),
+                    };
+
                     current_op_block_index = self.update_from_tx(
                         tx_result,
                         &mut accounts_updated,
@@ -116,7 +122,10 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<Transfer>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("TransferToNew fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: op.into_franklin_op()};
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: op.into_franklin_op(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -142,7 +151,10 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<Transfer>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("Transfer fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: op.into_franklin_op()};
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: op.into_franklin_op(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -162,7 +174,10 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<Withdraw>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("Withdraw fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: (*op).into(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -186,7 +201,10 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<ForcedExit>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("ForcedExit fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: (*op).into(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -202,7 +220,10 @@ impl TreeState {
                     let updates =
                         <ZkLinkState as TxHandler<FullExit>>::apply_op(&mut self.state, &mut op)
                             .map_err(|e| format_err!("FullExit fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: op.into()};
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: op.into(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -217,10 +238,15 @@ impl TreeState {
                     })?;
                     op.tx.nonce = account.nonce;
 
-                    let updates =
-                        <ZkLinkState as TxHandler<ChangePubKey>>::apply_op(&mut self.state, &mut op)
-                            .map_err(|e| format_err!("ChangePubKeyOffchain fail: {}", e))?;
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                    let updates = <ZkLinkState as TxHandler<ChangePubKey>>::apply_op(
+                        &mut self.state,
+                        &mut op,
+                    )
+                    .map_err(|e| format_err!("ChangePubKeyOffchain fail: {}", e))?;
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: (*op).into(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -230,11 +256,18 @@ impl TreeState {
                     );
                 }
                 ZkLinkOp::OrderMatching(mut op) => {
-                    let updates =
-                        <ZkLinkState as TxHandler<OrderMatching>>::unsafe_apply_op(&mut self.state, &mut op)
-                            .map_err(|e| format_err!("OrderMatching fail: {}", e))?;
-                    if ops_block.block_num == 1770.into() { info!("block_index: {}, \nupdates :{:?}", index, updates); }
-                    let tx_result = OpSuccess { updates, executed_op: (*op).into()};
+                    let updates = <ZkLinkState as TxHandler<OrderMatching>>::unsafe_apply_op(
+                        &mut self.state,
+                        &mut op,
+                    )
+                    .map_err(|e| format_err!("OrderMatching fail: {}", e))?;
+                    if ops_block.block_num == 1770.into() {
+                        info!("block_index: {}, \nupdates :{:?}", index, updates);
+                    }
+                    let tx_result = OpSuccess {
+                        updates,
+                        executed_op: (*op).into(),
+                    };
 
                     current_op_block_index = self.update_from_tx(
                         tx_result,
@@ -315,18 +348,18 @@ impl TreeState {
         let tx_hash = executed_op.try_get_tx().unwrap().hash();
         let mut updates = updates
             .into_iter()
-            .map(|update|(update.0, update.1, H256::from_slice(tx_hash.as_ref())))
+            .map(|update| (update.0, update.1, H256::from_slice(tx_hash.as_ref())))
             .collect::<Vec<_>>();
         accounts_updated.append(&mut updates);
         match &mut executed_op {
             ZkLinkOp::Deposit(op) => {
                 *self.last_serial_ids.get_mut(&op.tx.from_chain_id).unwrap() += 1;
                 op.tx.serial_id = self.last_serial_ids[&op.tx.from_chain_id] as u64;
-            },
+            }
             ZkLinkOp::FullExit(op) => {
                 *self.last_serial_ids.get_mut(&op.tx.to_chain_id).unwrap() += 1;
                 op.tx.serial_id = self.last_serial_ids[&op.tx.to_chain_id] as u64;
-            },
+            }
             _ => {}
         }
 
@@ -366,12 +399,17 @@ impl TreeState {
 
 #[cfg(test)]
 mod test {
-    use num::BigUint;
     use crate::contract::default::get_rollup_ops_from_data;
+    use crate::contract::utils::get_rollup_ops_from_data;
     use crate::rollup_ops::RollupOpsBlock;
     use crate::tree_state::TreeState;
-    use zklink_types::{AccountId, BlockNumber, ChainId, ChangePubKeyOp, Deposit, DepositOp, ForcedExit, ForcedExitOp, FullExit, FullExitOp, Nonce, Order, OrderMatching, OrderMatchingOp, PubKeyHash, SubAccountId, TokenId, Transfer, TransferOp, TransferToNewOp, Withdraw, WithdrawOp, ZkLinkOp, ChangePubKey, SlotId};
-    use crate::contract::utils::get_rollup_ops_from_data;
+    use num::BigUint;
+    use zklink_types::{
+        AccountId, BlockNumber, ChainId, ChangePubKey, ChangePubKeyOp, Deposit, DepositOp,
+        ForcedExit, ForcedExitOp, FullExit, FullExitOp, Nonce, Order, OrderMatching,
+        OrderMatchingOp, PubKeyHash, SlotId, SubAccountId, TokenId, Transfer, TransferOp,
+        TransferToNewOp, Withdraw, WithdrawOp, ZkLinkOp,
+    };
 
     const ZKL_TOKEN: TokenId = TokenId(32);
     const USD_TOKEN: TokenId = TokenId(1);
@@ -598,7 +636,7 @@ mod test {
             true,
             5,
             10,
-            None
+            None,
         );
         let taker_order = Order::new(
             AccountId(0),
@@ -612,7 +650,7 @@ mod test {
             true,
             5,
             10,
-            None
+            None,
         );
         let tx8 = OrderMatching::new(
             AccountId(0),

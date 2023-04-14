@@ -1,17 +1,18 @@
 use anyhow::{ensure, format_err};
-use num::{BigUint, ToPrimitive, One, CheckedMul, CheckedDiv};
+use num::{BigUint, CheckedDiv, CheckedMul, One, ToPrimitive};
 use serde::{Deserialize, Serialize};
 
 use zklink_basic_types::{AccountId, Nonce, SlotId, SubAccountId, TokenId};
 use zklink_crypto::params::{
-    ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, BALANCE_BIT_WIDTH, CHUNK_BYTES, FEE_BIT_WIDTH, ORDER_NONCE_BIT_WIDTH,
-    SLOT_BIT_WIDTH, TOKEN_BIT_WIDTH, FEE_RATIO_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH, precision_magnified
+    precision_magnified, ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, BALANCE_BIT_WIDTH, CHUNK_BYTES,
+    FEE_BIT_WIDTH, FEE_RATIO_BIT_WIDTH, ORDER_NONCE_BIT_WIDTH, SLOT_BIT_WIDTH,
+    SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH,
 };
 use zklink_crypto::primitives::FromBytes;
 
-use crate::{Order, OrderMatching};
 use crate::helpers::{pack_fee_amount, pack_token_amount, unpack_fee_amount, unpack_token_amount};
 use crate::operations::GetPublicData;
+use crate::{Order, OrderMatching};
 
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct OrderMatchingOp {
@@ -23,18 +24,17 @@ pub struct OrderMatchingOp {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct OrderContext{
+pub struct OrderContext {
     pub residue: BigUint,
 }
 
-impl GetPublicData for OrderMatchingOp{
+impl GetPublicData for OrderMatchingOp {
     fn get_public_data(&self) -> Vec<u8> {
-        let (maker_sell_token, taker_sell_token) =
-            if self.tx.maker.is_sell.is_one() {
-                (self.tx.maker.base_token_id, self.tx.maker.quote_token_id)
-            } else {
-                (self.tx.maker.quote_token_id, self.tx.maker.base_token_id)
-            };
+        let (maker_sell_token, taker_sell_token) = if self.tx.maker.is_sell.is_one() {
+            (self.tx.maker.base_token_id, self.tx.maker.quote_token_id)
+        } else {
+            (self.tx.maker.quote_token_id, self.tx.maker.base_token_id)
+        };
 
         let mut data = vec![Self::OP_CODE]; // opcode
         data.extend_from_slice(&self.tx.sub_account_id.to_be_bytes()); // 2
@@ -79,12 +79,12 @@ impl OrderMatchingOp {
 
         let read_slot = |offset| {
             u16::from_bytes(&bytes[offset..offset + SLOT_BIT_WIDTH / 8])
-                .ok_or_else(||format_err!("Cant get slot from OrderMatching pubdata"))
-                .map(|b|b as u32)
+                .ok_or_else(|| format_err!("Cant get slot from OrderMatching pubdata"))
+                .map(|b| b as u32)
         };
         let read_token = |offset| {
             u32::from_bytes(&bytes[offset..offset + TOKEN_BIT_WIDTH / 8])
-                .ok_or_else(||format_err!("Cant get token from OrderMatching pubdata"))
+                .ok_or_else(|| format_err!("Cant get token from OrderMatching pubdata"))
         };
         let read_account = |offset| {
             u32::from_bytes(&bytes[offset..offset + ACCOUNT_ID_BIT_WIDTH / 8])
@@ -92,11 +92,10 @@ impl OrderMatchingOp {
         };
         let read_amount = |offset| {
             unpack_token_amount(&bytes[offset..offset + AMOUNT_BIT_WIDTH / 8])
-                .ok_or_else(||format_err!("Cant get amount from OrderMatching pubdata"))
+                .ok_or_else(|| format_err!("Cant get amount from OrderMatching pubdata"))
         };
-        let read_expect_amount = |offset| {
-            BigUint::from_bytes_be(&bytes[offset..offset + BALANCE_BIT_WIDTH / 8])
-        };
+        let read_expect_amount =
+            |offset| BigUint::from_bytes_be(&bytes[offset..offset + BALANCE_BIT_WIDTH / 8]);
         let read_nonce = |offset| {
             u32::from_bytes(&bytes[offset..offset + ORDER_NONCE_BIT_WIDTH / 8])
                 .ok_or_else(|| format_err!("Cant get from nonce from OrderMatching pubdata"))
@@ -105,14 +104,16 @@ impl OrderMatchingOp {
         let sub_account_id = SubAccountId(bytes[sub_account_id_offset]);
         let maker_account_id = AccountId(read_account(accounts_offset)?);
         let taker_account_id = AccountId(read_account(accounts_offset + ACCOUNT_ID_BIT_WIDTH / 8)?);
-        let submitter_account_id = AccountId(read_account(accounts_offset + ACCOUNT_ID_BIT_WIDTH * 2 / 8)?);
+        let submitter_account_id = AccountId(read_account(
+            accounts_offset + ACCOUNT_ID_BIT_WIDTH * 2 / 8,
+        )?);
         let maker_slot_id = SlotId(read_slot(slots_offset)?);
         let taker_slot_id = SlotId(read_slot(slots_offset + SLOT_BIT_WIDTH / 8)?);
         let maker_sell_token = TokenId(read_token(tokens_offset)?);
         let taker_sell_token = TokenId(read_token(tokens_offset + TOKEN_BIT_WIDTH / 8)?);
         let fee_token = TokenId(read_token(tokens_offset + TOKEN_BIT_WIDTH * 2 / 8)?);
         let fee = unpack_fee_amount(&bytes[fee_offset..fee_offset + FEE_BIT_WIDTH / 8])
-            .ok_or_else(||format_err!("OrderMatchingOpError::CannotGetFee"))?;
+            .ok_or_else(|| format_err!("OrderMatchingOpError::CannotGetFee"))?;
         let fee_ratio1 = bytes[fee_ratios_offset];
         let fee_ratio2 = bytes[fee_ratios_offset + FEE_RATIO_BIT_WIDTH / 8];
         let maker_sell_amount = read_expect_amount(expect_amounts_offset);
@@ -124,20 +125,22 @@ impl OrderMatchingOp {
 
         // Todo: add 1 bit for selecting base token and quote token in the public data of OrderMatchingOp.
         // Assume the maker is Seller, take is Buyer, either assumption is the same for state changes.
-        let (
-            base_token_id,quote_token_id,
-            expect_base_amount,expect_quote_amount
-        ) = if maker_sell_token < taker_sell_token{
-            (
-                taker_sell_token, maker_sell_token,
-                taker_sell_amount.clone(), maker_sell_amount.clone()
-            )
-        } else {
-            (
-                maker_sell_token, taker_sell_token,
-                maker_sell_amount.clone(), taker_sell_amount.clone()
-            )
-        };
+        let (base_token_id, quote_token_id, expect_base_amount, expect_quote_amount) =
+            if maker_sell_token < taker_sell_token {
+                (
+                    taker_sell_token,
+                    maker_sell_token,
+                    taker_sell_amount.clone(),
+                    maker_sell_amount.clone(),
+                )
+            } else {
+                (
+                    maker_sell_token,
+                    taker_sell_token,
+                    maker_sell_amount.clone(),
+                    taker_sell_amount.clone(),
+                )
+            };
         let maker_is_sell = maker_sell_token > taker_sell_token;
         let taker_is_sell = !maker_is_sell;
         let price = expect_quote_amount
@@ -198,5 +201,4 @@ impl OrderMatchingOp {
             self.tx.taker.account_id,
         ]
     }
-
 }

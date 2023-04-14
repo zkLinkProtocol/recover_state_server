@@ -25,5 +25,4 @@ impl<'a, 'c> ChainIntermediator<'a, 'c> {
     pub fn state_schema(self) -> state::StateSchema<'a, 'c> {
         state::StateSchema(self.0)
     }
-
 }

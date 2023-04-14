@@ -10,29 +10,34 @@ mod deposit_op;
 mod forced_exit;
 mod full_exit_op;
 mod noop_op;
+mod order_matching_op;
 mod transfer_op;
 mod transfer_to_new_op;
 mod withdraw_op;
-mod order_matching_op;
 
 pub mod basic_impl_and_params;
 
 #[doc(hidden)]
 pub use self::{
-    change_pubkey_op::ChangePubKeyOp, order_matching_op::{OrderMatchingOp, OrderContext},
-    deposit_op::DepositOp, forced_exit::ForcedExitOp, full_exit_op::FullExitOp, noop_op::NoopOp,
-    transfer_op::TransferOp, transfer_to_new_op::TransferToNewOp, withdraw_op::WithdrawOp,
     basic_impl_and_params::{
-        MAX_ZKLINK_TX_CHUNKS, MIN_ZKLINK_TX_CHUNKS, PRIORITY_OP_TYPES, NON_PRIORITY_OP_TYPES,
-        DEPOSIT_CHUNK_FRS_NUMBER, TRANSFER_TO_NEW_CHUNK_FRS_NUMBER, WITHDRAW_CHUNK_FRS_NUMBER,
-        TRANSFER_CHUNK_FRS_NUMBER, FULL_EXIT_CHUNK_FRS_NUMBER, CHANGE_PUBKEY_CHUNK_FRS_NUMBER,
-        FORCED_EXIT_CHUNK_FRS_NUMBER, ORDER_MATCHING_CHUNK_FRS_NUMBER
-    }
+        CHANGE_PUBKEY_CHUNK_FRS_NUMBER, DEPOSIT_CHUNK_FRS_NUMBER, FORCED_EXIT_CHUNK_FRS_NUMBER,
+        FULL_EXIT_CHUNK_FRS_NUMBER, MAX_ZKLINK_TX_CHUNKS, MIN_ZKLINK_TX_CHUNKS,
+        NON_PRIORITY_OP_TYPES, ORDER_MATCHING_CHUNK_FRS_NUMBER, PRIORITY_OP_TYPES,
+        TRANSFER_CHUNK_FRS_NUMBER, TRANSFER_TO_NEW_CHUNK_FRS_NUMBER, WITHDRAW_CHUNK_FRS_NUMBER,
+    },
+    change_pubkey_op::ChangePubKeyOp,
+    deposit_op::DepositOp,
+    forced_exit::ForcedExitOp,
+    full_exit_op::FullExitOp,
+    noop_op::NoopOp,
+    order_matching_op::{OrderContext, OrderMatchingOp},
+    transfer_op::TransferOp,
+    transfer_to_new_op::TransferToNewOp,
+    withdraw_op::WithdrawOp,
 };
 use zklink_basic_types::{AccountId, ChainId};
 
-
-pub trait GetPublicData{
+pub trait GetPublicData {
     fn get_public_data(&self) -> Vec<u8>;
 }
 
@@ -143,9 +148,9 @@ impl ZkLinkOp {
             TransferToNewOp::OP_CODE => Ok(ZkLinkOp::TransferToNew(Box::new(
                 TransferToNewOp::from_public_data(bytes)?,
             ))),
-            TransferOp::OP_CODE => Ok(ZkLinkOp::Transfer(Box::new(
-                TransferOp::from_public_data(bytes)?,
-            ))),
+            TransferOp::OP_CODE => Ok(ZkLinkOp::Transfer(Box::new(TransferOp::from_public_data(
+                bytes,
+            )?))),
             WithdrawOp::OP_CODE => Ok(ZkLinkOp::Withdraw(Box::new(WithdrawOp::from_public_data(
                 bytes,
             )?))),
@@ -189,7 +194,9 @@ impl ZkLinkOp {
             ZkLinkOp::Transfer(op) => Ok(ZkLinkTx::Transfer(Box::new(op.tx.clone()))),
             ZkLinkOp::TransferToNew(op) => Ok(ZkLinkTx::Transfer(Box::new(op.tx.clone()))),
             ZkLinkOp::Withdraw(op) => Ok(ZkLinkTx::Withdraw(Box::new(op.tx.clone()))),
-            ZkLinkOp::ChangePubKeyOffchain(op) => Ok(ZkLinkTx::ChangePubKey(Box::new(op.tx.clone()))),
+            ZkLinkOp::ChangePubKeyOffchain(op) => {
+                Ok(ZkLinkTx::ChangePubKey(Box::new(op.tx.clone())))
+            }
             ZkLinkOp::ForcedExit(op) => Ok(ZkLinkTx::ForcedExit(Box::new(op.tx.clone()))),
             ZkLinkOp::FullExit(op) => Ok(ZkLinkTx::FullExit(Box::new(op.tx.clone()))),
             ZkLinkOp::OrderMatching(op) => Ok(ZkLinkTx::OrderMatching(Box::new(op.tx.clone()))),
@@ -232,7 +239,7 @@ impl ZkLinkOp {
             ZkLinkOp::FullExit(op) => op.tx.to_chain_id == chain_id,
             ZkLinkOp::ChangePubKeyOffchain(op) => op.tx.chain_id == chain_id,
             ZkLinkOp::ForcedExit(op) => op.tx.to_chain_id == chain_id,
-            _ => false
+            _ => false,
         }
     }
 
@@ -244,7 +251,7 @@ impl ZkLinkOp {
             ZkLinkOp::FullExit(op) => *op.tx.to_chain_id,
             ZkLinkOp::ChangePubKeyOffchain(op) => *op.tx.chain_id,
             ZkLinkOp::ForcedExit(op) => *op.tx.to_chain_id,
-            _ => 0 // 0 is a invalid chain id
+            _ => 0, // 0 is a invalid chain id
         }
     }
 
@@ -254,7 +261,7 @@ impl ZkLinkOp {
             ZkLinkOp::Withdraw(op) => op.tx.to_chain_id == chain_id,
             ZkLinkOp::FullExit(op) => op.tx.to_chain_id == chain_id,
             ZkLinkOp::ForcedExit(op) => op.tx.to_chain_id == chain_id,
-            _ => false
+            _ => false,
         }
     }
 }

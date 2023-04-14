@@ -3,13 +3,10 @@ use serde::{Deserialize, Serialize};
 use zklink_basic_types::U256;
 
 use crate::bellman::plonk::better_cs::{
-    cs::PlonkCsWidth4WithNextStepParams,
-    keys::Proof as OldProof,
+    cs::PlonkCsWidth4WithNextStepParams, keys::Proof as OldProof,
 };
+use crate::serialization::{serialize_single_proof, SingleProofSerde};
 use crate::Engine;
-use crate::serialization::{
-    serialize_single_proof, SingleProofSerde,
-};
 
 pub type OldProofType = OldProof<Engine, PlonkCsWidth4WithNextStepParams>;
 

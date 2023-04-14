@@ -1,9 +1,9 @@
 #![allow(dead_code)]
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ExodusResponse<T: Serialize + Clone>{
+pub struct ExodusResponse<T: Serialize + Clone> {
     pub code: i32,
     pub data: Option<T>,
     pub err_msg: Option<String>,
@@ -11,7 +11,7 @@ pub struct ExodusResponse<T: Serialize + Clone>{
 
 impl<T: Serialize + Clone> From<ExodusStatus> for ExodusResponse<T> {
     fn from(code: ExodusStatus) -> Self {
-        Self{
+        Self {
             code: code as i32,
             data: None,
             err_msg: Some(code.to_string()),
@@ -21,8 +21,8 @@ impl<T: Serialize + Clone> From<ExodusStatus> for ExodusResponse<T> {
 
 impl<T: Serialize + Clone> ExodusResponse<T> {
     #[allow(non_snake_case)]
-    pub fn Ok() -> ExodusResponse<T>{
-        Self{
+    pub fn Ok() -> ExodusResponse<T> {
+        Self {
             code: ExodusStatus::Ok as i32,
             data: None,
             err_msg: None,
@@ -50,7 +50,7 @@ pub enum ExodusStatus {
 
     InvalidL1L2Token = 201,
 
-    InternalErr=500
+    InternalErr = 500,
 }
 
 impl From<anyhow::Error> for ExodusStatus {
@@ -77,10 +77,13 @@ impl ToString for ExodusStatus {
             ExodusStatus::ExitProofTaskNotExist => "The exit proof task not exist",
 
             // Invalid parameters
-            ExodusStatus::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
+            ExodusStatus::InvalidL1L2Token => {
+                "The relationship between l1 token and l2 token is incorrect"
+            }
 
             // Internal error,
             ExodusStatus::InternalErr => "Exodus server internal error",
-        }.to_string()
+        }
+        .to_string()
     }
 }

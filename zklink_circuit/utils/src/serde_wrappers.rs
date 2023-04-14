@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
-use num::{bigint::ToBigInt, BigUint, BigInt};
+use num::{bigint::ToBigInt, BigInt, BigUint};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 /// Used to serialize BigUint as radix 10 string.
@@ -38,8 +38,8 @@ pub struct VecBigUintSerdeAsRadix10Str;
 
 impl VecBigUintSerdeAsRadix10Str {
     pub fn serialize<S>(operations: &[BigUint], ser: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut res = Vec::with_capacity(operations.len());
         for val in operations.iter() {
@@ -50,18 +50,20 @@ impl VecBigUintSerdeAsRadix10Str {
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<BigUint>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         use serde::de::Error;
         let str_vec: Vec<BigDecimal> = Vec::deserialize(deserializer)?;
         let mut res = Vec::with_capacity(str_vec.len());
         for s in str_vec.into_iter() {
-            let v = s.to_bigint()
+            let v = s
+                .to_bigint()
                 .ok_or_else(|| Error::custom("Expected integer value"))?;
-            res.push(v
-                .to_biguint()
-                .ok_or_else(|| Error::custom("Expected positive value"))?);
+            res.push(
+                v.to_biguint()
+                    .ok_or_else(|| Error::custom("Expected positive value"))?,
+            );
         }
         Ok(res)
     }
@@ -81,7 +83,7 @@ impl From<BigInt> for BigUintSerdeWrapper {
         BigUintSerdeWrapper(big_int.to_biguint().unwrap())
     }
 }
-impl Deref for BigUintSerdeWrapper{
+impl Deref for BigUintSerdeWrapper {
     type Target = BigUint;
 
     fn deref(&self) -> &BigUint {
@@ -89,7 +91,7 @@ impl Deref for BigUintSerdeWrapper{
     }
 }
 
-impl DerefMut for BigUintSerdeWrapper{
+impl DerefMut for BigUintSerdeWrapper {
     fn deref_mut(&mut self) -> &mut BigUint {
         &mut self.0
     }
@@ -218,26 +220,27 @@ pub struct OptionBigUintSerdeAsRadix10Str;
 
 impl OptionBigUintSerdeAsRadix10Str {
     pub fn serialize<S>(val: &Option<BigUint>, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
+    where
+        S: Serializer,
     {
         let mut big_dec = None;
         if let Some(v) = val.to_owned() {
             big_dec = Some(BigDecimal::from(v.to_bigint().unwrap()));
         };
         Option::serialize(&big_dec, serializer)
-
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<BigUint>, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         use serde::de::Error;
         let optional_deserialized_string: Option<String> = Option::deserialize(deserializer)?;
         let mut res = None;
         if let Some(s) = optional_deserialized_string {
-            let big_int = BigDecimal::from_str(&s).unwrap().to_bigint()
+            let big_int = BigDecimal::from_str(&s)
+                .unwrap()
+                .to_bigint()
                 .ok_or_else(|| Error::custom("Expected integer value"))?;
             res = big_int.to_biguint()
         }
@@ -247,8 +250,8 @@ impl OptionBigUintSerdeAsRadix10Str {
 
 #[cfg(test)]
 mod test {
-    use num::rational::Ratio;
     use super::*;
+    use num::rational::Ratio;
 
     /// Tests that `Ratio` serializer works correctly.
     #[test]

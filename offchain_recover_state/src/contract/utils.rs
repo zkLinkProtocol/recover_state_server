@@ -1,12 +1,15 @@
+use crate::contract::TransactionInfo;
 use ethers::abi::ethabi;
-use ethers::prelude::{Address, Bytes, Transaction, U256};
-use zklink_crypto::params::{INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH, INPUT_DATA_ETH_UINT_BYTES_WIDTH, INPUT_DATA_ROOT_HASH_BYTES_WIDTH};
-use zklink_types::{Account, ZkLinkOp, ZkLinkAddress};
-use std::str::FromStr;
 use ethers::abi::Abi;
+use ethers::prelude::{Address, Bytes, Transaction, U256};
 use ethers::prelude::{Http, Provider};
 use reqwest::{Client, Url};
-use crate::contract::TransactionInfo;
+use std::str::FromStr;
+use zklink_crypto::params::{
+    INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH, INPUT_DATA_ETH_UINT_BYTES_WIDTH,
+    INPUT_DATA_ROOT_HASH_BYTES_WIDTH,
+};
+use zklink_types::{Account, ZkLinkAddress, ZkLinkOp};
 
 pub const ZKLINK_JSON: &str = include_str!("ZkLink.json");
 
@@ -39,7 +42,7 @@ pub fn load_abi(json_file_content: &str) -> Abi {
     serde_json::from_str(&abi_string).unwrap()
 }
 
-pub fn new_provider_with_url(url: &str) -> Provider<Http>{
+pub fn new_provider_with_url(url: &str) -> Provider<Http> {
     let http_client = Client::builder()
         .connect_timeout(std::time::Duration::from_secs(30))
         .timeout(std::time::Duration::from_secs(30))
@@ -60,8 +63,9 @@ pub fn new_provider_with_url(url: &str) -> Provider<Http>{
 /// )
 /// ```
 pub fn get_genesis_account(genesis_transaction: &Transaction) -> anyhow::Result<Account> {
-    const ENCODED_INIT_PARAMETERS_WIDTH: usize =
-        6 * INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH + INPUT_DATA_ROOT_HASH_BYTES_WIDTH * 3 + 2 * INPUT_DATA_ETH_UINT_BYTES_WIDTH;
+    const ENCODED_INIT_PARAMETERS_WIDTH: usize = 6 * INPUT_DATA_ETH_ADDRESS_BYTES_WIDTH
+        + INPUT_DATA_ROOT_HASH_BYTES_WIDTH * 3
+        + 2 * INPUT_DATA_ETH_UINT_BYTES_WIDTH;
 
     let input_data = genesis_transaction.input_data()?;
 
@@ -74,17 +78,17 @@ pub fn get_genesis_account(genesis_transaction: &Transaction) -> anyhow::Result<
         input_data[input_data.len() - ENCODED_INIT_PARAMETERS_WIDTH..].to_vec();
 
     let init_parameters_types = vec![
-        ethabi::ParamType::Address, // Verifier contract address
-        ethabi::ParamType::Address, // zkLink contract address
-        ethabi::ParamType::Address, // periphery address
-        ethabi::ParamType::Uint(32), // block number
+        ethabi::ParamType::Address,   // Verifier contract address
+        ethabi::ParamType::Address,   // zkLink contract address
+        ethabi::ParamType::Address,   // periphery address
+        ethabi::ParamType::Uint(32),  // block number
         ethabi::ParamType::Uint(256), // timestamp
         ethabi::ParamType::FixedBytes(INPUT_DATA_ROOT_HASH_BYTES_WIDTH), // state hash
         ethabi::ParamType::FixedBytes(INPUT_DATA_ROOT_HASH_BYTES_WIDTH), // commitment
         ethabi::ParamType::FixedBytes(INPUT_DATA_ROOT_HASH_BYTES_WIDTH), // syncHash
-        ethabi::ParamType::Address, // First validator (committer) address
-        ethabi::ParamType::Address, // Governor address
-        ethabi::ParamType::Address, // Fee account address
+        ethabi::ParamType::Address,   // First validator (committer) address
+        ethabi::ParamType::Address,   // Governor address
+        ethabi::ParamType::Address,   // Fee account address
     ];
     let fee_account_address_argument_id = 10;
 
@@ -92,18 +96,16 @@ pub fn get_genesis_account(genesis_transaction: &Transaction) -> anyhow::Result<
         init_parameters_types.as_slice(),
         encoded_init_parameters.as_slice(),
     )
-        .map_err(|_| {
-            anyhow::Error::from(Box::new(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "can't get decoded init parameters from contract creation transaction",
-            )))
-        })?;
-    let fee_account_address= decoded_init_parameters.remove(fee_account_address_argument_id);
-    let account = fee_account_address
-        .into_address()
-        .map(|address|Account::default_with_address(
-            &ZkLinkAddress::from_slice(&address.0).unwrap()
-        ));
+    .map_err(|_| {
+        anyhow::Error::from(Box::new(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "can't get decoded init parameters from contract creation transaction",
+        )))
+    })?;
+    let fee_account_address = decoded_init_parameters.remove(fee_account_address_argument_id);
+    let account = fee_account_address.into_address().map(|address| {
+        Account::default_with_address(&ZkLinkAddress::from_slice(&address.0).unwrap())
+    });
     account
         .ok_or(Err("Invalid token in parameters"))
         .map_err(|_: Result<Account, _>| {
@@ -129,9 +131,9 @@ pub(super) fn parse_pub_data<Parse, GetSize>(
     parse: Parse,
     get_data_size: GetSize,
 ) -> Result<Vec<ZkLinkOp>, anyhow::Error>
-    where
-        Parse: Fn(&[u8]) -> anyhow::Result<ZkLinkOp>,
-        GetSize: Fn(u8) -> anyhow::Result<usize>,
+where
+    Parse: Fn(&[u8]) -> anyhow::Result<ZkLinkOp>,
+    GetSize: Fn(u8) -> anyhow::Result<usize>,
 {
     let mut current_pointer = 0;
     let mut ops = Vec::new();
@@ -153,11 +155,12 @@ pub(super) fn parse_pub_data<Parse, GetSize>(
 
 #[cfg(test)]
 mod test {
-    use zklink_types::{
-        AccountId, ChainId, Deposit, DepositOp, FullExit, FullExitOp, Nonce, PubKeyHash, SubAccountId, TokenId,
-        Transfer, TransferOp, TransferToNewOp, Withdraw, WithdrawOp, ZkLinkOp, ChangePubKey, ChangePubKeyOp
-    };
     use super::get_rollup_ops_from_data;
+    use zklink_types::{
+        AccountId, ChainId, ChangePubKey, ChangePubKeyOp, Deposit, DepositOp, FullExit, FullExitOp,
+        Nonce, PubKeyHash, SubAccountId, TokenId, Transfer, TransferOp, TransferToNewOp, Withdraw,
+        WithdrawOp, ZkLinkOp,
+    };
 
     #[test]
     fn test_deposit() {

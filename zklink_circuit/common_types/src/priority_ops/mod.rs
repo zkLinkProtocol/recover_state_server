@@ -1,21 +1,21 @@
 //! Definition of zklink network priority operations: operations initiated from the L1.
 
-use std::convert::{TryInto};
+use std::convert::TryInto;
 
 use anyhow::{bail, ensure};
-use num::{BigUint};
+use num::BigUint;
 use serde::{Deserialize, Serialize};
-use zklink_basic_types::{H256, SubAccountId};
+use zklink_basic_types::{SubAccountId, H256};
 use zklink_crypto::params::{
-    ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, ETH_ADDRESS_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH,
-    TOKEN_BIT_WIDTH, TX_TYPE_BIT_WIDTH
+    ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, ETH_ADDRESS_BIT_WIDTH,
+    SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH, TX_TYPE_BIT_WIDTH,
 };
 use zklink_crypto::primitives::FromBytes;
 use zklink_utils::BigUintSerdeAsRadix10Str;
 
 use super::{
-    AccountId,
-    operations::{DepositOp, FullExitOp}, SerialId, TokenId, ZkLinkAddress
+    operations::{DepositOp, FullExitOp},
+    AccountId, SerialId, TokenId, ZkLinkAddress,
 };
 
 #[cfg(test)]
@@ -57,7 +57,7 @@ pub struct PriorityFullExit {
     pub exit_address: ZkLinkAddress,
     pub l2_source_token: TokenId,
     pub l1_target_token: TokenId,
-    pub serial_id:u64,
+    pub serial_id: u64,
     /// eth_hash for broker_ack
     pub tx_hash: H256,
 }
@@ -71,7 +71,6 @@ pub enum ZkLinkPriorityOp {
 }
 
 impl ZkLinkPriorityOp {
-
     /// Parses priority operation from the Evm logs.
     pub fn parse_from_priority_queue_logs(
         pub_data: &[u8],
@@ -110,7 +109,8 @@ impl ZkLinkPriorityOp {
                     pub_data_left.len() >= SUB_ACCOUNT_ID_BIT_WIDTH / 8,
                     "DepositOp PubData length mismatch"
                 );
-                let (sub_account_id, pub_data_left) = pub_data_left.split_at(SUB_ACCOUNT_ID_BIT_WIDTH / 8);
+                let (sub_account_id, pub_data_left) =
+                    pub_data_left.split_at(SUB_ACCOUNT_ID_BIT_WIDTH / 8);
 
                 // l1_source_token
                 let (real_token, pub_data_left) = {
@@ -131,7 +131,6 @@ impl ZkLinkPriorityOp {
                     let (token, left) = pub_data_left.split_at(TOKEN_BIT_WIDTH / 8);
                     (u16::from_be_bytes(token.try_into().unwrap()), left)
                 };
-
 
                 // amount
                 let (amount, pub_data_left) = {
@@ -200,7 +199,8 @@ impl ZkLinkPriorityOp {
                     pub_data_left.len() >= SUB_ACCOUNT_ID_BIT_WIDTH / 8,
                     "FullExitOp PubData length mismatch"
                 );
-                let (sub_account_id, pub_data_left) = pub_data_left.split_at(SUB_ACCOUNT_ID_BIT_WIDTH / 8);
+                let (sub_account_id, pub_data_left) =
+                    pub_data_left.split_at(SUB_ACCOUNT_ID_BIT_WIDTH / 8);
 
                 // owner
                 let (exit_address, pub_data_left) = {
@@ -231,7 +231,6 @@ impl ZkLinkPriorityOp {
                     let (token, left) = pub_data_left.split_at(TOKEN_BIT_WIDTH / 8);
                     (u16::from_be_bytes(token.try_into().unwrap()), left)
                 };
-
 
                 // amount
                 ensure!(

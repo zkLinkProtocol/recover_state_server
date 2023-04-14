@@ -28,7 +28,7 @@ mod backward_compatibility {
             l2_source_token: TokenId(1000),
             l1_target_token: Default::default(),
             serial_id: 0,
-            tx_hash: Default::default()
+            tx_hash: Default::default(),
         };
         OldPriorityOp {
             serial_id: 12345,

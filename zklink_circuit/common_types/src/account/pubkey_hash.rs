@@ -6,10 +6,10 @@ use parity_crypto::Keccak256;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use zklink_crypto::franklin_crypto::bellman::pairing::ff;
 
+use crate::H256;
 use zklink_crypto::circuit::utils::pub_key_hash_bytes;
 use zklink_crypto::merkle_tree::rescue_hasher::BabyRescueHasher;
 use zklink_crypto::{public_key_from_private, Fr, PrivateKey, PublicKey};
-use crate::H256;
 
 /// Hash of the account's owner public key.
 ///

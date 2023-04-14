@@ -1,7 +1,7 @@
 // External uses
 use serde::Deserialize;
 // Workspace uses
-use zklink_types::{H256, ZkLinkAddress};
+use zklink_types::{ZkLinkAddress, H256};
 // Local uses
 use crate::envy_load;
 
@@ -30,8 +30,12 @@ mod tests {
     fn expected_config() -> ContractConfig {
         ContractConfig {
             deployment_block: 10000,
-            address: "0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55".parse().unwrap(),
-            genesis_tx_hash:  "0xb99ebfea46cbe05a21cd80fe5597d97b204befc52a16303f579c607dc1ac2e2e".parse().unwrap(),
+            address: "0x70a0F165d6f8054d0d0CF8dFd4DD2005f0AF6B55"
+                .parse()
+                .unwrap(),
+            genesis_tx_hash: "0xb99ebfea46cbe05a21cd80fe5597d97b204befc52a16303f579c607dc1ac2e2e"
+                .parse()
+                .unwrap(),
         }
     }
 

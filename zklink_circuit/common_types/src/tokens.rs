@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::{ChainId, TokenId};
+use serde::{Deserialize, Serialize};
 
 /// Token supported in zkLink protocol
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
@@ -11,12 +11,7 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn new(
-        id: TokenId,
-    ) -> Self {
-        Self {
-            id,
-            chains: vec![],
-        }
+    pub fn new(id: TokenId) -> Self {
+        Self { id, chains: vec![] }
     }
 }

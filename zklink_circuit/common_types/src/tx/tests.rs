@@ -2,7 +2,7 @@ use zklink_crypto::franklin_crypto::{
     eddsa::{PrivateKey, PublicKey},
     jubjub::FixedGenerators,
 };
-use zklink_crypto::params::{MAX_ACCOUNT_ID, JUBJUB_PARAMS, MAX_REAL_TOKEN_ID};
+use zklink_crypto::params::{JUBJUB_PARAMS, MAX_ACCOUNT_ID, MAX_REAL_TOKEN_ID};
 use zklink_crypto::public_key_from_private;
 use zklink_crypto::rand::{Rng, SeedableRng, XorShiftRng};
 

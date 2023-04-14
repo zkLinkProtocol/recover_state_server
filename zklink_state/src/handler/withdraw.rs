@@ -1,10 +1,8 @@
+use crate::{handler::TxHandler, state::ZkLinkState};
 use anyhow::{ensure, format_err};
-use zklink_crypto::params::{GLOBAL_ASSET_ACCOUNT_ID};
-use zklink_types::{AccountUpdate, AccountUpdates, Withdraw, WithdrawOp, Nonce, SubAccountId};
+use zklink_crypto::params::GLOBAL_ASSET_ACCOUNT_ID;
 use zklink_types::utils::check_source_token_and_target_token;
-use crate::{
-    handler::TxHandler, state::ZkLinkState,
-};
+use zklink_types::{AccountUpdate, AccountUpdates, Nonce, SubAccountId, Withdraw, WithdrawOp};
 
 impl TxHandler<Withdraw> for ZkLinkState {
     type Op = WithdrawOp;
@@ -20,14 +18,19 @@ impl TxHandler<Withdraw> for ZkLinkState {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             check_source_token_and_target_token(tx.l2_source_token, tx.l1_target_token);
-        ensure!(is_required, "Source token or target token is mismatching in creating WithdrawOp");
+        ensure!(
+            is_required,
+            "Source token or target token is mismatching in creating WithdrawOp"
+        );
 
         // Check account
-        let pk = tx.verify_signature().ok_or(format_err!("Invalid l2 signature"))?;
+        let pk = tx
+            .verify_signature()
+            .ok_or(format_err!("Invalid l2 signature"))?;
         self.ensure_account_active_and_tx_pk_correct(tx.account_id, pk)?;
 
         let withdraw_op = WithdrawOp {
-            account_id: tx.account_id ,
+            account_id: tx.account_id,
             tx,
             l1_target_token_after_mapping,
         };
@@ -35,22 +38,22 @@ impl TxHandler<Withdraw> for ZkLinkState {
         Ok(withdraw_op)
     }
 
-
-    fn apply_op(
-        &mut self,
-        op: &mut Self::Op,
-    ) -> Result<AccountUpdates, anyhow::Error> {
+    fn apply_op(&mut self, op: &mut Self::Op) -> Result<AccountUpdates, anyhow::Error> {
         // We ensure account_id and GLOBAL_ASSET_ACCOUNT_ID will be different after rpc check
 
         let mut updates = Vec::new();
         let mut from_account = self.get_account(op.account_id).unwrap();
         {
-            let actual_token = Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.l2_source_token);
+            let actual_token =
+                Self::get_actual_token_by_sub_account(op.tx.sub_account_id, op.tx.l2_source_token);
 
             let from_old_balance = from_account.get_balance(actual_token);
             let from_old_nonce = from_account.nonce;
             ensure!(op.tx.nonce == from_old_nonce, "Nonce does not match");
-            ensure!(from_old_balance >= &op.tx.amount + &op.tx.fee, "Insufficient balance");
+            ensure!(
+                from_old_balance >= &op.tx.amount + &op.tx.fee,
+                "Insufficient balance"
+            );
 
             from_account.sub_balance(actual_token, &(&op.tx.amount + &op.tx.fee));
             *from_account.nonce += 1;
@@ -61,7 +64,12 @@ impl TxHandler<Withdraw> for ZkLinkState {
             updates.push((
                 op.account_id,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (op.tx.l2_source_token, op.tx.sub_account_id, from_old_balance, from_new_balance),
+                    balance_update: (
+                        op.tx.l2_source_token,
+                        op.tx.sub_account_id,
+                        from_old_balance,
+                        from_new_balance,
+                    ),
                     old_nonce: from_old_nonce,
                     new_nonce: from_new_nonce,
                 },
@@ -69,7 +77,10 @@ impl TxHandler<Withdraw> for ZkLinkState {
         }
         let mut global_account = self.get_account(GLOBAL_ASSET_ACCOUNT_ID).unwrap();
         {
-            let actual_token = Self::get_actual_token_by_chain(op.tx.to_chain_id, op.l1_target_token_after_mapping);
+            let actual_token = Self::get_actual_token_by_chain(
+                op.tx.to_chain_id,
+                op.l1_target_token_after_mapping,
+            );
             let global_old_amount = global_account.get_balance(actual_token);
             ensure!(
                 global_old_amount >= op.tx.amount,
@@ -80,7 +91,12 @@ impl TxHandler<Withdraw> for ZkLinkState {
             updates.push((
                 GLOBAL_ASSET_ACCOUNT_ID,
                 AccountUpdate::UpdateBalance {
-                    balance_update: (op.l1_target_token_after_mapping, SubAccountId(*op.tx.to_chain_id), global_old_amount, global_new_amount),
+                    balance_update: (
+                        op.l1_target_token_after_mapping,
+                        SubAccountId(*op.tx.to_chain_id),
+                        global_old_amount,
+                        global_new_amount,
+                    ),
                     old_nonce: Nonce(0),
                     new_nonce: Nonce(0),
                 },

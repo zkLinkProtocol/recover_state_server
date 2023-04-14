@@ -1,18 +1,24 @@
+use super::PubKeyHash;
+use super::{Nonce, TokenId};
+use crate::{SlotId, SubAccountId, ZkLinkAddress};
 use num::BigUint;
 use serde::{Deserialize, Serialize};
-use super::{Nonce, TokenId};
-use super::PubKeyHash;
-use crate::{SlotId, SubAccountId, ZkLinkAddress};
 
 /// Atomic change in the account state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AccountUpdate {
     /// Create a new account.
-    Create { address: ZkLinkAddress, nonce: Nonce },
+    Create {
+        address: ZkLinkAddress,
+        nonce: Nonce,
+    },
     /// Delete an existing account.
     /// Note: Currently this kind of update is not used directly in the network.
     /// However, it's used to revert made operation (e.g. to restore state back in time from the last verified block).
-    Delete { address: ZkLinkAddress, nonce: Nonce },
+    Delete {
+        address: ZkLinkAddress,
+        nonce: Nonce,
+    },
     /// Change the account balance.
     UpdateBalance {
         old_nonce: Nonce,
@@ -76,8 +82,8 @@ impl AccountUpdate {
             AccountUpdate::UpdateTidyOrder {
                 slot_id,
                 sub_account_id,
-                old_order ,
-                new_order ,
+                old_order,
+                new_order,
             } => AccountUpdate::UpdateTidyOrder {
                 slot_id: *slot_id,
                 sub_account_id: *sub_account_id,

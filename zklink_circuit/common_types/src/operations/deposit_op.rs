@@ -1,22 +1,25 @@
-use crate::{Deposit, ChainId, ZkLinkAddress};
-use crate::{AccountId, TokenId, SubAccountId};
+use crate::operations::GetPublicData;
+use crate::utils::check_source_token_and_target_token;
+use crate::{AccountId, SubAccountId, TokenId};
+use crate::{ChainId, Deposit, ZkLinkAddress};
 use anyhow::{ensure, format_err};
 use num::{BigUint, ToPrimitive};
 use serde::{Deserialize, Serialize};
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHUNK_BYTES, TOKEN_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, CHAIN_ID_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH, ETH_ADDRESS_BIT_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, CHUNK_BYTES,
+    ETH_ADDRESS_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
-use crate::operations::GetPublicData;
-use crate::utils::check_source_token_and_target_token;
 
 /// Deposit operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DepositOp {
     pub tx: Deposit,
     pub account_id: AccountId,
-    pub l1_source_token_after_mapping: TokenId
+    pub l1_source_token_after_mapping: TokenId,
 }
 
-impl GetPublicData for DepositOp{
+impl GetPublicData for DepositOp {
     fn get_public_data(&self) -> Vec<u8> {
         let mut data = Vec::new();
         data.push(Self::OP_CODE); // opcode
@@ -49,12 +52,12 @@ impl DepositOp {
         let end = to_address_offset + ETH_ADDRESS_BIT_WIDTH / 8;
 
         let from_chain_id = bytes[chain_id_offset];
-        let account_id = u32::from_bytes(
-            &bytes[account_id_offset..sub_account_id_offset],
-        ).ok_or_else(|| format_err!("Cant get account id from deposit pubdata"))?;
+        let account_id = u32::from_bytes(&bytes[account_id_offset..sub_account_id_offset])
+            .ok_or_else(|| format_err!("Cant get account id from deposit pubdata"))?;
         let sub_account_id = bytes[sub_account_id_offset];
-        let l1_source_token = u16::from_bytes(&bytes[l1_source_token_offset..l2_target_token_offset])
-            .ok_or_else(|| format_err!("Cant get token id from deposit pubdata"))?;
+        let l1_source_token =
+            u16::from_bytes(&bytes[l1_source_token_offset..l2_target_token_offset])
+                .ok_or_else(|| format_err!("Cant get token id from deposit pubdata"))?;
         let l2_target_token = u16::from_bytes(&bytes[l2_target_token_offset..amount_offset])
             .ok_or_else(|| format_err!("Cant get real token id from deposit pubdata"))?;
         let amount = BigUint::from(
@@ -66,7 +69,10 @@ impl DepositOp {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_source_token_after_mapping) =
             check_source_token_and_target_token(l2_target_token.into(), l1_source_token.into());
-        ensure!(is_required, "Source token or target token is mismatching in Deposit Pubdata");
+        ensure!(
+            is_required,
+            "Source token or target token is mismatching in Deposit Pubdata"
+        );
 
         Ok(Self {
             tx: Deposit {
@@ -81,7 +87,7 @@ impl DepositOp {
                 eth_hash: Default::default(),
             },
             account_id: AccountId(account_id),
-            l1_source_token_after_mapping
+            l1_source_token_after_mapping,
         })
     }
 

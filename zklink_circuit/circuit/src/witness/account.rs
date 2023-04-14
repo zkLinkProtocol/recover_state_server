@@ -7,11 +7,10 @@ pub struct AccountWitness<E: RescueEngine> {
     pub address: Option<E::Fr>,
 }
 
-impl<E:RescueEngine> Default for AccountWitness<E>
-{
+impl<E: RescueEngine> Default for AccountWitness<E> {
     fn default() -> Self {
-        Self{
-            nonce:None,
+        Self {
+            nonce: None,
             pub_key_hash: None,
             address: None,
         }
@@ -20,7 +19,7 @@ impl<E:RescueEngine> Default for AccountWitness<E>
 
 impl<E: RescueEngine> AccountWitness<E> {
     pub fn circuit_init() -> Self {
-        Self{
+        Self {
             nonce: Some(E::Fr::zero()),
             pub_key_hash: Some(E::Fr::zero()),
             address: Some(E::Fr::zero()),

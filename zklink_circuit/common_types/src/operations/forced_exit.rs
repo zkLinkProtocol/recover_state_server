@@ -1,14 +1,20 @@
-use crate::{helpers::{pack_fee_amount, unpack_fee_amount}, ForcedExit, ZkLinkAddress};
-use crate::{AccountId, Nonce, TokenId, ChainId, SubAccountId};
+use crate::operations::GetPublicData;
+use crate::utils::check_source_token_and_target_token;
+use crate::{
+    helpers::{pack_fee_amount, unpack_fee_amount},
+    ForcedExit, ZkLinkAddress,
+};
+use crate::{AccountId, ChainId, Nonce, SubAccountId, TokenId};
 use anyhow::{ensure, format_err};
 use num::{BigUint, ToPrimitive};
 use serde::{Deserialize, Serialize};
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHUNK_BYTES, TOKEN_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, SUB_ACCOUNT_ID_BIT_WIDTH, FEE_BIT_WIDTH, ETH_ADDRESS_BIT_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, BALANCE_BIT_WIDTH, CHAIN_ID_BIT_WIDTH, CHUNK_BYTES,
+    ETH_ADDRESS_BIT_WIDTH, FEE_BIT_WIDTH, GLOBAL_ASSET_ACCOUNT_ID, SUB_ACCOUNT_ID_BIT_WIDTH,
+    TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
 use zklink_utils::BigUintSerdeAsRadix10Str;
-use crate::operations::GetPublicData;
-use crate::utils::check_source_token_and_target_token;
-
 
 /// ForcedExit operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,10 +25,10 @@ pub struct ForcedExitOp {
     /// None if withdraw was unsuccessful
     #[serde(with = "BigUintSerdeAsRadix10Str")]
     pub withdraw_amount: BigUint,
-    pub l1_target_token_after_mapping: TokenId
+    pub l1_target_token_after_mapping: TokenId,
 }
 
-impl GetPublicData for ForcedExitOp{
+impl GetPublicData for ForcedExitOp {
     fn get_public_data(&self) -> Vec<u8> {
         let mut data = Vec::new();
         data.push(Self::OP_CODE); // opcode
@@ -64,8 +70,10 @@ impl ForcedExitOp {
 
         let chain_id_offset = 1;
         let initiator_account_id_offset = chain_id_offset + CHAIN_ID_BIT_WIDTH / 8;
-        let initiator_sub_account_id_offset = initiator_account_id_offset + ACCOUNT_ID_BIT_WIDTH / 8;
-        let target_account_id_offset = initiator_sub_account_id_offset + SUB_ACCOUNT_ID_BIT_WIDTH / 8;
+        let initiator_sub_account_id_offset =
+            initiator_account_id_offset + ACCOUNT_ID_BIT_WIDTH / 8;
+        let target_account_id_offset =
+            initiator_sub_account_id_offset + SUB_ACCOUNT_ID_BIT_WIDTH / 8;
         let target_sub_account_id_offset = target_account_id_offset + ACCOUNT_ID_BIT_WIDTH / 8;
         let l1_target_token_offset = target_sub_account_id_offset + SUB_ACCOUNT_ID_BIT_WIDTH / 8;
         let l2_source_token_offset = l1_target_token_offset + TOKEN_BIT_WIDTH / 8;
@@ -76,24 +84,27 @@ impl ForcedExitOp {
         let end = target_offset + ETH_ADDRESS_BIT_WIDTH / 8;
 
         let to_chain_id = bytes[chain_id_offset];
-        let initiator_account_id =
-            u32::from_bytes(&bytes[initiator_account_id_offset..initiator_sub_account_id_offset])
-                .ok_or_else(|| {
-                    format_err!("Cant get initiator account id from forced exit pubdata")
-                })?;
+        let initiator_account_id = u32::from_bytes(
+            &bytes[initiator_account_id_offset..initiator_sub_account_id_offset],
+        )
+        .ok_or_else(|| format_err!("Cant get initiator account id from forced exit pubdata"))?;
         let initiator_sub_account_id = bytes[initiator_sub_account_id_offset];
-        let target_account_id = u32::from_bytes(&bytes[target_account_id_offset..target_sub_account_id_offset])
-            .ok_or_else(|| format_err!("Cant get target account id from forced exit pubdata"))?;
+        let target_account_id =
+            u32::from_bytes(&bytes[target_account_id_offset..target_sub_account_id_offset])
+                .ok_or_else(|| {
+                    format_err!("Cant get target account id from forced exit pubdata")
+                })?;
         let target_sub_account_id = bytes[target_sub_account_id_offset];
-        let l1_target_token = u16::from_bytes(&bytes[l1_target_token_offset..l2_source_token_offset])
-            .ok_or_else(|| format_err!("Cant get l1_target_token from forced exit pubdata"))?;
+        let l1_target_token =
+            u16::from_bytes(&bytes[l1_target_token_offset..l2_source_token_offset])
+                .ok_or_else(|| format_err!("Cant get l1_target_token from forced exit pubdata"))?;
         let l2_source_token = u16::from_bytes(&bytes[l2_source_token_offset..fee_token_id_offset])
             .ok_or_else(|| format_err!("Cant get l2_source_token from forced exit pubdata"))?;
         let fee_token = u16::from_bytes(&bytes[fee_token_id_offset..amount_offset])
             .ok_or_else(|| format_err!("Cant get fee token id from forced exit pubdata"))?;
         let amount = BigUint::from(
             u128::from_bytes(&bytes[amount_offset..fee_offset])
-                .ok_or_else(|| format_err!("Cant get amount from forced exit pubdata"))?
+                .ok_or_else(|| format_err!("Cant get amount from forced exit pubdata"))?,
         );
         let fee = unpack_fee_amount(&bytes[fee_offset..target_offset])
             .ok_or_else(|| format_err!("Cant get fee from forced pubdata"))?;
@@ -103,7 +114,10 @@ impl ForcedExitOp {
         // Check whether the mapping between l1_token and l2_token is correct
         let (is_required, l1_target_token_after_mapping) =
             check_source_token_and_target_token(l2_source_token.into(), l1_target_token.into());
-        ensure!(is_required, "Source token or target token is mismatching in ForcedExit pubdata");
+        ensure!(
+            is_required,
+            "Source token or target token is mismatching in ForcedExit pubdata"
+        );
 
         Ok(Self {
             tx: ForcedExit::new(
@@ -122,11 +136,15 @@ impl ForcedExitOp {
             ),
             target_account_id: AccountId(target_account_id),
             withdraw_amount: amount,
-            l1_target_token_after_mapping
+            l1_target_token_after_mapping,
         })
     }
 
     pub fn get_updated_account_ids(&self) -> Vec<AccountId> {
-        vec![self.target_account_id, self.tx.initiator_account_id, GLOBAL_ASSET_ACCOUNT_ID]
+        vec![
+            self.target_account_id,
+            self.tx.initiator_account_id,
+            GLOBAL_ASSET_ACCOUNT_ID,
+        ]
     }
 }

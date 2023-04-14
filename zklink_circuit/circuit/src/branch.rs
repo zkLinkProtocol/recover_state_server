@@ -1,6 +1,6 @@
-use crate::{exit_circuit::*, utils::*, account::AccountContent};
 use crate::exit_circuit::allocate_merkle_root;
 use crate::witness::OperationBranch;
+use crate::{account::AccountContent, exit_circuit::*, utils::*};
 
 pub struct AllocatedOperationBranch<E: RescueEngine> {
     pub account: AccountContent<E>,
@@ -16,15 +16,15 @@ pub struct AllocatedOperationBranch<E: RescueEngine> {
     pub slot_number: CircuitElement<E>,
     pub actual_slot: CircuitElement<E>,
     pub order: AllocatedOrder<E>,
-    pub order_audit_path: Vec<AllocatedNum<E>>
+    pub order_audit_path: Vec<AllocatedNum<E>>,
 }
 
-pub struct AllocatedOrder<E: RescueEngine>{
+pub struct AllocatedOrder<E: RescueEngine> {
     pub nonce: CircuitElement<E>,
     pub residue: CircuitElement<E>,
 }
 
-impl<E:RescueEngine> std::fmt::Debug for AllocatedOrder<E>{
+impl<E: RescueEngine> std::fmt::Debug for AllocatedOrder<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AllocatedOrder")
             .field("nonce", &self.nonce.get_number().get_value())
@@ -47,7 +47,8 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             cs.namespace(|| "account_address"),
             || operation_branch.account_id.grab(),
             account_tree_depth(),
-        )?.pad(ACCOUNT_ID_BIT_WIDTH);
+        )?
+        .pad(ACCOUNT_ID_BIT_WIDTH);
         let sub_account_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "sub_account_address"),
             || operation_branch.sub_account_id.grab(),
@@ -97,14 +98,14 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             &operation_branch.witness.order_subtree_path,
         )?;
         let actual_token = Self::calculate_actual_token(
-            cs.namespace(||"calculate actual token"),
+            cs.namespace(|| "calculate actual token"),
             &token,
-            &sub_account_id
+            &sub_account_id,
         )?;
         let actual_slot = Self::calculate_actual_slot(
-            cs.namespace(||"calculate actual slot"),
+            cs.namespace(|| "calculate actual slot"),
             &slot_number,
-            &sub_account_id
+            &sub_account_id,
         )?;
         assert_eq!(order_audit_path.len(), order_tree_depth());
 
@@ -118,12 +119,12 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             actual_token,
             slot_number,
             actual_slot,
-            order: AllocatedOrder{
+            order: AllocatedOrder {
                 nonce: order_nonce,
                 residue: order_residue,
             },
             order_audit_path,
-            sub_account_id
+            sub_account_id,
         })
     }
 
@@ -131,37 +132,43 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         mut cs: CS,
         slot: &AllocatedNum<E>,
         sub_account_id: &CircuitElement<E>,
-    ) -> Result<AllocatedNum<E>, SynthesisError>{
-        let max_num = AllocatedNum::alloc_constant(
-            cs.namespace(||"max_token_number"),
-            || Ok(E::Fr::from_u64(MAX_ORDER_NUMBER as u64))
-        )?;
-        sub_account_id.get_number().mul(
-            cs.namespace(|| "calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER"),
-            &max_num
-        )?.add(
-            cs.namespace(||"calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER + slot"),
-            slot
-        )
+    ) -> Result<AllocatedNum<E>, SynthesisError> {
+        let max_num = AllocatedNum::alloc_constant(cs.namespace(|| "max_token_number"), || {
+            Ok(E::Fr::from_u64(MAX_ORDER_NUMBER as u64))
+        })?;
+        sub_account_id
+            .get_number()
+            .mul(
+                cs.namespace(|| "calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER"),
+                &max_num,
+            )?
+            .add(
+                cs.namespace(|| {
+                    "calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER + slot"
+                }),
+                slot,
+            )
     }
 
     pub fn calculate_actual_token_id<CS: ConstraintSystem<E>>(
         mut cs: CS,
         token: &AllocatedNum<E>,
         sub_account_id: &CircuitElement<E>,
-    ) -> Result<AllocatedNum<E>, SynthesisError>{
+    ) -> Result<AllocatedNum<E>, SynthesisError> {
         // token_id + sub_account_id * MAX_TOKEN_NUMBER
-        let max_num = AllocatedNum::alloc_constant(
-            cs.namespace(||"max_token_number"),
-            || Ok(E::Fr::from_u64(MAX_TOKEN_NUMBER as u64))
-        )?;
-        sub_account_id.get_number().mul(
-            cs.namespace(|| "sub_account_id * MAX_TOKEN_NUMBER"),
-            &max_num
-        )?.add(
-            cs.namespace(||"token_id + sub_account_id * MAX_TOKEN_NUMBER"),
-            token
-        )
+        let max_num = AllocatedNum::alloc_constant(cs.namespace(|| "max_token_number"), || {
+            Ok(E::Fr::from_u64(MAX_TOKEN_NUMBER as u64))
+        })?;
+        sub_account_id
+            .get_number()
+            .mul(
+                cs.namespace(|| "sub_account_id * MAX_TOKEN_NUMBER"),
+                &max_num,
+            )?
+            .add(
+                cs.namespace(|| "token_id + sub_account_id * MAX_TOKEN_NUMBER"),
+                token,
+            )
     }
 
     pub fn calculate_actual_token<CS: ConstraintSystem<E>>(
@@ -170,14 +177,14 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         sub_account_id: &CircuitElement<E>,
     ) -> Result<CircuitElement<E>, SynthesisError> {
         let actual_token = Self::calculate_actual_token_id(
-            cs.namespace(||"calculate_actual_token"),
+            cs.namespace(|| "calculate_actual_token"),
             token.get_number(),
             sub_account_id,
         )?;
         CircuitElement::from_number_with_known_length(
-            cs.namespace(||"token_number into bits"),
+            cs.namespace(|| "token_number into bits"),
             actual_token,
-            balance_tree_depth()
+            balance_tree_depth(),
         )
     }
 
@@ -187,18 +194,22 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         sub_account_id: &CircuitElement<E>,
     ) -> Result<CircuitElement<E>, SynthesisError> {
         let actual_slot = Self::calculate_actual_slot_id(
-            cs.namespace(||"calculate_actual_slot"),
+            cs.namespace(|| "calculate_actual_slot"),
             slot_number.get_number(),
             sub_account_id,
         )?;
         CircuitElement::from_number_with_known_length(
-            cs.namespace(||"order_number into bits"),
+            cs.namespace(|| "order_number into bits"),
             actual_slot,
-            order_tree_depth()
+            order_tree_depth(),
         )
     }
 
-    pub fn calculate_balance_tree_root<CS: ConstraintSystem<E>>(&self, mut cs: CS, params: &E::Params) -> Result<CircuitElement<E>, SynthesisError> {
+    pub fn calculate_balance_tree_root<CS: ConstraintSystem<E>>(
+        &self,
+        mut cs: CS,
+        params: &E::Params,
+    ) -> Result<CircuitElement<E>, SynthesisError> {
         let balance_root = allocate_merkle_root(
             cs.namespace(|| "balance subtree root"),
             self.balance.get_bits_le(),
@@ -207,7 +218,8 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             balance_tree_depth(),
             params,
         )?;
-        let balance_subtree_root = CircuitElement::from_number(cs.namespace(|| "balance_subtree_root_ce"), balance_root)?;
+        let balance_subtree_root =
+            CircuitElement::from_number(cs.namespace(|| "balance_subtree_root_ce"), balance_root)?;
         let state_tree_root = calc_account_state_tree_root(
             cs.namespace(|| "state tree root"),
             &balance_subtree_root,
@@ -216,7 +228,11 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         Ok(state_tree_root)
     }
 
-    pub fn calculate_order_tree_root<CS: ConstraintSystem<E>>(&self, mut cs: CS, params: &E::Params) -> Result<Vec<Boolean>, SynthesisError> {
+    pub fn calculate_order_tree_root<CS: ConstraintSystem<E>>(
+        &self,
+        mut cs: CS,
+        params: &E::Params,
+    ) -> Result<Vec<Boolean>, SynthesisError> {
         let mut order_data = Vec::with_capacity(NONCE_BIT_WIDTH + BALANCE_BIT_WIDTH + FR_BIT_WIDTH);
         order_data.extend_from_slice(self.order.nonce.get_bits_le());
         order_data.extend_from_slice(self.order.residue.get_bits_le());
@@ -228,7 +244,8 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             order_tree_depth(),
             params,
         )?;
-        let order_subtree_root = CircuitElement::from_number(cs.namespace(|| "order_subtree_root_ce"), order_root)?;
+        let order_subtree_root =
+            CircuitElement::from_number(cs.namespace(|| "order_subtree_root_ce"), order_root)?;
         let order_tree_root = calc_account_state_tree_root(
             cs.namespace(|| "order tree root"),
             &order_subtree_root,
@@ -238,13 +255,16 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
     }
 }
 
-impl<E:RescueEngine> std::fmt::Debug for AllocatedOperationBranch<E>{
+impl<E: RescueEngine> std::fmt::Debug for AllocatedOperationBranch<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AllocatedOperationBranch")
             .field("account", &self.account)
             .field("balance", &self.balance.get_number().get_value())
             .field("account_id", &self.account_id.get_number().get_value())
-            .field("sub_account_id", &self.sub_account_id.get_number().get_value())
+            .field(
+                "sub_account_id",
+                &self.sub_account_id.get_number().get_value(),
+            )
             .field("token", &self.token.get_number().get_value())
             .field("actual_token", &self.actual_token.get_number().get_value())
             .field("slot_number", &self.slot_number.get_number().get_value())
@@ -253,7 +273,6 @@ impl<E:RescueEngine> std::fmt::Debug for AllocatedOperationBranch<E>{
             .finish()
     }
 }
-
 
 /// Account tree state will be extended in the future, so for current balance tree we
 /// append emtpy hash to reserve place for the future tree before hashing.

@@ -1,9 +1,14 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
-use zklink_storage::recover_state::records::{NewBlockEvent, StoredBlockEvent, StoredRollupOpsBlock};
-use zklink_types::{block::Block, AccountId, AccountMap, AccountUpdate, BlockNumber, H256, ChainId, TokenId, Token};
 use zklink_storage::chain::operations::records::StoredSubmitTransaction;
+use zklink_storage::recover_state::records::{
+    NewBlockEvent, StoredBlockEvent, StoredRollupOpsBlock,
+};
+use zklink_types::{
+    block::Block, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, Token, TokenId, H256,
+};
 
+use crate::contract::utils::NewToken;
 use crate::{
     contract::ZkLinkContractVersion,
     data_restore_driver::StorageUpdateState,
@@ -11,7 +16,6 @@ use crate::{
     events_state::RollUpEvents,
     rollup_ops::RollupOpsBlock,
 };
-use crate::contract::utils::NewToken;
 
 pub struct StoredTreeState {
     pub last_block_number: BlockNumber,
@@ -59,7 +63,10 @@ pub trait StorageInteractor {
     ///
     /// * `blocks_updated` - blocks and account updated
     ///
-    async fn store_blocks_and_updates(&mut self, blocks_and_updates: Vec<(Block,Vec<(AccountId, AccountUpdate, H256)>)>);
+    async fn store_blocks_and_updates(
+        &mut self,
+        blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>,
+    );
 
     /// Init the progress of syncing token events.
     /// # Arguments
@@ -67,13 +74,13 @@ pub trait StorageInteractor {
     /// * `chain_id` - the chain id of syncing token events
     /// * `last_watched_block_number` - the original block height of syncing token events
     ///
-    async fn init_token_event_progress(&mut self, chain_id: ChainId, last_block_number: BlockNumber);
-
-    async fn init_block_events_state(
+    async fn init_token_event_progress(
         &mut self,
         chain_id: ChainId,
-        last_watched_block_number: u64,
+        last_block_number: BlockNumber,
     );
+
+    async fn init_block_events_state(&mut self, chain_id: ChainId, last_watched_block_number: u64);
 
     /// Update Rollup contract events in storage (includes block events, new tokens and last watched block number)
     ///
@@ -96,7 +103,10 @@ pub trait StorageInteractor {
     ///
     /// * `genesis_updates` - Genesis account updates
     ///
-    async fn save_genesis_tree_state(&mut self, genesis_updates: &[(AccountId, AccountUpdate, H256)]);
+    async fn save_genesis_tree_state(
+        &mut self,
+        genesis_updates: &[(AccountId, AccountUpdate, H256)],
+    );
 
     /// Returns Rollup contract events state from storage
     async fn get_block_events_state_from_storage(&mut self, chain_id: ChainId) -> RollUpEvents;

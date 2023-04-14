@@ -41,7 +41,7 @@ impl ZkLinkContractVersion {
     ) -> anyhow::Result<Vec<RollupOpsBlock>> {
         use ZkLinkContractVersion::*;
         let mut blocks = match self {
-            V0  => v0::rollup_ops_blocks_from_bytes(data)?,
+            V0 => v0::rollup_ops_blocks_from_bytes(data)?,
         };
         // Set the contract version.
         for block in blocks.iter_mut() {
@@ -90,7 +90,7 @@ impl ZkLinkContractVersion {
     pub fn supported_ops_numbers(&self) -> &'static [usize] {
         use ZkLinkContractVersion::*;
         match self {
-            V0 => &[111,401,511],
+            V0 => &[111, 401, 511],
         }
     }
 

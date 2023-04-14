@@ -1,11 +1,17 @@
-use crate::{helpers::{pack_fee_amount, pack_token_amount, unpack_fee_amount, unpack_token_amount}, Transfer};
+use crate::operations::GetPublicData;
+use crate::{
+    helpers::{pack_fee_amount, pack_token_amount, unpack_fee_amount, unpack_token_amount},
+    Transfer,
+};
 use crate::{AccountId, Nonce, TokenId};
 use anyhow::{ensure, format_err};
 use serde::{Deserialize, Serialize};
 use zklink_basic_types::SubAccountId;
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, FEE_BIT_WIDTH, CHUNK_BYTES, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, CHUNK_BYTES, FEE_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH,
+    TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
-use crate::operations::GetPublicData;
 
 /// Transfer operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +21,7 @@ pub struct TransferOp {
     pub to: AccountId,
 }
 
-impl GetPublicData for TransferOp{
+impl GetPublicData for TransferOp {
     fn get_public_data(&self) -> Vec<u8> {
         let mut data = Vec::new();
         data.push(Self::OP_CODE); // opcode
@@ -64,16 +70,16 @@ impl TransferOp {
 
         Ok(Self {
             tx: Transfer::new(
-                    AccountId(from_id),
-                    Default::default(),
-                    SubAccountId(from_sub_acount_id),
-                    SubAccountId(to_sub_acount_id),
-                    TokenId(token as u32),
-                    amount,
-                    fee,
-                    Nonce(nonce),
-                    None,
-                    Default::default(),
+                AccountId(from_id),
+                Default::default(),
+                SubAccountId(from_sub_acount_id),
+                SubAccountId(to_sub_acount_id),
+                TokenId(token as u32),
+                amount,
+                fee,
+                Nonce(nonce),
+                None,
+                Default::default(),
             ),
             from: AccountId(from_id),
             to: AccountId(to_id),

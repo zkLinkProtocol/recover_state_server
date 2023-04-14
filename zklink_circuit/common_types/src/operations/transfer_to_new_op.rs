@@ -1,11 +1,17 @@
-use crate::{helpers::{pack_fee_amount, pack_token_amount, unpack_fee_amount, unpack_token_amount}, Transfer, ZkLinkAddress};
+use crate::operations::GetPublicData;
+use crate::{
+    helpers::{pack_fee_amount, pack_token_amount, unpack_fee_amount, unpack_token_amount},
+    Transfer, ZkLinkAddress,
+};
 use crate::{AccountId, Nonce, TokenId};
 use anyhow::{ensure, format_err};
 use serde::{Deserialize, Serialize};
 use zklink_basic_types::SubAccountId;
-use zklink_crypto::params::{ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, CHUNK_BYTES, ETH_ADDRESS_BIT_WIDTH, FEE_BIT_WIDTH, SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH};
+use zklink_crypto::params::{
+    ACCOUNT_ID_BIT_WIDTH, AMOUNT_BIT_WIDTH, CHUNK_BYTES, ETH_ADDRESS_BIT_WIDTH, FEE_BIT_WIDTH,
+    SUB_ACCOUNT_ID_BIT_WIDTH, TOKEN_BIT_WIDTH,
+};
 use zklink_crypto::primitives::FromBytes;
-use crate::operations::GetPublicData;
 
 /// TransferToNew operation. For details, see the documentation of [`ZkLinkOp`](./operations/enum.ZkLinkOp.html).
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -15,7 +21,7 @@ pub struct TransferToNewOp {
     pub to: AccountId,
 }
 
-impl GetPublicData for TransferToNewOp{
+impl GetPublicData for TransferToNewOp {
     fn get_public_data(&self) -> Vec<u8> {
         let mut data = Vec::new();
         data.push(Self::OP_CODE); // opcode
@@ -69,16 +75,16 @@ impl TransferToNewOp {
 
         Ok(Self {
             tx: Transfer::new(
-                    AccountId(from_id),
-                    to,
-                    SubAccountId(from_sub_acount_id),
-                    SubAccountId(to_sub_acount_id),
-                    TokenId(token as u32),
-                    amount,
-                    fee,
-                    Nonce(nonce),
-                    None,
-                    ts,
+                AccountId(from_id),
+                to,
+                SubAccountId(from_sub_acount_id),
+                SubAccountId(to_sub_acount_id),
+                TokenId(token as u32),
+                amount,
+                fee,
+                Nonce(nonce),
+                None,
+                ts,
             ),
             from: AccountId(from_id),
             to: AccountId(to_id),

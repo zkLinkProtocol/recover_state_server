@@ -1,5 +1,5 @@
-use std::fmt;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
 use zklink_utils::ZeroPrefixHexSerde;
 
 /// Struct used for working with ethereum signatures created using eth_sign (using geth, ethers.js, etc)
@@ -30,8 +30,8 @@ impl fmt::Display for PackedEthSignature {
 
 impl<'de> Deserialize<'de> for PackedEthSignature {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
+    where
+        D: Deserializer<'de>,
     {
         let bytes = ZeroPrefixHexSerde::deserialize(deserializer)?;
         Ok(Self(bytes))

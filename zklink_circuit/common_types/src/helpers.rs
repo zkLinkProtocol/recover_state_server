@@ -23,11 +23,11 @@ pub fn reverse_updates(updates: &mut AccountUpdates) {
     }
 }
 
-pub fn remove_amount_packaging_uncertainly(amount:&BigUint) -> Option<BigUint>{
+pub fn remove_amount_packaging_uncertainly(amount: &BigUint) -> Option<BigUint> {
     unpack_token_amount(&pack_token_amount(amount))
 }
 
-pub fn remove_fee_packaging_uncertainly(amount:&BigUint) -> Option<BigUint>{
+pub fn remove_fee_packaging_uncertainly(amount: &BigUint) -> Option<BigUint> {
     unpack_fee_amount(&pack_fee_amount(amount))
 }
 
@@ -84,7 +84,7 @@ pub fn pack_fee_amount_up(amount: &BigUint) -> Vec<u8> {
 /// Checks whether the token amount can be packed (and thus used in the transaction).
 pub fn is_token_amount_packable(amount: &BigUint) -> bool {
     if amount > &34359738367000000000000000000000000000u128.into() {
-        return false
+        return false;
     }
     Some(amount.clone()) == unpack_token_amount(&pack_token_amount(amount))
 }
@@ -92,7 +92,7 @@ pub fn is_token_amount_packable(amount: &BigUint) -> bool {
 /// Checks whether the fee amount can be packed (and thus used in the transaction).
 pub fn is_fee_amount_packable(amount: &BigUint) -> bool {
     if amount > &20470000000000000000000000000000000u128.into() {
-        return false
+        return false;
     }
     Some(amount.clone()) == unpack_fee_amount(&pack_fee_amount(amount))
 }

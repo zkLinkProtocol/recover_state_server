@@ -1,11 +1,11 @@
 // Built-in deps
-use std::time::Instant;
 use chrono::{DateTime, Utc};
 use sqlx::types::BigDecimal;
+use std::time::Instant;
 // Local imports
 use self::records::*;
-use crate::{QueryResult, StorageProcessor};
 use crate::chain::block::BlockSchema;
+use crate::{QueryResult, StorageProcessor};
 
 pub mod records;
 mod restore_account;
@@ -66,10 +66,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
     }
 
     /// Obtains account by its id.
-    pub async fn account_by_id(
-        &mut self,
-        account_id: i64
-    ) -> QueryResult<Option<StorageAccount>> {
+    pub async fn account_by_id(&mut self, account_id: i64) -> QueryResult<Option<StorageAccount>> {
         let start = Instant::now();
 
         let account = sqlx::query_as!(
@@ -80,10 +77,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             .fetch_optional(self.0.conn())
             .await?;
 
-        metrics::histogram!(
-            "sql.chain.account.account_by_id",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.chain.account.account_by_id", start.elapsed());
 
         Ok(account)
     }
@@ -91,7 +85,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
     /// Obtains account by its address.
     pub async fn account_by_address(
         &mut self,
-        address: &[u8]
+        address: &[u8],
     ) -> QueryResult<Option<StorageAccount>> {
         let start = Instant::now();
 
@@ -103,10 +97,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             .fetch_optional(self.0.conn())
             .await?;
 
-        metrics::histogram!(
-            "sql.chain.account.account_by_address",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.chain.account.account_by_address", start.elapsed());
 
         Ok(account)
     }
@@ -116,7 +107,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
         &mut self,
         account_id: i64,
         sub_account_id: i32,
-        token_id: i32
+        token_id: i32,
     ) -> QueryResult<Option<StorageBalance>> {
         let start = Instant::now();
 
@@ -142,24 +133,28 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
     pub async fn account_balances(
         &mut self,
         account_id: i64,
-        sub_account_id: Option<i32>
+        sub_account_id: Option<i32>,
     ) -> QueryResult<Vec<StorageBalance>> {
         let balances = match sub_account_id {
-            Some(sub_account_id) => sqlx::query_as!(
+            Some(sub_account_id) => {
+                sqlx::query_as!(
                     StorageBalance,
                     r#"SELECT * FROM balances WHERE account_id = $1 and sub_account_id = $2"#,
                     account_id,
                     sub_account_id
                 )
                 .fetch_all(self.0.conn())
-                .await?,
-            None => sqlx::query_as!(
-                        StorageBalance,
+                .await?
+            }
+            None => {
+                sqlx::query_as!(
+                    StorageBalance,
                     r#"SELECT * FROM balances WHERE account_id = $1"#,
                     account_id
                 )
                 .fetch_all(self.0.conn())
                 .await?
+            }
         };
 
         Ok(balances)
@@ -169,7 +164,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
     pub async fn account_order_slots(
         &mut self,
         account_id: i64,
-        sub_account_id: Option<i32>
+        sub_account_id: Option<i32>,
     ) -> QueryResult<Vec<StorageOrderNonce>> {
         let orders = match sub_account_id {
             Some(sub_account_id) => sqlx::query_as!(
@@ -196,7 +191,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
         &mut self,
         account_id: i64,
         sub_account_id: Option<i32>,
-        block_number: i64
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountUpdate>> {
         let updates = match sub_account_id {
             // Group by coin_id for each account
@@ -216,7 +211,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                 )
                 .fetch_all(self.0.conn())
                 .await?
-            },
+            }
             None => {
                 // Group by (sub_account_id, coin_id) for each account
                 sqlx::query_as!(
@@ -231,8 +226,8 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                     account_id,
                     block_number
                 )
-                    .fetch_all(self.0.conn())
-                    .await?
+                .fetch_all(self.0.conn())
+                .await?
             }
         };
 
@@ -243,7 +238,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
         &mut self,
         account_id: i64,
         sub_account_id: Option<i32>,
-        block_number: i64
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountOrderUpdate>> {
         let updates = match sub_account_id {
             Some(sub_account_id) => {
@@ -259,9 +254,9 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                     sub_account_id,
                     block_number
                 )
-                    .fetch_all(self.0.conn())
-                    .await?
-            },
+                .fetch_all(self.0.conn())
+                .await?
+            }
             None => {
                 // Group by (sub_account_id, slot_id) for each account
                 sqlx::query_as!(
@@ -274,8 +269,8 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                     account_id,
                     block_number
                 )
-                    .fetch_all(self.0.conn())
-                    .await?
+                .fetch_all(self.0.conn())
+                .await?
             }
         };
 
@@ -285,21 +280,21 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
     pub async fn earliest_account_pubkey_update_from_block(
         &mut self,
         account_id: i64,
-        block_number: i64
+        block_number: i64,
     ) -> QueryResult<Option<StorageAccountPubkeyUpdate>> {
         // There will be at most one update for each account
         let updates = sqlx::query_as!(
-                    StorageAccountPubkeyUpdate,
-                    r#"SELECT a.* FROM account_pubkey_updates a INNER JOIN
+            StorageAccountPubkeyUpdate,
+            r#"SELECT a.* FROM account_pubkey_updates a INNER JOIN
                     (SELECT min(pubkey_update_id) FROM account_pubkey_updates
                     WHERE account_id = $1 AND block_number > $2) b
                     ON a.pubkey_update_id = b.min
                     "#,
-                    account_id,
-                    block_number
-                )
-            .fetch_optional(self.0.conn())
-            .await?;
+            account_id,
+            block_number
+        )
+        .fetch_optional(self.0.conn())
+        .await?;
 
         Ok(updates)
     }
@@ -308,7 +303,7 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
         &mut self,
         account_id: i64,
         sub_account_id: Option<i32>,
-        block_number: Option<i64>
+        block_number: Option<i64>,
     ) -> QueryResult<AccountSnapshot> {
         // Query state and earliest updates in a transaction
         let mut transaction = self.0.start_transaction().await?;
@@ -316,18 +311,12 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
         let mut block_schema = BlockSchema(&mut transaction);
         let block_number = match block_number {
             Some(block_number) => block_number,
-            None => {
-                block_schema
-                    .get_last_block_number()
-                    .await?
-            }
+            None => block_schema.get_last_block_number().await?,
         };
 
         let mut account_schema = AccountSchema(&mut transaction);
 
-        let mut account = account_schema
-            .account_by_id(account_id)
-            .await?;
+        let mut account = account_schema.account_by_id(account_id).await?;
         let mut balances = vec![];
         let mut order_slots = vec![];
 
@@ -343,13 +332,21 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                 // Obtain earliest updates from block, and then we can know the snapshot of `block_number`
                 // from `old_balance` and `old_nonce`.
                 let balance_updates = account_schema
-                    .earliest_account_balance_updates_from_block(account_id, sub_account_id, block_number)
+                    .earliest_account_balance_updates_from_block(
+                        account_id,
+                        sub_account_id,
+                        block_number,
+                    )
                     .await?;
                 let pubkey_update = account_schema
                     .earliest_account_pubkey_update_from_block(account_id, block_number)
                     .await?;
                 let order_updates = account_schema
-                    .earliest_account_order_updates_from_block(account_id, sub_account_id, block_number)
+                    .earliest_account_order_updates_from_block(
+                        account_id,
+                        sub_account_id,
+                        block_number,
+                    )
                     .await?;
 
                 // Commit after get all data to reduce the time of transaction
@@ -365,13 +362,20 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                     // Recovery balance for each (account_id, sub_account_id, coin_id)
                     let balance = &mut balances
                         .iter_mut()
-                        .find(|b| b.account_id == u.account_id
-                        && b.sub_account_id == u.sub_account_id
-                        && b.coin_id == u.coin_id)
-                        .unwrap_or_else(|| panic!("Balance not found in db but update [id = {}] exist", u.balance_update_id));
+                        .find(|b| {
+                            b.account_id == u.account_id
+                                && b.sub_account_id == u.sub_account_id
+                                && b.coin_id == u.coin_id
+                        })
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Balance not found in db but update [id = {}] exist",
+                                u.balance_update_id
+                            )
+                        });
                     balance.balance = u.old_balance;
                 }
-                if let Some(update) = pubkey_update{
+                if let Some(update) = pubkey_update {
                     if account.nonce > update.old_nonce {
                         account.nonce = update.old_nonce;
                     }
@@ -381,18 +385,26 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
                     // Recovery slot for each (account_id, sub_account_id, slot_id)
                     let order_slot = &mut order_slots
                         .iter_mut()
-                        .find(|o| o.account_id == u.account_id
-                        && o.sub_account_id == u.sub_account_id
-                        && o.slot_id == u.slot_id)
-                        .unwrap_or_else(|| panic!("Order slot not found in db but update [id = {}] exist", u.update_order_id));
+                        .find(|o| {
+                            o.account_id == u.account_id
+                                && o.sub_account_id == u.sub_account_id
+                                && o.slot_id == u.slot_id
+                        })
+                        .unwrap_or_else(|| {
+                            panic!(
+                                "Order slot not found in db but update [id = {}] exist",
+                                u.update_order_id
+                            )
+                        });
                     // `old_order_nonce` in db for example
                     // "[64,\"0\"]"
                     let json_string: String = serde_json::from_value(u.old_order_nonce).unwrap();
-                    let (order_nonce, residue): (i64, BigDecimal) = serde_json::from_str(&json_string).unwrap();
+                    let (order_nonce, residue): (i64, BigDecimal) =
+                        serde_json::from_str(&json_string).unwrap();
                     order_slot.order_nonce = order_nonce;
                     order_slot.residue = residue;
                 }
-            },
+            }
             None => {
                 transaction.commit().await?;
             }
@@ -402,11 +414,15 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             account,
             balances,
             order_slots,
-            block_number
+            block_number,
         })
     }
 
-    pub async fn sub_account_balances(&mut self, account_id: i64, token_id: i32) -> QueryResult<Vec<StorageBalance>> {
+    pub async fn sub_account_balances(
+        &mut self,
+        account_id: i64,
+        token_id: i32,
+    ) -> QueryResult<Vec<StorageBalance>> {
         let start = Instant::now();
 
         let account_balances = sqlx::query_as!(
@@ -415,18 +431,20 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             account_id,
             token_id
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
-        metrics::histogram!(
-            "sql.chain.account.sub_account_balances",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.chain.account.sub_account_balances", start.elapsed());
 
         Ok(account_balances)
     }
 
-    pub async fn sub_account_balance_of_token(&mut self, account_id: i64, sub_account_id: i32, token_id: i32) -> QueryResult<Option<StorageBalance>> {
+    pub async fn sub_account_balance_of_token(
+        &mut self,
+        account_id: i64,
+        sub_account_id: i32,
+        token_id: i32,
+    ) -> QueryResult<Option<StorageBalance>> {
         let account_balance = sqlx::query_as!(
             StorageBalance,
             r#"SELECT * FROM balances WHERE account_id = $1 AND sub_account_id = $2 AND coin_id = $3"#,
@@ -450,43 +468,54 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             "#,
             address
         )
-            .fetch_one(self.0.conn())
-            .await?;
+        .fetch_one(self.0.conn())
+        .await?;
 
         Ok(entry.created_at)
     }
 
-    pub async fn is_white_submitter(&mut self, sub_account_ids: &[i32], pubkey_hash: &[u8]) -> QueryResult<bool> {
+    pub async fn is_white_submitter(
+        &mut self,
+        sub_account_ids: &[i32],
+        pubkey_hash: &[u8],
+    ) -> QueryResult<bool> {
         let white_submitters = sqlx::query_as!(
-                StorageWhiteSubmitter,
-                r#"SELECT w.* FROM tx_submitter_whitelist as w INNER JOIN accounts as a
+            StorageWhiteSubmitter,
+            r#"SELECT w.* FROM tx_submitter_whitelist as w INNER JOIN accounts as a
                  ON w.submitter_account_id = a.id
                  WHERE w.sub_account_id = ANY($1) AND a.pubkey_hash = $2"#,
-                sub_account_ids,
-                pubkey_hash
-            )
-            .fetch_all(self.0.conn())
-            .await?;
+            sub_account_ids,
+            pubkey_hash
+        )
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(!white_submitters.is_empty())
     }
 
-    pub async fn add_white_submitter(&mut self,sub_account_id:i32,submitter_account_id:i64)-> QueryResult<()> {
+    pub async fn add_white_submitter(
+        &mut self,
+        sub_account_id: i32,
+        submitter_account_id: i64,
+    ) -> QueryResult<()> {
         sqlx::query!(
-                r#"
+            r#"
                 INSERT INTO tx_submitter_whitelist ( sub_account_id, submitter_account_id )
                 VALUES ( $1, $2 )
                 "#,
-                sub_account_id,
-                submitter_account_id,
-                    )
-            .execute(self.0.conn())
-            .await?;
+            sub_account_id,
+            submitter_account_id,
+        )
+        .execute(self.0.conn())
+        .await?;
         Ok(())
-
     }
 
-    pub async fn delete_white_submitter(&mut self,sub_account_id:i32,submitter_account_id:i64)-> QueryResult<()> {
+    pub async fn delete_white_submitter(
+        &mut self,
+        sub_account_id: i32,
+        submitter_account_id: i64,
+    ) -> QueryResult<()> {
         sqlx::query!(
                 r#"
                 DELETE FROM tx_submitter_whitelist  WHERE sub_account_id=$1 AND submitter_account_id=$2
@@ -497,17 +526,16 @@ impl<'a, 'c> AccountSchema<'a, 'c> {
             .execute(self.0.conn())
             .await?;
         Ok(())
-
     }
 
     /// load submitter whitelist from table
     pub async fn load_submitter_whitelist(&mut self) -> QueryResult<Vec<StorageWhiteSubmitter>> {
         let white_submitters = sqlx::query_as!(
-                StorageWhiteSubmitter,
-                r#"SELECT * FROM tx_submitter_whitelist"#,
-            )
-            .fetch_all(self.0.conn())
-            .await?;
+            StorageWhiteSubmitter,
+            r#"SELECT * FROM tx_submitter_whitelist"#,
+        )
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(white_submitters)
     }

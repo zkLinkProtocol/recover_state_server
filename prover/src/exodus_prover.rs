@@ -1,16 +1,16 @@
-use tracing::info;
+use crate::exit_proof::create_exit_proof;
+use crate::exit_type::ExitProofData;
+use crate::ExitInfo;
 use recover_state_config::RecoverStateConfig;
+use tracing::info;
 use zklink_crypto::circuit::account::CircuitAccount;
 use zklink_crypto::circuit::CircuitAccountTree;
 use zklink_crypto::params::account_tree_depth;
 use zklink_storage::ConnectionPool;
 use zklink_types::block::Block;
-use crate::exit_proof::create_exit_proof;
-use crate::exit_type::ExitProofData;
-use crate::ExitInfo;
 
 #[derive(Clone)]
-pub struct ExodusProver{
+pub struct ExodusProver {
     config: RecoverStateConfig,
     conn_pool: ConnectionPool,
     circuit_account_tree: CircuitAccountTree,
@@ -25,7 +25,8 @@ impl ExodusProver {
             .await
             .expect("Storage access failed");
         // Process unfinished tasks before the last shutdown.
-        storage.prover_schema()
+        storage
+            .prover_schema()
             .process_unfinished_tasks()
             .await
             .expect("Storage access failed");
@@ -37,7 +38,8 @@ impl ExodusProver {
             .await
             .expect("Failed to load last verified confirmed block number");
         let mut circuit_account_tree = CircuitAccountTree::new(account_tree_depth());
-        for (id, account) in storage.chain()
+        for (id, account) in storage
+            .chain()
             .state_schema()
             .load_circuit_state(last_executed_block_number)
             .await
@@ -62,7 +64,7 @@ impl ExodusProver {
             .expect("Failed to get last verified confirmed block")
             .expect("Block should be existed");
         drop(storage);
-        Self{
+        Self {
             config,
             conn_pool,
             circuit_account_tree,
@@ -72,29 +74,24 @@ impl ExodusProver {
 
     /// The number of tasks that are currently generating proof.
     pub async fn running_tasks_num(&self) -> anyhow::Result<u32> {
-        let mut storage = self.conn_pool
-            .access_storage_with_retry()
-            .await?;
-        let running_task_num = storage.prover_schema()
-            .count_running_tasks()
-            .await?;
+        let mut storage = self.conn_pool.access_storage_with_retry().await?;
+        let running_task_num = storage.prover_schema().count_running_tasks().await?;
         Ok(running_task_num as u32)
     }
 
     pub async fn load_new_task(&self, index: usize) -> anyhow::Result<Option<ExitInfo>> {
-        let mut storage = self.conn_pool
-            .access_storage_with_retry()
-            .await?;
-        let task = storage.prover_schema()
+        let mut storage = self.conn_pool.access_storage_with_retry().await?;
+        let task = storage
+            .prover_schema()
             .load_exit_proof_task()
             .await?
             .map(|t| {
                 info!("[Worker{}] loading new task: {}", index, t);
                 assert!(
                     t.created_at.is_none()
-                    && t.finished_at.is_none()
-                    && t.proof.is_none()
-                    && t.amount.is_none()
+                        && t.finished_at.is_none()
+                        && t.proof.is_none()
+                        && t.amount.is_none()
                 );
                 (&t).into()
             });
@@ -102,17 +99,17 @@ impl ExodusProver {
     }
 
     pub async fn cancel_this_task(&self, exit_info: &ExitInfo) -> anyhow::Result<()> {
-        let mut storage = self.conn_pool
-            .access_storage_with_retry()
-            .await?;
-        storage.prover_schema()
+        let mut storage = self.conn_pool.access_storage_with_retry().await?;
+        storage
+            .prover_schema()
             .cancel_this_exit_proof_task(exit_info.into())
             .await?;
         Ok(())
     }
 
-    pub async fn check_exit_info(&self, mut exit_info: ExitInfo) -> ExitInfo{
-        let mut storage = self.conn_pool
+    pub async fn check_exit_info(&self, mut exit_info: ExitInfo) -> ExitInfo {
+        let mut storage = self
+            .conn_pool
             .access_storage_with_retry()
             .await
             .expect("Storage access failed");
@@ -130,9 +127,7 @@ impl ExodusProver {
             .get_token(*exit_info.l2_source_token as i32)
             .await
             .expect("Db access fail")
-            .expect(
-                "Token not found.",
-            );
+            .expect("Token not found.");
 
         exit_info.account_address = storage
             .chain()
@@ -155,9 +150,9 @@ impl ExodusProver {
             exit_info.l2_source_token,
             exit_info.l1_target_token,
             exit_info.chain_id,
-            self.config.layer1.chain_configs.len()
+            self.config.layer1.chain_configs.len(),
         )
-            .expect("Failed to generate exit proof");
+        .expect("Failed to generate exit proof");
 
         let proof_data = ExitProofData {
             exit_info,
@@ -167,11 +162,10 @@ impl ExodusProver {
         Ok(proof_data)
     }
 
-    pub(crate) async fn store_exit_proof(&self, proof: &ExitProofData) -> anyhow::Result<()>{
-        let mut storage = self.conn_pool
-            .access_storage_with_retry()
-            .await?;
-        storage.prover_schema()
+    pub(crate) async fn store_exit_proof(&self, proof: &ExitProofData) -> anyhow::Result<()> {
+        let mut storage = self.conn_pool.access_storage_with_retry().await?;
+        storage
+            .prover_schema()
             .store_exit_proof(proof.into())
             .await?;
         Ok(())

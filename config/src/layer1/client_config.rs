@@ -29,7 +29,7 @@ impl ClientConfig {
             .expect("Should be at least one")
     }
 
-    pub fn limit_delay(&self) -> Duration{
+    pub fn limit_delay(&self) -> Duration {
         Duration::from_secs(self.request_rate_limit_delay)
     }
 }
@@ -46,7 +46,7 @@ mod tests {
                 "http://127.0.0.1:8545".into(),
                 "http://127.0.0.1:8546".into(),
             ],
-            request_rate_limit_delay: 30
+            request_rate_limit_delay: 30,
         }
     }
 

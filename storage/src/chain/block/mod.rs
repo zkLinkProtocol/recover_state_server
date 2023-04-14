@@ -1,27 +1,28 @@
 // Built-in deps
-use std::time::{Instant, UNIX_EPOCH, Duration};
+use std::time::{Duration, Instant, UNIX_EPOCH};
 // External imports
 // Workspace imports
-use zklink_crypto::{convert::FeConvert};
+use zklink_crypto::convert::FeConvert;
 use zklink_types::{
-    block::{Block, ExecutedTx}, H256, U256,
-    AccountId, BlockNumber, Fr,
+    block::{Block, ExecutedTx},
+    AccountId, BlockNumber, Fr, H256, U256,
 };
 // Local imports
-use self::records::{
-    StorageBlockState, StorageBlock,
+use self::records::{StorageBlock, StorageBlockState};
+use crate::chain::account::records::{
+    StorageAccountCreation, StorageAccountOrderUpdate, StorageAccountPubkeyUpdate,
+    StorageAccountUpdate, StorageStateUpdates,
 };
+use crate::chain::block::records::{NewZkLinkTx, StorageBlockOnChainState};
+use crate::chain::operations::records::{AggType, StorageTxHash, StorageTxHashData};
+use crate::chain::operations::OperationsSchema;
 use crate::{
-    chain::operations::records::{ StoredExecutedTransaction, NewExecutedTransaction},
+    chain::operations::records::{NewExecutedTransaction, StoredExecutedTransaction},
     QueryResult, StorageProcessor,
 };
-use crate::chain::operations::OperationsSchema;
-use chrono::{Utc, DateTime};
+use chrono::{DateTime, Utc};
 use parity_crypto::Keccak256;
-use crate::chain::operations::records::{AggType, StorageTxHash, StorageTxHashData};
-use crate::chain::block::records::{NewZkLinkTx, StorageBlockOnChainState};
 use zklink_types::block::FailedExecutedTx;
-use crate::chain::account::records::{StorageAccountCreation, StorageAccountOrderUpdate, StorageAccountPubkeyUpdate, StorageAccountUpdate, StorageStateUpdates};
 
 mod conversion;
 pub mod records;
@@ -94,9 +95,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
     // Helper method for retrieving blocks from the database.
     pub async fn get_last_block_number(&mut self) -> QueryResult<i64> {
         // we use fetch_one because there should be at least one block(the genesis block) stored in table blocks
-        let block_number = sqlx::query!(
-            "SELECT max(number) from blocks",
-        )
+        let block_number = sqlx::query!("SELECT max(number) from blocks",)
             .fetch_one(self.0.conn())
             .await?
             .max
@@ -104,7 +103,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         Ok(block_number)
     }
     // Helper method for retrieving block state from the database
-    pub async fn get_block_state(&mut self) -> QueryResult<StorageBlockState>{
+    pub async fn get_block_state(&mut self) -> QueryResult<StorageBlockState> {
         let mut transaction = self.0.start_transaction().await?;
 
         // we use fetch_one because there should be at least one block(the genesis block) stored in table blocks
@@ -112,8 +111,8 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             StorageBlock,
             "SELECT * from blocks order by number desc limit 1",
         )
-            .fetch_one(transaction.conn())
-            .await?;
+        .fetch_one(transaction.conn())
+        .await?;
 
         let last_committed_block = OperationsSchema(&mut transaction)
             .get_last_block_by_aggregated_action(AggType::CommitBlocks, true)
@@ -127,7 +126,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
 
         transaction.commit().await?;
 
-        Ok(StorageBlockState{
+        Ok(StorageBlockState {
             last_block_number: last_block.number,
             created_at: last_block.created_at,
             committed: last_committed_block,
@@ -136,7 +135,10 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
     }
 
     // Helper method for retrieving block onchain state from the database
-    pub async fn get_block_onchain_state(&mut self, block_number: i64) -> QueryResult<StorageBlockOnChainState>{
+    pub async fn get_block_onchain_state(
+        &mut self,
+        block_number: i64,
+    ) -> QueryResult<StorageBlockOnChainState> {
         let mut transaction = self.0.start_transaction().await?;
 
         let committed = OperationsSchema(&mut transaction)
@@ -149,7 +151,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
 
         transaction.commit().await?;
 
-        Ok(StorageBlockOnChainState{
+        Ok(StorageBlockOnChainState {
             committed,
             verified,
         })
@@ -168,7 +170,8 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         let block_transactions = self.get_block_executed_ops(block).await?;
 
         // Encode the root hash as `0xFF..FF`.
-        let new_root_hash = FeConvert::from_bytes(&stored_block.root_hash).expect("Unparsable root hash");
+        let new_root_hash =
+            FeConvert::from_bytes(&stored_block.root_hash).expect("Unparsable root hash");
 
         let commitment = H256::from_slice(&stored_block.commitment);
         let sync_hash = H256::from_slice(&stored_block.sync_hash);
@@ -198,10 +201,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
     }
 
     /// Given the block number, loads all the operations that were executed in that block.
-    pub async fn get_block_executed_ops(
-        &mut self,
-        block: i64,
-    ) -> QueryResult<Vec<ExecutedTx>> {
+    pub async fn get_block_executed_ops(&mut self, block: i64) -> QueryResult<Vec<ExecutedTx>> {
         let start = Instant::now();
         let mut executed_operations = Vec::new();
 
@@ -325,13 +325,11 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             op_types,
         )
-            .fetch_one(self.0.conn())
-            .await?;
+        .fetch_one(self.0.conn())
+        .await?;
 
         // if no tx executed, return 0 is safe, because tx id start from 1
-        let id = last_tx_id
-            .max
-            .unwrap_or(0);
+        let id = last_tx_id.max.unwrap_or(0);
         Ok(id)
     }
 
@@ -340,7 +338,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         &mut self,
         last_tx_id: i64,
         op_types: &[i16],
-        limit: i64
+        limit: i64,
     ) -> QueryResult<Vec<NewZkLinkTx>> {
         // select where id > last_tx_id without equal
         // order id by ASC, first in first out
@@ -361,7 +359,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
 
     pub async fn get_block_tx_hash_list(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageTxHash>> {
         let list = sqlx::query_as!(
             StorageTxHash,
@@ -371,14 +369,14 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
         Ok(list)
     }
 
     pub async fn get_block_tx_hash_data_list(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageTxHashData>> {
         let list = sqlx::query_as!(
             StorageTxHashData,
@@ -388,20 +386,18 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
         Ok(list)
     }
 
     pub async fn get_block_state_updates(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<StorageStateUpdates> {
         // no need to do update query in a transaction, because all updates
         // will be write to database in a transaction
-        let account_creates = self
-            .get_account_creates_by_block(block_number)
-            .await?;
+        let account_creates = self.get_account_creates_by_block(block_number).await?;
         let balance_updates = self
             .get_account_balance_updates_by_block(block_number)
             .await?;
@@ -411,17 +407,17 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         let account_pubkey_updates = self
             .get_account_pubkey_updates_by_block(block_number)
             .await?;
-        Ok(StorageStateUpdates{
+        Ok(StorageStateUpdates {
             account_creates,
             balance_updates,
             order_nonce_updates,
-            account_pubkey_updates
+            account_pubkey_updates,
         })
     }
 
     pub async fn get_account_creates_by_block(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountCreation>> {
         let updates = sqlx::query_as!(
             StorageAccountCreation,
@@ -432,15 +428,15 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(updates)
     }
 
     pub async fn get_account_balance_updates_by_block(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountUpdate>> {
         let updates = sqlx::query_as!(
             StorageAccountUpdate,
@@ -451,15 +447,15 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(updates)
     }
 
     pub async fn get_account_order_updates_by_block(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountOrderUpdate>> {
         let updates = sqlx::query_as!(
             StorageAccountOrderUpdate,
@@ -470,15 +466,15 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(updates)
     }
 
     pub async fn get_account_pubkey_updates_by_block(
         &mut self,
-        block_number:i64,
+        block_number: i64,
     ) -> QueryResult<Vec<StorageAccountPubkeyUpdate>> {
         let updates = sqlx::query_as!(
             StorageAccountPubkeyUpdate,
@@ -489,8 +485,8 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             "#,
             block_number,
         )
-            .fetch_all(self.0.conn())
-            .await?;
+        .fetch_all(self.0.conn())
+        .await?;
 
         Ok(updates)
     }

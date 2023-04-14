@@ -1,6 +1,6 @@
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use zklink_utils::ZeroPrefixHexSerde;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EIP1271Signature(pub Vec<u8>);

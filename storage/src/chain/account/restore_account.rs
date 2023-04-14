@@ -2,12 +2,12 @@
 // External imports
 use num::bigint::ToBigInt;
 // Workspace imports
-use zklink_types::{PubKeyHash, SlotId, ZkLinkAddress, SubAccountId};
 use zklink_types::{Account, AccountId, Nonce, TokenId};
+use zklink_types::{PubKeyHash, SlotId, SubAccountId, ZkLinkAddress};
 // Local imports
 use super::records::*;
 use zklink_types::account::TidyOrder;
-use zklink_types::utils::{calculate_actual_token, calculate_actual_slot};
+use zklink_types::utils::{calculate_actual_slot, calculate_actual_token};
 
 pub(crate) fn restore_account(
     stored_account: &StorageAccount,
@@ -19,15 +19,21 @@ pub(crate) fn restore_account(
         assert_eq!(b.account_id, stored_account.id);
         let balance_bigint = b.balance.to_bigint().unwrap();
         let balance = balance_bigint.to_biguint().unwrap();
-        let coin_id = calculate_actual_token(SubAccountId(b.sub_account_id as u8), TokenId(b.coin_id as u32));
+        let coin_id = calculate_actual_token(
+            SubAccountId(b.sub_account_id as u8),
+            TokenId(b.coin_id as u32),
+        );
         account.set_balance(coin_id, balance);
     }
 
     for o in stored_orders.into_iter() {
         assert_eq!(o.account_id, stored_account.id);
-        let slot_id = calculate_actual_slot(SubAccountId(o.sub_account_id as u8),SlotId(o.slot_id as u32));
+        let slot_id = calculate_actual_slot(
+            SubAccountId(o.sub_account_id as u8),
+            SlotId(o.slot_id as u32),
+        );
         let residue = o.residue.to_bigint().unwrap();
-        let order = TidyOrder{
+        let order = TidyOrder {
             nonce: Nonce(o.order_nonce as u32),
             residue: residue.into(),
         };
