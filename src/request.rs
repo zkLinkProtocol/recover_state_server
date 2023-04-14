@@ -22,6 +22,12 @@ pub struct TokenRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ProofsRequest {
+    pub id: Option<u32>,
+    pub proof_num: u32
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BatchExitRequest{
     pub(crate) address: ZkLinkAddress,
     pub(crate) sub_account_id: SubAccountId,

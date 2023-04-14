@@ -10,15 +10,17 @@ use crate::{
     response::ExodusResponse
 };
 use crate::acquired_tokens::TokenInfo;
+use crate::recover_progress::RecoverProgress;
 use crate::request::TokenRequest;
 
 async fn create_app_data() -> AppData {
     dotenvy::dotenv().unwrap();
     let config = RecoverStateConfig::from_env();
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
+    let recover_progress = RecoverProgress::new(&config).await;
     let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
     let contracts = config.layer1.get_contracts();
-    AppData::new(conn_pool, contracts, proofs_cache).await
+    AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await
 }
 
 #[actix_rt::test]

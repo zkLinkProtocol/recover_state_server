@@ -4,9 +4,10 @@ use recover_state_config::RecoverStateConfig;
 use zklink_prover::{ExitInfo as ExitRequest};
 use zklink_storage::ConnectionPool;
 use crate::proofs_cache::ProofsCache;
-use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest, UnprocessedDepositRequest};
+use crate::request::{BalanceRequest, StoredBlockInfoRequest, TokenRequest, BatchExitRequest, UnprocessedDepositRequest, ProofsRequest};
 use crate::response::ExodusResponse;
 use crate::AppData;
+use crate::recover_progress::RecoverProgress;
 
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_contracts(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
@@ -74,6 +75,18 @@ async fn get_balances(
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// Request to get recover state progress.
+async fn get_recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+    let response = match data.get_ref()
+        .get_recover_progress()
+        .await
+    {
+        Ok(progress) => ExodusResponse::Ok().data(progress),
+        Err(err) => err.into()
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
 /// Get all unprocessed priority ops of target chain  by chain_id
 async fn get_unprocessed_priority_ops(
     unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
@@ -85,6 +98,22 @@ async fn get_unprocessed_priority_ops(
         .await
     {
         Ok(ops) => ExodusResponse::Ok().data(ops),
+        Err(err) => err.into()
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
+/// Get the proof by the id.
+async fn get_proofs_by_id(
+    proofs_request: web::Json<ProofsRequest>,
+    data: web::Data<AppData>,
+) -> actix_web::Result<HttpResponse> {
+    let proof_info = proofs_request.into_inner();
+    let response = match data.get_ref()
+        .get_proofs_by_id(proof_info.id, proof_info.proof_num)
+        .await
+    {
+        Ok(proofs) => ExodusResponse::Ok().data(proofs),
         Err(err) => err.into()
     };
     Ok(HttpResponse::Ok().json(response))
@@ -154,15 +183,32 @@ async fn generate_proof_tasks_by_token(
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// Request to get the current queue location of the task
+async fn get_proof_task_location(
+    task_info: web::Json<ExitRequest>,
+    data: web::Data<AppData>,
+) -> actix_web::Result<HttpResponse> {
+    let task_info = task_info.into_inner();
+    let response = match data.get_ref()
+        .get_proof_task_location(task_info)
+        .await
+    {
+        Ok(_) => ExodusResponse::<()>::Ok(),
+        Err(err) => err.into()
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let num = config.api.workers_num;
     let enable_http_cors = config.api.enable_http_cors;
     let contracts = config.layer1.get_contracts();
-    let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
 
+    let recover_progress = RecoverProgress::new(&config).await;
+    let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
     let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
-    let server_data = AppData::new(conn_pool, contracts, proofs_cache).await;
+    let server_data = AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await;
 
     HttpServer::new(move || {
         let cors = if enable_http_cors {
@@ -190,9 +236,12 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
         .route("/get_token", web::post().to(get_token))
         .route("/get_stored_block_info", web::post().to(get_stored_block_info))
         .route("/get_balances", web::post().to(get_balances))
+        .route("/get_recover_progress", web::post().to(get_recover_progress))
 
+        .route("/get_proofs_by_id", web::post().to(get_proofs_by_id))
         .route("/get_proof_by_info", web::post().to(get_proof_by_info))
         .route("/get_proofs_by_token", web::post().to(get_proofs_by_token))
         .route("/generate_proof_task_by_info", web::post().to(generate_proof_task_by_info))
-        .route("/generate_proof_tasks_by_token", web::post().to(generate_proof_tasks_by_token));
+        .route("/generate_proof_tasks_by_token", web::post().to(generate_proof_tasks_by_token))
+        .route("/get_proof_task_location", web::post().to(get_proof_task_location));
 }

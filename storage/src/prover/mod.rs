@@ -28,6 +28,32 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(exit_proofs)
     }
 
+    pub async fn get_latest_proofs_by_id(&mut self, id: Option<i64>, num: i64) -> QueryResult<Vec<StoredExitProof>> {
+        let exit_proofs = match id {
+            Some(id_value) => {
+                sqlx::query_as!(
+                    StoredExitProof,
+                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 LIMIT $2"#,
+                    id_value,
+                    num
+                )
+                    .fetch_all(self.0.conn())
+                    .await?
+            }
+            None => {
+                sqlx::query_as!(
+                    StoredExitProof,
+                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL ORDER BY id DESC LIMIT $1"#,
+                    num
+                )
+                    .fetch_all(self.0.conn())
+                    .await?
+            }
+        };
+
+        Ok(exit_proofs)
+    }
+
     /// Loads the specified proof task by account_id and sub_account_id and token_id.
     pub async fn get_proof_by_exit_info(
         &mut self,
@@ -132,6 +158,38 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         transaction.commit().await?;
         metrics::histogram!("sql.recover_state.load_exit_proofs", start.elapsed());
         Ok(stored_exit_proof)
+    }
+
+    /// Query how many tasks are left until the specified task starts.
+    pub async fn get_remaining_tasks_before_start(
+        &mut self,
+        task: StoredExitInfo
+    ) -> QueryResult<i64> {
+        let start = Instant::now();
+
+        // Gets the creation time of the target task
+        let target_task_id = sqlx::query!(
+            "SELECT id from exit_proofs WHERE chain_id=$1 AND account_id=$2 \
+            AND sub_account_id=$3 AND l1_target_token=$4 AND l2_source_token=$5",
+            task.chain_id, task.account_id,
+            task.sub_account_id, task.l1_target_token, task.l2_source_token,
+        )
+            .fetch_one(self.0.conn())
+            .await?
+            .id;
+
+        // Query the number of tasks that were created before the target task and were not completed.
+        let remaining_tasks = sqlx::query!(
+            "SELECT COUNT(*) FROM exit_proofs WHERE id<$1 AND finished_at IS NULL AND created_at IS NULL",
+            target_task_id
+        )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or_default();
+
+        metrics::histogram!("sql.recover_state.get_remaining_tasks_before_start", start.elapsed());
+        Ok(remaining_tasks)
     }
 
     /// Count the number of tasks running

@@ -15,6 +15,7 @@ pub struct ExitProofData {
 impl From<&ExitProofData> for StoredExitProof  {
     fn from(value: &ExitProofData) -> Self {
         Self{
+            id: 0,
             chain_id: *value.exit_info.chain_id as i16,
             account_id: *value.exit_info.account_id as i64,
             sub_account_id: *value.exit_info.sub_account_id as i16,

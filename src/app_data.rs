@@ -6,11 +6,13 @@ use zklink_crypto::params::USD_TOKEN_ID;
 use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_storage::chain::account::records::StorageAccount;
+use zklink_storage::prover::records::StoredExitProof;
 use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::proofs_cache::ProofsCache;
+use crate::recover_progress::{Progress, RecoverProgress};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
@@ -20,6 +22,7 @@ use crate::utils::{convert_balance_resp, UnprocessedPriorityOp, SubAccountBalanc
 pub struct AppData {
     conn_pool: ConnectionPool,
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
+    recover_progress: RecoverProgress,
     proofs_cache: ProofsCache,
 
     pub recovered_state: RecoveredState,
@@ -27,8 +30,7 @@ pub struct AppData {
 }
 
 impl AppData {
-    pub async fn new(conn_pool: ConnectionPool, contracts: HashMap<ChainId, ZkLinkAddress>, proofs_cache: ProofsCache) -> AppData {
-
+    pub async fn new(conn_pool: ConnectionPool, contracts: HashMap<ChainId, ZkLinkAddress>, proofs_cache: ProofsCache, recover_progress: RecoverProgress) -> AppData {
         info!("Loading accounts state....");
         let timer = Instant::now();
         let recovered_state = RecoveredState::load_from_storage(&conn_pool).await;
@@ -43,6 +45,7 @@ impl AppData {
         Self{
             conn_pool,
             contracts,
+            recover_progress,
             proofs_cache,
             recovered_state,
             acquired_tokens,
@@ -192,6 +195,29 @@ impl AppData {
         Ok(())
     }
 
+    pub(crate) async fn get_proof_task_location(
+        &self,
+        mut exit_task: ExitInfo,
+    ) -> Result<u64, ExodusStatus>{
+        if !check_source_token_and_target_token(
+            exit_task.l2_source_token,
+            exit_task.l1_target_token
+        ).0 {
+            return Err(ExodusStatus::InvalidL1L2Token)
+        }
+        exit_task.account_id = *self.check_exit_info(
+            &exit_task.account_address,
+            exit_task.sub_account_id,
+            exit_task.l2_source_token
+        )?.0;
+        let mut storage = self.access_storage().await?;
+        let remaining_tasks = storage
+            .prover_schema()
+            .get_remaining_tasks_before_start((&exit_task).into())
+            .await?;
+        Ok(remaining_tasks as u64)
+    }
+
     pub(crate) async fn generate_proof_tasks(
         &self,
         batch_exit_info: BatchExitRequest,
@@ -253,11 +279,34 @@ impl AppData {
         ExodusResponse::Ok().data(self.contracts.clone())
     }
 
+    pub(crate) async fn get_proofs_by_id(&self, id: Option<u32>, num: u32) -> Result<Vec<StoredExitProof>, ExodusStatus> {
+        let mut storage = self.access_storage().await?;
+        let proofs = storage.prover_schema()
+            .get_latest_proofs_by_id(id.map(|id|id as i64), num as i64)
+            .await?;
+        Ok(proofs)
+    }
+
     pub(crate) fn get_stored_block_info(&self, chain_id: ChainId) -> Result<StoredBlockInfo, ExodusStatus> {
         if !self.contracts.contains_key(&chain_id) {
             return Err(ExodusStatus::ChainNotExist)
         }
         Ok(self.recovered_state.stored_block_info(chain_id))
+    }
+
+    pub(crate) async fn get_recover_progress(&self) -> Result<Progress, ExodusStatus> {
+        if !self.recover_progress.is_completed_state().await{
+            let mut storage = self.access_storage().await?;
+            let verified_block_num = storage.chain()
+                .block_schema()
+                .get_last_block_number()
+                .await?;
+            drop(storage);
+            self.recover_progress
+                .update_progress(verified_block_num.into())
+                .await;
+        }
+        Ok(self.recover_progress.get_progress().await)
     }
 
     fn check_exit_info(

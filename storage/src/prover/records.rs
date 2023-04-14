@@ -7,6 +7,7 @@ use sqlx::types::BigDecimal;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct StoredExitProof {
+    pub id: i64,
     pub chain_id: i16,
     pub account_id: i64,
     pub sub_account_id: i16,

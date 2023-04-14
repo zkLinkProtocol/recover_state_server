@@ -327,7 +327,7 @@ where
                         self.update_tree_state(interactor, new_ops_blocks).await;
 
                         let last_verified_block = self.tree_state.state.block_number;
-                                info!(
+                        info!(
                             "State updated, current block[{:?}] root hash: {}",
                             last_verified_block, self.tree_state.root_hash()
                         );
