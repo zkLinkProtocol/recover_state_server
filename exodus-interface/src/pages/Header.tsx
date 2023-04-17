@@ -10,6 +10,8 @@ import { useWeb3React } from '@web3-react/core'
 import { ChainInfo, chainList } from '../config/chains'
 import { useEffect, useMemo, useState } from 'react'
 import { styled } from '@mui/system'
+import logoUrl from './../assets/zklink-logo.png'
+import { Link, useLocation } from 'react-router-dom'
 
 const sxButton = {
   borderColor: 'rgba(33, 33, 33)',
@@ -51,6 +53,26 @@ const NetworkOption = styled(Stack)({
     },
   },
 })
+const Nav = styled(Stack)({
+  flex: 1,
+  flexDirection: 'row',
+  padding: '0 40px',
+
+  a: {
+    color: '#333',
+    textDecoration: 'none',
+    fontSize: 20,
+    margin: '0 20px',
+    transition: 'color .2s ease',
+
+    '&:hover, &.active': {
+      color: '#2e7d32',
+    },
+    '&.active': {
+      color: '#2e7d32',
+    },
+  },
+})
 export const encryptionAddress = (address?: string, start: number = 6, end: number = 4) => {
   if (!address) {
     return 'Unknown Address'
@@ -59,6 +81,7 @@ export const encryptionAddress = (address?: string, start: number = 6, end: numb
 }
 
 export const Header = () => {
+  const location = useLocation()
   const connectWallet = useConnectWallet()
   const { account, isActive } = useWeb3React()
   const currentChain = useCurrentChain()
@@ -77,10 +100,19 @@ export const Header = () => {
       setShowOptions(false)
     })
   })
+
   return (
     <Stack height="88px" spacing={1} alignItems="center" direction="row">
-      <Typography variant="h6">ZKLINK</Typography>
-      <Box flex="1"></Box>
+      <img src={logoUrl} width="26" />
+      <Typography variant="h5">zkLink</Typography>
+      <Nav>
+        <Link className={location.pathname === '/' ? 'active' : ''} to={'/'}>
+          Home
+        </Link>
+        <Link className={location.pathname === '/history' ? 'active' : ''} to={'/history'}>
+          History
+        </Link>
+      </Nav>
       <Network>
         <Button
           sx={sxButton}

@@ -1,6 +1,6 @@
-import { Typography, Stack, List, Box } from '@mui/material'
+import { Typography, Stack, Box } from '@mui/material'
 import { styled } from '@mui/system'
-import { FC, useEffect, useState } from 'react'
+import { FC, useEffect, useState, useCallback } from 'react'
 import {
   useBalances,
   useContracts,
@@ -12,9 +12,9 @@ import {
 import { Ether, Wei } from '../types/global'
 import { http } from '../api'
 import { useWeb3React } from '@web3-react/core'
-import { toast, ToastOptions } from 'react-toastify'
+import { toast } from 'react-toastify'
 import { ProofInfo } from '../store/home/types'
-import { fetchProofs, updateProofs } from '../store/home/actions'
+import { fetchProofs } from '../store/home/actions'
 import { useAppDispatch } from '../store'
 import { TokenIcon } from '../components/Icon'
 import { Interface } from '@ethersproject/abi'
@@ -22,6 +22,17 @@ import { formatEther } from '@ethersproject/units'
 import MainContract from 'zklink-js-sdk/abi/ZkLink.json'
 import { chainList } from '../config/chains'
 import * as mathjs from 'mathjs'
+import CircularProgress from '@mui/material/CircularProgress'
+import Button from '@mui/material/Button'
+import { SyncBlock } from './SyncBlock'
+import { Header } from './Header'
+
+export const Section = styled(Box)({
+  backgroundColor: 'rgba(237, 237, 237)',
+  padding: 16,
+  marginBottom: 16,
+  boxShadow: '4px 4px 0 rgb(218, 218, 218)',
+})
 
 const ColumnToken = styled(Stack)(({ theme }) => ({
   display: 'flex',
@@ -32,11 +43,6 @@ const ColumnToken = styled(Stack)(({ theme }) => ({
 const ColumnBalance = styled('div')({
   textAlign: 'right',
   flex: 1,
-})
-const ColumnAction = styled(Stack)({
-  flex: 1,
-  textAlign: 'right',
-  alignItems: 'flex-end',
 })
 
 const BalanceRowWrap = styled(Stack)(({ theme }) => ({
@@ -91,19 +97,38 @@ export const L2Balances = () => {
   const list = renderList()
   return (
     <>
-      {list?.length ? (
-        list
-      ) : (
-        <Typography
-          sx={{
-            textAlign: 'center',
-            padding: '64px 0',
-          }}
-          color="gray"
-        >
-          No Balances
+      <Header />
+
+      <Section
+        sx={{
+          mb: 1,
+        }}
+      >
+        <Typography variant="h5">Layer2 Balances</Typography>
+        <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
+          Step 1: Connect your wallet to check your balance.
+          <br />
+          Step 2: Generate proofs for each token.
+          <br />
+          Step 3: Send a withdrawal transaction to withdraw the tokens to your wallet.
+          <br />
+          Step 4: Repeat the above steps for the other chains.
         </Typography>
-      )}
+        <SyncBlock />
+        {list?.length ? (
+          list
+        ) : (
+          <Typography
+            sx={{
+              textAlign: 'center',
+              padding: '64px 0',
+            }}
+            color="gray"
+          >
+            No Balances
+          </Typography>
+        )}
+      </Section>
     </>
   )
 }
@@ -162,11 +187,13 @@ const BalanceRow: FC<{
   const symbol = tokens[item.tokenId]?.symbol
   const { account } = useWeb3React()
   const proofs = useProofs(item.subAccountId, item.tokenId)
+  const [pending, setPending] = useState(false)
 
-  useEffect(() => {
-    if (!account) {
+  const getProofs = useCallback(() => {
+    if (!account || item?.subAccountId === undefined || item?.tokenId === undefined) {
       return
     }
+
     dispatch(
       fetchProofs({
         address: account,
@@ -174,7 +201,14 @@ const BalanceRow: FC<{
         token_id: item.tokenId,
       })
     )
-  }, [])
+  }, [account, item.subAccountId, item.tokenId])
+  useEffect(() => {
+    const t = setInterval(() => {
+      getProofs()
+    }, 30000)
+    getProofs()
+    return () => clearInterval(t)
+  }, [getProofs])
 
   return (
     <BalanceRowWrap>
@@ -193,35 +227,54 @@ const BalanceRow: FC<{
           <Typography
             sx={{
               fontSize: 18,
-              cursor: 'pointer',
               fontWeight: 500,
             }}
             color="primary"
-            onClick={async () => {
-              const tasks = await http.post('/generate_proof_tasks_by_token', {
-                address: account,
-                sub_account_id: item.subAccountId,
-                token_id: item.tokenId,
-              })
-
-              if (tasks.data?.err_msg) {
-                toast.error(tasks.data?.err_msg, {
-                  autoClose: 5000,
-                })
-              } else if (tasks.data?.code === 0) {
-                toast.success('Generate success', {})
-
-                dispatch(
-                  fetchProofs({
-                    address: account!,
+          >
+            <Button
+              sx={{
+                fontSize: 16,
+                textTransform: 'none',
+                pt: 0,
+                pb: 0,
+              }}
+              variant="text"
+              onClick={async () => {
+                try {
+                  if (pending) {
+                    return
+                  }
+                  setPending(true)
+                  const tasks = await http.post('/generate_proof_tasks_by_token', {
+                    address: account,
                     sub_account_id: item.subAccountId,
                     token_id: item.tokenId,
                   })
-                )
-              }
-            }}
-          >
-            Generate
+                  setPending(false)
+
+                  if (tasks.data?.err_msg) {
+                    toast.error(tasks.data?.err_msg, {
+                      autoClose: 5000,
+                    })
+                  } else if (tasks.data?.code === 0) {
+                    toast.success('Generate success', {})
+
+                    dispatch(
+                      fetchProofs({
+                        address: account!,
+                        sub_account_id: item.subAccountId,
+                        token_id: item.tokenId,
+                      })
+                    )
+                  }
+                } catch (e) {
+                  setPending(false)
+                }
+              }}
+            >
+              {pending ? <CircularProgress sx={{ mr: 0.5 }} size={14} /> : null}
+              <span>Generate</span>
+            </Button>
           </Typography>
         )}
       </BalanceRowProof>
@@ -252,7 +305,7 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
               {tokens[proofInfo.exit_info.l1_target_token]?.symbol}:
             </Typography>
             <Typography variant="body2" color="GrayText">
-              {proofInfo.amount !== null ? toFixed(formatEther(proofInfo.amount)) : ''}
+              {proofInfo.amount !== null ? toFixed(formatEther(proofInfo.amount)) : '-'}
             </Typography>
           </Stack>
           {proofInfo.proof ? (
@@ -265,46 +318,57 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
                   fontSize: 18,
                 })}
                 variant="body1"
-                onClick={async () => {
-                  if (!provider || !contracts || !currentChain || !proofInfo?.proof) {
-                    return
-                  }
-                  console.log('contract', contracts[currentChain.l2ChainId])
-                  const payload = [
-                    {
-                      blockNumber: storedBlockInfo?.block_number,
-                      priorityOperations: storedBlockInfo?.priority_operations,
-                      pendingOnchainOperationsHash:
-                        storedBlockInfo?.pending_onchain_operations_hash,
-                      timestamp: storedBlockInfo?.timestamp,
-                      stateHash: storedBlockInfo?.state_hash,
-                      commitment: storedBlockInfo?.commitment,
-                      syncHash: storedBlockInfo?.sync_hash,
-                    },
-                    account,
-                    proofInfo.exit_info.account_id,
-                    proofInfo.exit_info.sub_account_id,
-                    proofInfo.exit_info.l1_target_token,
-                    proofInfo.exit_info.l2_source_token,
-                    proofInfo.amount,
-                    proofInfo.proof.proof,
-                  ]
-                  const iface = new Interface(MainContract.abi)
-                  const fragment = iface.getFunction('performExodus')
-                  const calldata = iface.encodeFunctionData(fragment, payload)
-                  const tx = await provider.send('eth_sendTransaction', [
-                    {
-                      from: account,
-                      to: contracts[currentChain.l2ChainId],
-                      data: calldata,
-                    },
-                  ])
-                }}
               >
-                Withdraw
+                <Button
+                  sx={{
+                    fontSize: 16,
+                    textTransform: 'none',
+                    pt: 0,
+                    pb: 0,
+                  }}
+                  color="success"
+                  variant="text"
+                  onClick={async () => {
+                    if (!provider || !contracts || !currentChain || !proofInfo?.proof) {
+                      return
+                    }
+                    const payload = [
+                      {
+                        blockNumber: storedBlockInfo?.block_number,
+                        priorityOperations: storedBlockInfo?.priority_operations,
+                        pendingOnchainOperationsHash:
+                          storedBlockInfo?.pending_onchain_operations_hash,
+                        timestamp: storedBlockInfo?.timestamp,
+                        stateHash: storedBlockInfo?.state_hash,
+                        commitment: storedBlockInfo?.commitment,
+                        syncHash: storedBlockInfo?.sync_hash,
+                      },
+                      account,
+                      proofInfo.exit_info.account_id,
+                      proofInfo.exit_info.sub_account_id,
+                      proofInfo.exit_info.l1_target_token,
+                      proofInfo.exit_info.l2_source_token,
+                      proofInfo.amount,
+                      proofInfo.proof.proof,
+                    ]
+                    const iface = new Interface(MainContract.abi)
+                    const fragment = iface.getFunction('performExodus')
+                    const calldata = iface.encodeFunctionData(fragment, payload)
+                    const tx = await provider.send('eth_sendTransaction', [
+                      {
+                        from: account,
+                        to: contracts[currentChain.l2ChainId],
+                        data: calldata,
+                      },
+                    ])
+                    console.log(tx)
+                  }}
+                >
+                  Withdraw
+                </Button>
               </Typography>
             ) : (
-              <Typography color="gray">
+              <Typography color="gray" sx={{ fontSize: 14 }}>
                 On {chainList[proofInfo.exit_info.chain_id].name}
               </Typography>
             )
@@ -314,7 +378,18 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
                 color: theme.palette.info.main,
               })}
             >
-              Generating
+              <Button
+                sx={{
+                  fontSize: 16,
+                  textTransform: 'none',
+                  pt: 0,
+                  pb: 0,
+                }}
+                variant="text"
+              >
+                <CircularProgress sx={{ mr: 0.5 }} size={14} />
+                <span>Generating</span>
+              </Button>
             </Typography>
           )}
         </Stack>

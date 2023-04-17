@@ -54,24 +54,6 @@ export const useConnectWallet = () => {
       dispatch(updateConnectorName(connectorName))
       return Promise.resolve()
     } catch (e) {
-      // dispatch(updateLinkStatus(LinkStatus.linkL1Failed))
-      // dispatch(updateConnecting({ connecting: false }))
-      // dispatch(updateSignErrorMessage({ message: e.message }))
-      // try {
-      //   if (e.message.indexOf('Unsupported chain id:') === 0) {
-      //     // customToast.error(
-      //     //   'Unsupported chain":"Please switch to "Rinkeby, Goerli, AVAX Testnet, or Polygon Testnet.'
-      //     // )
-      //   } else if (
-      //     e.message.indexOf('UserRejectedRequestError: The user rejected the request.')
-      //   ) {
-      //     // customToast.error(
-      //     //   'You cancelled the signature request in your wallet. Please try signing again.'
-      //     // )
-      //   } else {
-      //     customToast.error(e.message)
-      //   }
-      // } catch (e) {}
       return Promise.reject()
     }
   }, [])
@@ -82,40 +64,44 @@ export function useSwitchNetwork() {
   return useCallback(
     async (chainId: ChainId) => {
       const chainIdString = `0x${Number(chainId).toString(16)}`
-      const network = Object.values(chainList).find((v) => v.chainId === chainId)
       if (!provider) {
-        return
-      }
-      if (!network) {
         return
       }
       try {
         await provider.send('wallet_switchEthereumChain', [{ chainId: chainIdString }])
-      } catch (e) {
-        await provider
-          .send('wallet_addEthereumChain', [
-            {
-              chainId: chainIdString,
-              chainName: network.name as string,
-              nativeCurrency: {
-                name: network.symbol,
-                symbol: network.symbol,
-                decimals: network.decimals,
+      } catch (e: any) {
+        if (e?.code === 4902) {
+          const network = Object.values(chainList).find((v) => v.chainId === chainId)
+          if (!network) {
+            return
+          }
+          await provider
+            .send('wallet_addEthereumChain', [
+              {
+                chainId: chainIdString,
+                chainName: network.name as string,
+                nativeCurrency: {
+                  name: network.symbol,
+                  symbol: network.symbol,
+                  decimals: network.decimals,
+                },
+                rpcUrls: [network.rpcUrl],
+                blockExplorerUrls: [network.explorerUrl],
+                iconUrls: [],
               },
-              rpcUrls: [network.rpcUrl],
-              blockExplorerUrls: [network.explorerUrl],
-              iconUrls: [],
-            },
-          ])
-          .catch(
-            (
-              e: Error & {
-                code: number
+            ])
+            .catch(
+              (
+                e: Error & {
+                  code: number
+                }
+              ) => {
+                console.error(e)
               }
-            ) => {
-              console.error(e)
-            }
-          )
+            )
+        } else {
+          console.log(e)
+        }
       }
     },
     [provider]
