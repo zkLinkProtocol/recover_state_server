@@ -5,11 +5,15 @@
 - [API](#API)
     - [contracts](#contracts)
     - [tokens](#tokens)
+    - [recover_progress](#recover_progress)
+    - [running_max_task_id](#running_max_task_id)
     - [get_token](#get_token)
     - [get_stored_block_info](#get_stored_block_info)
     - [get_balances](#get_balances)
     - [get_unprocessed_priority_ops](#get_unprocessed_priority_ops)
+    - [get_proof_task_id](#get_proof_task_id)
     - [get_proof_by_info](#get_proof_by_info)
+    - [get_proofs_by_id](#get_proofs_by_id)
     - [generate_proof_task_by_info](#generate_proof_task_by_info)
     - [generate_proof_tasks_by_token](#generate_proof_tasks_by_token)
 
@@ -117,11 +121,10 @@ struct TokenInfo {
 }
 ```
 ### ExitProofData
-| field     | type                  | description                            |
-|-----------|-----------------------|----------------------------------------|
-| exit_info | [ExitInfo](#ExitInfo) | the info of exodus exit                |
-| amount    | BigUint               | the amount of exodus exit, may be null |
-| proof     | String                | the proof of exodus exit, may be null  |
+| field      | type                    | description                                          |
+|------------|-------------------------|------------------------------------------------------|
+| exit_info  | [ExitInfo](#ExitInfo)   | the info of exodus exit                              |
+| proof_info | [ProofInfo](#ProofInfo) | the proof context of exodus exit, may be null        |
 ```rust
 struct ExitProofData {
     exit_info: ExitInfo,
@@ -146,6 +149,19 @@ struct ExitInfo {
     sub_account_id: SubAccountId, // u8
     l1_target_token: TokenId, // u32
     l2_source_token: TokenId, // u32
+}
+```
+### ProofInfo
+| field  | type                        | description                 |
+|--------|-----------------------------|-----------------------------|
+| id     | ProofId(u64)                | the id of proof task        |
+| amount | Option<BigUintSerdeWrapper> | the amount of exodus exit   |
+| proof  | Option<EncodedSingleProof>  | the zk proof of exodus exit |
+```rust
+struct ProofInfo{
+  id: ProofId,
+  amount: Option<BigUintSerdeWrapper>,
+  proof: Option<EncodedSingleProof>
 }
 ```
 
@@ -197,6 +213,40 @@ Get the info of all token.
 }
 ```
 Success returns a `HashMap<TokenId, TokenInfo>`, Failure returns error description
+
+### recover_progress
+Get the progress of the recover state, including the current synced block height and the total number of verified blocks.
+
+#### GET Request
+#### Response
+```json
+{
+  "code": 0,
+  "data": {
+    "current_block": 10,
+    "total_verified_block": 20
+  },
+  "err_msg": null
+}
+```
+On success, it returns the current recover progress, including current_block (the current synced block height) and total_verified_block (the total number of verified blocks).
+
+On failure, it returns an error description.
+
+### running_max_task_id
+Request to get max running task id.
+#### GET Request
+#### Response
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 0
+  },
+  "err_msg": null
+}
+```
+On success, it returns the max id of task running. On failure, it returns an error description.
 
 ### get_token
 Get token info(supported chains, token's contract addresses) by token_id
@@ -373,8 +423,11 @@ correct
       "l1_target_token": 17,
       "l2_source_token": 1
     },
-    "amount": "123456",
-    "proof": "0x4566521312321321321321"
+    "proof_info": {
+      "id": 1,
+      "amount": "123456",
+      "proof": "0x4566521312321321321321"
+    }
   },
   "err_msg": null
 }
@@ -389,8 +442,11 @@ correct
     "l1_target_token": 17,
     "l2_source_token": 1
   },
-  "amount": null,
-  "proof": null
+  "proof_info": {
+    "id": 1,
+    "amount": null,
+    "proof": null
+  }
 }
 ```
 wrong 
@@ -402,6 +458,66 @@ wrong
 }
 ```
 Success returns [ExitProofData](#ExitProofData), Failure returns error description
+
+### get_proof_task_id
+Request to get the task id(proof id) by exit info
+#### POST Request
+```json
+{
+    "chain_id": 1,
+    "account_address": "0x1aef2b4c06b83cdb2783d3458cdbf3886a6ae7d4", 
+    "account_id": 12,
+    "sub_account_id": 1,
+    "l1_target_token": 17,
+    "l2_source_token": 1
+}
+```
+#### Response
+```json
+{
+  "code": 0,
+  "data": {
+    "id": 1
+  },
+  "err_msg": null
+}
+```
+Success returns the id, Failure returns error description
+
+### get_proofs_by_id
+Get the specified number of proofs closer to the id by passing the id
+#### POST Request
+```json
+{
+  "id": null,
+  "proofs_num": 1
+}
+```
+#### Response
+```json
+{
+    "code": 0,
+    "data": [
+        {
+            "exit_info": {
+                "chain_id": 2,
+                "account_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "account_id": 0,
+                "sub_account_id": 0,
+                "l1_target_token": 50,
+                "l2_source_token": 50
+            },
+            "proof_info": {
+                "id": 1,
+                "amount": null,
+                "proof": null
+            }
+        }
+    ],
+    "err_msg": null
+}
+```
+Success returns the vector of [ExitProofData](#ExitProofData), Failure returns error description
 
 ### get_proofs_by_token
 Get all proofs of all blockchain by the specified ZkLinkAddress and TokenId and SubAccountId.
@@ -429,8 +545,11 @@ If token_id=1=USD, layer1 should withdraw each stable coin.
         "l1_target_token": 17,
         "l2_source_token": 1
       },
-      "amount": null,
-      "proof": null
+      "proof_info": {
+        "id": 1,
+        "amount": "123456",
+        "proof": "0x4566521312321321321321"
+      }
     },{
       "exit_info": {
         "chain_id": 1,
@@ -440,8 +559,11 @@ If token_id=1=USD, layer1 should withdraw each stable coin.
         "l1_target_token": 18,
         "l2_source_token": 1
       },
-      "amount": null,
-      "proof": null
+      "proof_info": {
+        "id": 1,
+        "amount": null,
+        "proof": null
+      }
     },{
       "exit_info": {
         "chain_id": 2,
@@ -451,8 +573,11 @@ If token_id=1=USD, layer1 should withdraw each stable coin.
         "l1_target_token": 17,
         "l2_source_token": 1
       },
-      "amount": null,
-      "proof": null
+      "proof_info": {
+        "id": 1,
+        "amount": null,
+        "proof": null
+      }
     },{
       "exit_info": {
         "chain_id": 2,
@@ -462,8 +587,11 @@ If token_id=1=USD, layer1 should withdraw each stable coin.
         "l1_target_token": 18,
         "l2_source_token": 1
       },
-      "amount": null,
-      "proof": null
+      "proof_info": {
+        "id": 1,
+        "amount": null,
+        "proof": null
+      }
     }
   ],
   "err_msg": null
