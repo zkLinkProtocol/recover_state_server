@@ -34,7 +34,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             Some(id_value) => {
                 sqlx::query_as!(
                     StoredExitProof,
-                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 LIMIT $2"#,
+                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 ORDER BY id DESC LIMIT $2"#,
                     id_value,
                     num
                 )
@@ -171,8 +171,8 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(stored_exit_proof)
     }
 
-    /// Query how many tasks are left until the specified task starts.
-    pub async fn get_remaining_tasks_before_start(
+    /// Query task id by exit info.
+    pub async fn get_task_id(
         &mut self,
         task: StoredExitInfo,
     ) -> QueryResult<i64> {
@@ -192,21 +192,32 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         .await?
         .id;
 
-        // Query the number of tasks that were created before the target task and were not completed.
-        let remaining_tasks = sqlx::query!(
-            "SELECT COUNT(*) FROM exit_proofs WHERE id<$1 AND finished_at IS NULL AND created_at IS NULL",
-            target_task_id
+        metrics::histogram!(
+            "sql.recover_state.get_task_id",
+            start.elapsed()
+        );
+        Ok(target_task_id)
+    }
+
+    /// Query which task the prover is currently working on.
+    pub async fn get_running_max_task_id(
+        &mut self,
+    ) -> QueryResult<i64> {
+        let start = Instant::now();
+
+        let running_task_id = sqlx::query!(
+            "SELECT MAX(id) FROM exit_proofs WHERE created_at IS NOT NULL",
         )
             .fetch_one(self.0.conn())
             .await?
-            .count
+            .max
             .unwrap_or_default();
 
         metrics::histogram!(
-            "sql.recover_state.get_remaining_tasks_before_start",
+            "sql.recover_state.get_running_max_task_id",
             start.elapsed()
         );
-        Ok(remaining_tasks)
+        Ok(running_task_id)
     }
 
     /// Count the number of tasks running
@@ -262,37 +273,41 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Inserts task that generated exit proof.
-    pub async fn insert_exit_task(&mut self, task: StoredExitInfo) -> QueryResult<()> {
+    pub async fn insert_exit_task(&mut self, task: StoredExitInfo) -> QueryResult<i64> {
         info!("Insert new exit task: {}", task);
         let start = Instant::now();
 
         // counts tasks that have been started but not completed.
-        sqlx::query!(
+        let id = sqlx::query!(
             "INSERT INTO exit_proofs (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) \
             VALUES ($1, $2, $3, $4, $5)\
-            ON CONFLICT (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) DO NOTHING",
+            ON CONFLICT (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) \
+            DO NOTHING RETURNING id",
             task.chain_id, task.account_id, task.sub_account_id, task.l1_target_token, task.l2_source_token,
         )
-            .execute(self.0.conn())
-            .await?;
+            .fetch_one(self.0.conn())
+            .await?
+            .id;
 
         metrics::histogram!("sql.recover_state.insert_exit_task", start.elapsed());
-        Ok(())
+        Ok(id)
     }
 
     pub async fn insert_batch_exit_tasks(
         &mut self,
         batch_exit_tasks: Vec<StoredExitInfo>,
-    ) -> QueryResult<()> {
+    ) -> QueryResult<Vec<i64>> {
+        let mut tasks_ids = Vec::with_capacity(batch_exit_tasks.len());
         let mut transaction = self.0.start_transaction().await?;
         for exit_task in batch_exit_tasks {
-            transaction
+            tasks_ids.push(transaction
                 .prover_schema()
                 .insert_exit_task(exit_task)
-                .await?;
+                .await?
+            );
         }
         transaction.commit().await?;
 
-        Ok(())
+        Ok(tasks_ids)
     }
 }

@@ -24,6 +24,24 @@ async fn get_tokens(data: web::Data<AppData>) -> actix_web::Result<HttpResponse>
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// Request to get recover state progress.
+async fn recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+    let response = match data.get_ref().get_recover_progress().await {
+        Ok(progress) => ExodusResponse::Ok().data(progress),
+        Err(err) => err.into(),
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
+/// Request to get max running task id.
+async fn running_max_task_id(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+    let response = match data.get_ref().running_max_task_id().await {
+        Ok(task_id) => ExodusResponse::Ok().data(task_id),
+        Err(err) => err.into(),
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
 /// Get token info(supported chains, token's contract addresses) by token_id
 async fn get_token(
     token_request: web::Json<TokenRequest>,
@@ -68,15 +86,6 @@ async fn get_balances(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Request to get recover state progress.
-async fn get_recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
-    let response = match data.get_ref().get_recover_progress().await {
-        Ok(progress) => ExodusResponse::Ok().data(progress),
-        Err(err) => err.into(),
-    };
-    Ok(HttpResponse::Ok().json(response))
-}
-
 /// Get all unprocessed priority ops of target chain  by chain_id
 async fn get_unprocessed_priority_ops(
     unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
@@ -90,7 +99,7 @@ async fn get_unprocessed_priority_ops(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get the proof by the id.
+/// Get the specified number of proofs closer to the id by passing the id
 async fn get_proofs_by_id(
     proofs_request: web::Json<ProofsRequest>,
     data: web::Data<AppData>,
@@ -98,7 +107,7 @@ async fn get_proofs_by_id(
     let proof_info = proofs_request.into_inner();
     let response = match data
         .get_ref()
-        .get_proofs_by_id(proof_info.id, proof_info.proof_num)
+        .get_proofs_by_id(proof_info.id, proof_info.proofs_num)
         .await
     {
         Ok(proofs) => ExodusResponse::Ok().data(proofs),
@@ -140,7 +149,7 @@ async fn generate_proof_task_by_info(
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_request.into_inner();
     let response = match data.get_ref().generate_proof_task(exit_info).await {
-        Ok(_) => ExodusResponse::<()>::Ok(),
+        Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
     };
     Ok(HttpResponse::Ok().json(response))
@@ -153,20 +162,20 @@ async fn generate_proof_tasks_by_token(
 ) -> actix_web::Result<HttpResponse> {
     let batch_exit_info = batch_exit_info.into_inner();
     let response = match data.get_ref().generate_proof_tasks(batch_exit_info).await {
-        Ok(_) => ExodusResponse::<()>::Ok(),
+        Ok(tasks) => ExodusResponse::Ok().data(tasks),
         Err(err) => err.into(),
     };
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Request to get the current queue location of the task
-async fn get_proof_task_location(
+/// Request to get the task id(proof id)
+async fn get_proof_task_id(
     task_info: web::Json<ExitRequest>,
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let task_info = task_info.into_inner();
-    let response = match data.get_ref().get_proof_task_location(task_info).await {
-        Ok(_) => ExodusResponse::<()>::Ok(),
+    let response = match data.get_ref().get_proof_task_id(task_info).await {
+        Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
     };
     Ok(HttpResponse::Ok().json(response))
@@ -204,6 +213,14 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
     cfg.route("/contracts", web::get().to(get_contracts))
         .route("/tokens", web::get().to(get_tokens))
         .route(
+            "/recover_progress",
+            web::get().to(recover_progress),
+        )
+        .route(
+            "/running_max_task_id",
+            web::get().to(running_max_task_id),
+        )
+        .route(
             "/get_unprocessed_priority_ops",
             web::post().to(get_unprocessed_priority_ops),
         )
@@ -213,10 +230,6 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
             web::post().to(get_stored_block_info),
         )
         .route("/get_balances", web::post().to(get_balances))
-        .route(
-            "/get_recover_progress",
-            web::post().to(get_recover_progress),
-        )
         .route("/get_proofs_by_id", web::post().to(get_proofs_by_id))
         .route("/get_proof_by_info", web::post().to(get_proof_by_info))
         .route("/get_proofs_by_token", web::post().to(get_proofs_by_token))
@@ -229,7 +242,7 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
             web::post().to(generate_proof_tasks_by_token),
         )
         .route(
-            "/get_proof_task_location",
-            web::post().to(get_proof_task_location),
+            "/get_proof_task_id",
+            web::post().to(get_proof_task_id),
         );
 }

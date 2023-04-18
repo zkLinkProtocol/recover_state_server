@@ -5,27 +5,46 @@ use zklink_storage::prover::records::{StoredExitInfo, StoredExitProof};
 use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_utils::BigUintSerdeWrapper;
 
+pub type ProofId = u64;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ExitProofData {
     pub exit_info: ExitInfo,
-    pub amount: Option<BigUintSerdeWrapper>,
-    pub proof: Option<EncodedSingleProof>,
+    pub proof_info: ProofInfo,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct ProofInfo{
+    pub id: ProofId,
+    pub(crate) amount: Option<BigUintSerdeWrapper>,
+    pub(crate) proof: Option<EncodedSingleProof>
+}
+
+impl ProofInfo {
+    pub fn new(id: i64) -> Self{
+        Self{
+            id: id as ProofId,
+            ..Default::default()
+        }
+    }
 }
 
 impl From<&ExitProofData> for StoredExitProof {
     fn from(value: &ExitProofData) -> Self {
         Self {
-            id: 0,
+            id: value.proof_info.id as i64,
             chain_id: *value.exit_info.chain_id as i16,
             account_id: *value.exit_info.account_id as i64,
             sub_account_id: *value.exit_info.sub_account_id as i16,
             l1_target_token: *value.exit_info.l1_target_token as i32,
             l2_source_token: *value.exit_info.l2_source_token as i32,
             amount: value
+                .proof_info
                 .amount
                 .as_ref()
                 .map(|amount| amount.0.to_bigint().unwrap().into()),
             proof: value
+                .proof_info
                 .proof
                 .clone()
                 .map(|proof| serde_json::to_value(proof).unwrap()),
@@ -39,12 +58,15 @@ impl From<StoredExitProof> for ExitProofData {
     fn from(value: StoredExitProof) -> Self {
         Self {
             exit_info: (&value).into(),
-            proof: value
-                .proof
-                .map(|proof| serde_json::from_value(proof).unwrap()),
-            amount: value
-                .amount
-                .map(|amount| amount.to_bigint().unwrap().into()),
+            proof_info: ProofInfo {
+                id: value.id as u64,
+                amount: value
+                    .amount
+                    .map(|amount| amount.to_bigint().unwrap().into()),
+                proof: value
+                    .proof
+                    .map(|proof| serde_json::from_value(proof).unwrap()),
+            },
         }
     }
 }

@@ -1,6 +1,7 @@
 use bigdecimal::num_bigint::{BigUint, ToBigInt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use zklink_prover::exit_type::ProofId;
 use zklink_storage::chain::account::records::StorageBalance;
 use zklink_types::{ChainId, Deposit, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_utils::{BigUintSerdeAsRadix10Str, BigUintSerdeWrapper};
@@ -12,6 +13,19 @@ pub type SubAccountBalances = HashMap<SubAccountId, HashMap<TokenId, BigUintSerd
 pub struct UnprocessedPriorityOp {
     pub(crate) serial_id: SerialId,
     pub(crate) pub_data: PublicData,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct TaskId{
+    id: ProofId
+}
+
+impl From<i64> for TaskId {
+    fn from(value: i64) -> Self {
+        Self{
+            id: value as ProofId
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

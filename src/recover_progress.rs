@@ -8,8 +8,8 @@ use zklink_types::BlockNumber;
 
 #[derive(Debug, Clone)]
 pub struct RecoverProgress {
-    current_sync_height: Arc<RwLock<BlockNumber>>,
-    total_verified_block: BlockNumber,
+    pub(crate) current_sync_height: Arc<RwLock<BlockNumber>>,
+    pub(crate) total_verified_block: BlockNumber,
 }
 
 impl RecoverProgress {
@@ -45,6 +45,6 @@ impl RecoverProgress {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct Progress {
-    current_block: BlockNumber,
-    total_verified_block: BlockNumber,
+    pub(crate) current_block: BlockNumber,
+    pub(crate) total_verified_block: BlockNumber,
 }

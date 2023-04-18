@@ -2,12 +2,11 @@ use crate::response::ExodusStatus;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
-use zklink_crypto::proof::EncodedSingleProof;
 use zklink_prover::{ExitInfo, ExitProofData};
+use zklink_prover::exit_type::ProofInfo;
 use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::ConnectionPool;
 use zklink_types::ZkLinkAddress;
-use zklink_utils::BigUintSerdeWrapper;
 
 const PROOFS_CACHE_SIZE: u64 = 1000;
 const PROVING_TIME: u64 = 120; // parallel single proof generated time
@@ -15,7 +14,7 @@ const PROVING_TIME: u64 = 120; // parallel single proof generated time
 #[derive(Clone)]
 pub struct ProofsCache {
     conn_pool: ConnectionPool,
-    pub cache: Arc<Cache<ExitInfo, Option<(BigUintSerdeWrapper, EncodedSingleProof)>>>,
+    pub cache: Arc<Cache<ExitInfo, ProofInfo>>,
 }
 
 impl ProofsCache {
@@ -44,12 +43,11 @@ impl ProofsCache {
                 .expect("Account must be existing");
             let ExitProofData {
                 mut exit_info,
-                amount,
-                proof,
+                proof_info,
             } = stored_proof.into();
             exit_info.account_address = ZkLinkAddress::from_slice(address.as_slice()).unwrap();
             proofs_cache
-                .insert(exit_info, amount.and_then(|a| proof.map(|p| (a, p))))
+                .insert(exit_info, proof_info)
                 .await;
         }
         drop(storage);
@@ -61,11 +59,10 @@ impl ProofsCache {
     }
 
     pub async fn get_proof(&self, exit_info: ExitInfo) -> Result<ExitProofData, ExodusStatus> {
-        if let Some(proof) = self.cache.get(&exit_info) {
+        if let Some(proof_info) = self.cache.get(&exit_info) {
             return Ok(ExitProofData {
                 exit_info,
-                amount: proof.as_ref().map(|s| s.0.clone()),
-                proof: proof.as_ref().map(|s| s.1.clone()),
+                proof_info,
             });
         }
 
@@ -80,11 +77,10 @@ impl ProofsCache {
 
             let ExitProofData {
                 exit_info,
-                amount,
-                proof,
+                proof_info,
             } = exit_data.clone();
             self.cache
-                .insert(exit_info, amount.and_then(|a| proof.map(|p| (a, p))))
+                .insert(exit_info, proof_info)
                 .await;
 
             Ok(exit_data)

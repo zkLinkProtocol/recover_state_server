@@ -1,5 +1,5 @@
 use crate::exit_proof::create_exit_proof;
-use crate::exit_type::ExitProofData;
+use crate::exit_type::{ExitProofData, ProofInfo};
 use crate::ExitInfo;
 use recover_state_config::RecoverStateConfig;
 use tracing::info;
@@ -156,8 +156,11 @@ impl ExodusProver {
 
         let proof_data = ExitProofData {
             exit_info,
-            amount: Some(amount.into()),
-            proof: Some(proof),
+            proof_info: ProofInfo{
+                id: 0,
+                amount: Some(amount.into()),
+                proof: Some(proof),
+            },
         };
         Ok(proof_data)
     }

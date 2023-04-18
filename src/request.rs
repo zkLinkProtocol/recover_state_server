@@ -24,7 +24,7 @@ pub struct TokenRequest {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProofsRequest {
     pub id: Option<u32>,
-    pub proof_num: u32,
+    pub proofs_num: u32,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

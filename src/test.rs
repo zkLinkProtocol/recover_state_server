@@ -1,11 +1,13 @@
 use actix_web::{http::StatusCode, test, web, App};
 use recover_state_config::RecoverStateConfig;
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
 use crate::acquired_tokens::TokenInfo;
-use crate::recover_progress::RecoverProgress;
+use crate::recover_progress::{Progress, RecoverProgress};
 use crate::request::TokenRequest;
 use crate::{proofs_cache::ProofsCache, response::ExodusResponse, server::exodus_config, AppData};
 
@@ -17,6 +19,14 @@ async fn create_app_data() -> AppData {
     let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
     let contracts = config.layer1.get_contracts();
     AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await
+}
+
+// Initialize an instance of Recover Progress for testing
+async fn get_test_recover_progress() -> RecoverProgress {
+    RecoverProgress {
+        current_sync_height: Arc::new(RwLock::new(10.into())),
+        total_verified_block: 20.into(),
+    }
 }
 
 #[actix_rt::test]
@@ -110,4 +120,24 @@ async fn test_get_token() {
 
     let token = resp_data.data.unwrap();
     assert_eq!(token, expected_token);
+}
+
+#[actix_rt::test]
+async fn test_get_recover_progress() {
+    // Create a test service instance
+    let mut app_data = create_app_data().await;
+    app_data.recover_progress = get_test_recover_progress().await;
+    let mut app = test::init_service(
+        App::new()
+            .app_data(exodus_config)
+    )
+        .await;
+
+    let req = test::TestRequest::get().uri("/recover_progress").to_request();
+    let resp = test::call_service(&app, req).await;
+    assert!(resp.status().is_success());
+
+    let result: ExodusResponse<Progress> = test::read_body_json(resp).await;
+    assert_eq!(result.data.unwrap().current_block, 0.into());
+    assert_eq!(result.data.unwrap().total_verified_block, 20.into());
 }

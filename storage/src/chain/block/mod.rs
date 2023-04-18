@@ -102,6 +102,7 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
             .unwrap_or_default();
         Ok(block_number)
     }
+
     // Helper method for retrieving block state from the database
     pub async fn get_block_state(&mut self) -> QueryResult<StorageBlockState> {
         let mut transaction = self.0.start_transaction().await?;
