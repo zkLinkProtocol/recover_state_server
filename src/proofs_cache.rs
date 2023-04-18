@@ -18,7 +18,7 @@ pub struct ProofsCache {
 }
 
 impl ProofsCache {
-    pub async fn new(conn_pool: ConnectionPool) -> Self {
+    pub async fn from_database(conn_pool: ConnectionPool) -> Self {
         let mut storage = conn_pool
             .access_storage()
             .await
@@ -66,7 +66,7 @@ impl ProofsCache {
             });
         }
 
-        let mut storage = self.conn_pool.access_storage_with_retry().await?;
+        let mut storage = self.conn_pool.access_storage_with_retry().await;
         if let Some(stored_proof) = storage
             .prover_schema()
             .get_proof_by_exit_info((&exit_info).into())

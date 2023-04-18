@@ -8,7 +8,7 @@ use zklink_types::utils::{
 };
 use zklink_types::{AccountId, AccountMap, ChainId, SubAccountId, TokenId, ZkLinkAddress};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct RecoveredState {
     pub last_block_info: Block,
     pub account_id_by_address: HashMap<ZkLinkAddress, AccountId>,

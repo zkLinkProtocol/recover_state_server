@@ -7,7 +7,7 @@ use zklink_crypto::params::{
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AcquiredTokens {
     /// All tokens that layer2 registered
     pub token_by_id: HashMap<TokenId, TokenInfo>,
@@ -19,8 +19,7 @@ impl AcquiredTokens {
     pub(crate) async fn load_from_storage(conn_pool: &ConnectionPool) -> Self {
         let mut storage = conn_pool
             .access_storage_with_retry()
-            .await
-            .expect("Failed to access storage");
+            .await;
         let stored_tokens = storage
             .tokens_schema()
             .load_tokens_from_db()

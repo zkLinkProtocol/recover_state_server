@@ -1,10 +1,11 @@
+use std::sync::Arc;
 use crate::proofs_cache::ProofsCache;
 use crate::recover_progress::RecoverProgress;
 use crate::request::{
     BalanceRequest, BatchExitRequest, ProofsRequest, StoredBlockInfoRequest, TokenRequest,
     UnprocessedDepositRequest,
 };
-use crate::response::ExodusResponse;
+use crate::response::{ExodusResponse, ExodusStatus};
 use crate::AppData;
 use actix_cors::Cors;
 use actix_web::{web, App, HttpResponse, HttpServer};
@@ -14,19 +15,23 @@ use zklink_storage::ConnectionPool;
 
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_contracts(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
-    let contracts = data.get_ref().get_contracts();
+    let contracts = data.get_contracts();
     Ok(HttpResponse::Ok().json(contracts))
 }
 
 /// Get the info of all tokens.
 async fn get_tokens(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
-    let response = data.get_ref().acquired_tokens.tokens();
+    if !data.acquired_tokens.initialized() {
+        let response: ExodusResponse<()> = ExodusStatus::RecoverStateUnfinished.into();
+        return Ok(HttpResponse::Ok().json(response))
+    }
+    let response = data.acquired_tokens().tokens();
     Ok(HttpResponse::Ok().json(response))
 }
 
 /// Request to get recover state progress.
 async fn recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
-    let response = match data.get_ref().get_recover_progress().await {
+    let response = match data.get_recover_progress().await {
         Ok(progress) => ExodusResponse::Ok().data(progress),
         Err(err) => err.into(),
     };
@@ -35,7 +40,7 @@ async fn recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpRes
 
 /// Request to get max running task id.
 async fn running_max_task_id(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
-    let response = match data.get_ref().running_max_task_id().await {
+    let response = match data.running_max_task_id().await {
         Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
     };
@@ -48,7 +53,7 @@ async fn get_token(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let token_id = token_request.into_inner().token_id;
-    let response = match data.get_ref().acquired_tokens.get_token(token_id).await {
+    let response = match data.acquired_tokens().get_token(token_id).await {
         Ok(token) => ExodusResponse::Ok().data(token),
         Err(err) => err.into(),
     };
@@ -61,7 +66,7 @@ async fn get_stored_block_info(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let chain_id = block_info_request.into_inner().chain_id;
-    let response = match data.get_ref().get_stored_block_info(chain_id) {
+    let response = match data.get_stored_block_info(chain_id) {
         Ok(stored_block_info) => ExodusResponse::Ok().data(stored_block_info),
         Err(err) => err.into(),
     };
@@ -75,8 +80,7 @@ async fn get_balances(
 ) -> actix_web::Result<HttpResponse> {
     let account_address = balance_request.into_inner().address;
     let response = match data
-        .get_ref()
-        .recovered_state
+        .recovered_state()
         .get_balances_by_cache(account_address)
         .await
     {
@@ -92,7 +96,7 @@ async fn get_unprocessed_priority_ops(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let chain_id = unprocessed_deposit_request.into_inner().chain_id;
-    let response = match data.get_ref().get_unprocessed_priority_ops(chain_id).await {
+    let response = match data.get_unprocessed_priority_ops(chain_id).await {
         Ok(ops) => ExodusResponse::Ok().data(ops),
         Err(err) => err.into(),
     };
@@ -106,7 +110,6 @@ async fn get_proofs_by_id(
 ) -> actix_web::Result<HttpResponse> {
     let proof_info = proofs_request.into_inner();
     let response = match data
-        .get_ref()
         .get_proofs_by_id(proof_info.id, proof_info.proofs_num)
         .await
     {
@@ -122,7 +125,7 @@ async fn get_proof_by_info(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_request.into_inner();
-    let response = match data.get_ref().get_proof(exit_info).await {
+    let response = match data.get_proof(exit_info).await {
         Ok(proof) => ExodusResponse::Ok().data(proof),
         Err(err) => err.into(),
     };
@@ -135,7 +138,7 @@ async fn get_proofs_by_token(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = batch_exit_info.into_inner();
-    let response = match data.get_ref().get_proofs(exit_info).await {
+    let response = match data.get_proofs(exit_info).await {
         Ok(proofs) => ExodusResponse::Ok().data(proofs),
         Err(err) => err.into(),
     };
@@ -148,7 +151,7 @@ async fn generate_proof_task_by_info(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_request.into_inner();
-    let response = match data.get_ref().generate_proof_task(exit_info).await {
+    let response = match data.generate_proof_task(exit_info).await {
         Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
     };
@@ -161,7 +164,7 @@ async fn generate_proof_tasks_by_token(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let batch_exit_info = batch_exit_info.into_inner();
-    let response = match data.get_ref().generate_proof_tasks(batch_exit_info).await {
+    let response = match data.generate_proof_tasks(batch_exit_info).await {
         Ok(tasks) => ExodusResponse::Ok().data(tasks),
         Err(err) => err.into(),
     };
@@ -174,7 +177,7 @@ async fn get_proof_task_id(
     data: web::Data<AppData>,
 ) -> actix_web::Result<HttpResponse> {
     let task_info = task_info.into_inner();
-    let response = match data.get_ref().get_proof_task_id(task_info).await {
+    let response = match data.get_proof_task_id(task_info).await {
         Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
     };
@@ -187,10 +190,12 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let enable_http_cors = config.api.enable_http_cors;
     let contracts = config.layer1.get_contracts();
 
-    let recover_progress = RecoverProgress::new(&config).await;
+    let recover_progress = RecoverProgress::from_config(&config).await;
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
-    let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
-    let server_data = AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await;
+    let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
+    let app_data = Arc::new(AppData::new(conn_pool.clone(), contracts, proofs_cache, recover_progress).await);
+    let app_data_clone = app_data.clone();
+    tokio::spawn(app_data.sync_recover_progress());
 
     HttpServer::new(move || {
         let cors = if enable_http_cors {
@@ -200,7 +205,7 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
         };
         App::new()
             .wrap(cors)
-            .app_data(web::Data::new(server_data.clone()))
+            .app_data(web::Data::new(app_data_clone.clone()))
             .configure(exodus_config)
     })
     .bind(addrs)?

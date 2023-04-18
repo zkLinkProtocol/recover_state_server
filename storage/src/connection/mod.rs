@@ -85,12 +85,12 @@ impl ConnectionPool {
     ///
     /// This method is intended to be used in crucial contexts, where the
     /// database access is must-have (e.g. block worker).
-    pub async fn access_storage_with_retry(&self) -> anyhow::Result<StorageProcessor<'_>> {
+    pub async fn access_storage_with_retry(&self) -> StorageProcessor<'_> {
         let start = Instant::now();
         let connection = self.get_pooled_connection().await;
         metrics::histogram!("sql.connection_acquire", start.elapsed());
 
-        Ok(StorageProcessor::from_pool(connection))
+        StorageProcessor::from_pool(connection)
     }
 
     pub async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
