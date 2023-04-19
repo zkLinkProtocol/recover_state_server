@@ -10,7 +10,7 @@ use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recover_progress::{Progress, RecoverProgress};
 use crate::request::TokenRequest;
-use crate::{proofs_cache::ProofsCache, response::ExodusResponse, server::exodus_config, AppData};
+use crate::{proofs_cache::ProofsCache, r#mod::ExodusResponse, server::exodus_config, AppData};
 
 async fn create_app_data() -> AppData {
     dotenvy::dotenv().unwrap();

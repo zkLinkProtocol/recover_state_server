@@ -10,8 +10,7 @@ use recover_state_config::RecoverStateConfig;
 use zklink_prover::ExitInfo as ExitRequest;
 use zklink_storage::ConnectionPool;
 
-use crate::proofs_cache::ProofsCache;
-use crate::recover_progress::RecoverProgress;
+use crate::app_data::{ProofsCache, RecoverProgress};
 use crate::request::{
     BalanceRequest, BatchExitRequest, ProofsRequest, StoredBlockInfoRequest, TokenRequest,
     UnprocessedDepositRequest,

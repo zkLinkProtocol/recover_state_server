@@ -1,9 +1,8 @@
-use bigdecimal::num_bigint::{BigUint, ToBigInt};
+use bigdecimal::num_bigint::BigUint;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use zklink_prover::exit_type::ProofId;
 use zklink_prover::ExitProofData;
-use zklink_storage::chain::account::records::StorageBalance;
 use zklink_types::{ChainId, Deposit, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_utils::{BigUintSerdeAsRadix10Str, BigUintSerdeWrapper};
 
@@ -63,16 +62,4 @@ impl From<Deposit> for DepositData {
             owner: value.to,
         }
     }
-}
-
-pub fn convert_balance_resp(balances: Vec<StorageBalance>) -> SubAccountBalances {
-    let mut resp: SubAccountBalances = HashMap::new();
-    for balance in balances.iter() {
-        let sub_account_id = SubAccountId::from(balance.sub_account_id as u8);
-        let token_id = TokenId::from(balance.coin_id as u32);
-        resp.entry(sub_account_id)
-            .or_default()
-            .insert(token_id, balance.balance.to_bigint().unwrap().into());
-    }
-    resp
 }

@@ -1,5 +1,5 @@
 use crate::response::ExodusStatus;
-use crate::utils::SubAccountBalances;
+use crate::response::SubAccountBalances;
 use std::collections::HashMap;
 use zklink_storage::ConnectionPool;
 use zklink_types::block::{Block, StoredBlockInfo};

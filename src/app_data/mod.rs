@@ -1,5 +1,15 @@
 #![allow(dead_code)]
+mod acquired_tokens;
+mod proofs_cache;
+mod recover_progress;
+mod recovered_state;
 
+pub use acquired_tokens::{AcquiredTokens, TokenInfo};
+pub use proofs_cache::ProofsCache;
+pub use recover_progress::{Progress, RecoverProgress};
+pub use recovered_state::RecoveredState;
+
+use bigdecimal::num_bigint::ToBigInt;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -10,20 +20,16 @@ use tracing::{debug, info};
 use zklink_crypto::params::USD_TOKEN_ID;
 use zklink_prover::exit_type::{ProofId, ProofInfo};
 use zklink_prover::{ExitInfo, ExitProofData};
-use zklink_storage::chain::account::records::StorageAccount;
+use zklink_storage::chain::account::records::{StorageAccount, StorageBalance};
 use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 
-use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
-use crate::proofs_cache::ProofsCache;
-use crate::recover_progress::{Progress, RecoverProgress};
-use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
-use crate::response::{ExodusResponse, ExodusStatus};
-use crate::utils::{
-    convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp,
+use crate::response::{
+    ExodusResponse, ExodusStatus, Proofs, PublicData, SubAccountBalances, TaskId,
+    UnprocessedPriorityOp,
 };
 
 const GET_PROOFS_NUM_LIMIT: u32 = 100;
@@ -443,4 +449,16 @@ impl AppData {
 
         Ok((account_id, token_info))
     }
+}
+
+pub fn convert_balance_resp(balances: Vec<StorageBalance>) -> SubAccountBalances {
+    let mut resp: SubAccountBalances = HashMap::new();
+    for balance in balances.iter() {
+        let sub_account_id = SubAccountId::from(balance.sub_account_id as u8);
+        let token_id = TokenId::from(balance.coin_id as u32);
+        resp.entry(sub_account_id)
+            .or_default()
+            .insert(token_id, balance.balance.to_bigint().unwrap().into());
+    }
+    resp
 }

@@ -1,6 +1,9 @@
 #![allow(dead_code)]
+mod types;
+
 use serde::{Deserialize, Serialize};
 use tracing::error;
+pub use types::*;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExodusResponse<T: Serialize + Clone> {
