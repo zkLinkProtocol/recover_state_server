@@ -13,7 +13,7 @@
     - [get_unprocessed_priority_ops(after completed state)](#get_unprocessed_priority_ops)
     - [get_proof_task_id(after completed state)](#get_proof_task_id)
     - [get_proof_by_info(after completed state)](#get_proof_by_info)
-    - [get_proofs_by_id(after completed state)](#get_proofs_by_id)
+    - [get_proofs_by_page(after completed state)](#get_proofs_by_page)
     - [generate_proof_task_by_info(after completed state)](#generate_proof_task_by_info)
     - [generate_proof_tasks_by_token(after completed state)](#generate_proof_tasks_by_token)
 
@@ -32,6 +32,7 @@ enum ExodusError {
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
+    PageNotExist = 105,
 
     InvalidL1L2Token = 201,
 
@@ -55,6 +56,7 @@ impl ToString for ExodusError {
             ExodusError::AccountNotExist => "The account not exist",
             ExodusError::ChainNotExist => "The chain not exist",
             ExodusError::ExitProofTaskNotExist => "The exit proof task not exist",
+            ExodusError::PageNotExist => "The page not exist",
 
             // Invalid parameters
             ExodusError::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
@@ -170,7 +172,7 @@ struct ProofInfo{
 ## API
 ### Note
 if recover state isn't completed, **tokens, running_max_task_id, get_token, get_stored_block_info, get_balances, 
-get_unprocessed_priority_ops, get_proof_task_id, get_proof_by_info, get_proofs_by_id, generate_proof_task_by_info,
+get_unprocessed_priority_ops, get_proof_task_id, get_proof_by_info, get_proofs_by_page, generate_proof_task_by_info,
 generate_proof_tasks_by_token** api return 
 #### Response
 ```json
@@ -499,12 +501,12 @@ Request to get the task id(proof id) by exit info
 ```
 Success returns the id, Failure returns error description
 
-### get_proofs_by_id
-Get the specified number of proofs closer to the id by passing the id
+### get_proofs_by_page
+Get the specified number of proofs closer to the id by page(page 1,num 20 => proofs ids: 1~20)
 #### POST Request
 ```json
 {
-  "id": null,
+  "page": 1,
   "proofs_num": 1
 }
 ```

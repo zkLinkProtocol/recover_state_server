@@ -109,14 +109,14 @@ async fn get_unprocessed_priority_ops(
     Ok(HttpResponse::Ok().json(response))
 }
 
-/// Get the specified number of proofs closer to the id by passing the id
-async fn get_proofs_by_id(
+/// Get the specified number of proofs closer to the id by page(page 1,num 20 => proofs ids: 1~20)
+async fn get_proofs_by_page(
     proofs_request: web::Json<ProofsRequest>,
     data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let proof_info = proofs_request.into_inner();
     let response = match data
-        .get_proofs_by_id(proof_info.id, proof_info.proofs_num)
+        .get_proofs_by_page(proof_info.page, proof_info.proofs_num)
         .await
     {
         Ok(proofs) => ExodusResponse::Ok().data(proofs),
@@ -263,7 +263,7 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
             web::post().to(get_stored_block_info),
         )
         .route("/get_balances", web::post().to(get_balances))
-        .route("/get_proofs_by_id", web::post().to(get_proofs_by_id))
+        .route("/get_proofs_by_page", web::post().to(get_proofs_by_page))
         .route("/get_proof_by_info", web::post().to(get_proof_by_info))
         .route("/get_proofs_by_token", web::post().to(get_proofs_by_token))
         .route(

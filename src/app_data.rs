@@ -304,15 +304,17 @@ impl AppData {
         Ok(running_task_id.into())
     }
 
-    pub(crate) async fn get_proofs_by_id(
+    pub(crate) async fn get_proofs_by_page(
         &self,
-        id: Option<u32>,
+        page: u32,
         num: u32,
     ) -> Result<Proofs, ExodusStatus> {
+        if page == 0 { return Err(ExodusStatus::PageNotExist) }
+
         let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
-            .get_latest_proofs_by_id(id.map(|id| id as i64), num as i64)
+            .get_latest_proofs_by_id(page as i64, num as i64)
             .await?;
         let proofs = proofs.into_iter().map(Into::into).collect();
 
