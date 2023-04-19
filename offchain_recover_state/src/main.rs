@@ -1,8 +1,8 @@
 use dotenvy::dotenv;
-use offchain_recover_state::data_restore_driver::RecoverStateDriver;
+use offchain_recover_state::driver::RecoverStateDriver;
 use offchain_recover_state::log::init;
 use offchain_recover_state::{
-    database_storage_interactor::DatabaseStorageInteractor, get_fully_on_chain_zklink_contract,
+    get_fully_on_chain_zklink_contract, storage_interactor::DatabaseStorageInteractor,
     END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
 };
 use recover_state_config::RecoverStateConfig;

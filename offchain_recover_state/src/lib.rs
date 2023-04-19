@@ -2,11 +2,8 @@ use crate::contract::{ZkLinkContract, ZkLinkEvmContract};
 use recover_state_config::{ChainType, RecoverStateConfig};
 
 pub mod contract;
-pub mod data_restore_driver;
-pub mod database_storage_interactor;
+pub mod driver;
 pub mod events;
-pub mod events_state;
-pub mod inmemory_storage_interactor;
 pub mod log;
 pub mod rollup_ops;
 pub mod storage_interactor;

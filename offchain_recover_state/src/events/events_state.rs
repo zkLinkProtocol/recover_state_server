@@ -5,10 +5,10 @@ use std::convert::TryFrom;
 // Workspace deps
 use zklink_types::{BlockNumber, U256};
 // Local deps
+use super::{BlockEvent, EventType};
 use crate::contract::{
     BlockChain, LogInfo, TransactionInfo, ZkLinkContract, ZkLinkContractVersion,
 };
-use crate::events::{BlockEvent, EventType};
 
 /// Rollup contract events states description
 #[derive(Debug, Clone)]

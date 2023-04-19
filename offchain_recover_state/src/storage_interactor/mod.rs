@@ -1,3 +1,9 @@
+pub(crate) mod database;
+pub(crate) mod inmemory;
+
+pub use database::DatabaseStorageInteractor;
+pub use inmemory::InMemoryStorageInteractor;
+
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use zklink_storage::chain::operations::records::StoredSubmitTransaction;
@@ -11,9 +17,9 @@ use zklink_types::{
 use crate::contract::utils::NewToken;
 use crate::{
     contract::ZkLinkContractVersion,
-    data_restore_driver::StorageUpdateState,
+    driver::StorageUpdateState,
+    events::events_state::RollUpEvents,
     events::{BlockEvent, EventType},
-    events_state::RollUpEvents,
     rollup_ops::RollupOpsBlock,
 };
 

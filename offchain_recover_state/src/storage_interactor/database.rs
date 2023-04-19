@@ -16,17 +16,14 @@ use zklink_types::{
     {block::Block, AccountUpdate},
 };
 // Local deps
+use super::{
+    block_event_into_stored_block_event, stored_block_event_into_block_event,
+    stored_ops_block_into_ops_block, StorageInteractor, StoredTreeState,
+};
 use crate::contract::utils::NewToken;
-use crate::storage_interactor::StoredTreeState;
 use crate::{
-    data_restore_driver::StorageUpdateState,
-    events::BlockEvent,
-    events_state::RollUpEvents,
+    driver::StorageUpdateState, events::events_state::RollUpEvents, events::BlockEvent,
     rollup_ops::RollupOpsBlock,
-    storage_interactor::{
-        block_event_into_stored_block_event, stored_block_event_into_block_event,
-        stored_ops_block_into_ops_block, StorageInteractor,
-    },
 };
 
 pub struct DatabaseStorageInteractor<'a> {

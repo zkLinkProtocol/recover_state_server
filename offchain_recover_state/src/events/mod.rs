@@ -1,7 +1,7 @@
-// Built-in deps
-use std::cmp::Ordering;
-// External deps
+pub(crate) mod events_state;
+
 use crate::contract::ZkLinkContractVersion;
+use std::cmp::Ordering;
 use zklink_types::{BlockNumber, H256};
 
 /// Rollup contract event type describing the state of the corresponding Rollup block

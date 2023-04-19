@@ -1,27 +1,27 @@
+use std::marker::PhantomData;
+use std::time::Duration;
 // External deps
+use tracing::{debug, info, warn};
+
 // Workspace deps
+use recover_state_config::{ChainType, RecoverStateConfig};
+use zklink_crypto::convert::FeConvert;
+use zklink_crypto::params::{
+    FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID, USD_TOKEN_ID,
+};
 use zklink_crypto::Fr;
+use zklink_storage::ConnectionPool;
 use zklink_types::{
     Account, AccountId, AccountMap, AccountUpdate, BlockNumber, ChainId, Token, ZkLinkAddress, H256,
 };
 
 // Local deps
-use crate::{
-    error, events_state::RollUpEvents, rollup_ops::RollupOpsBlock,
-    storage_interactor::StorageInteractor, tree_state::TreeState, PRC_REQUEST_FREQUENT_ERROR_SETS,
-};
-
 use crate::contract::update_token_events::{EvmTokenEvents, UpdateTokenEvents};
 use crate::contract::ZkLinkContract;
-use recover_state_config::{ChainType, RecoverStateConfig};
-use std::marker::PhantomData;
-use std::time::Duration;
-use tracing::{debug, info, warn};
-use zklink_crypto::convert::FeConvert;
-use zklink_crypto::params::{
-    FEE_ACCOUNT_ID, GLOBAL_ASSET_ACCOUNT_ADDR, GLOBAL_ASSET_ACCOUNT_ID, USD_TOKEN_ID,
+use crate::{
+    error, events::events_state::RollUpEvents, rollup_ops::RollupOpsBlock,
+    storage_interactor::StorageInteractor, tree_state::TreeState, PRC_REQUEST_FREQUENT_ERROR_SETS,
 };
-use zklink_storage::ConnectionPool;
 
 /// Storage state update:
 /// - None - The state is updated completely last time - start from fetching the new events

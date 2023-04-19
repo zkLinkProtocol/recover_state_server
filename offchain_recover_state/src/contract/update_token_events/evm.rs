@@ -3,7 +3,7 @@ use crate::contract::utils::{
     load_abi, new_provider_with_url, NewPriorityRequest, NewToken, ZKLINK_JSON,
 };
 use crate::contract::LogInfo;
-use crate::database_storage_interactor::DatabaseStorageInteractor;
+use crate::storage_interactor::DatabaseStorageInteractor;
 use crate::storage_interactor::StorageInteractor;
 use crate::VIEW_BLOCKS_STEP;
 use anyhow::format_err;

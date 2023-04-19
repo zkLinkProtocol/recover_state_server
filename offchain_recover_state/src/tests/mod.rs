@@ -1,9 +1,9 @@
 pub(crate) mod utils;
 
 use crate::{
-    data_restore_driver::RecoverStateDriver,
-    database_storage_interactor::DatabaseStorageInteractor,
-    inmemory_storage_interactor::InMemoryStorageInteractor,
+    driver::RecoverStateDriver,
+    storage_interactor::database::DatabaseStorageInteractor,
+    storage_interactor::inmemory::InMemoryStorageInteractor,
     tests::utils::{create_log, u32_to_32bytes},
     END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
 };

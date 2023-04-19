@@ -9,14 +9,13 @@ use zklink_types::{
     TokenId, ZkLinkAddress,
 };
 
+use super::{StorageInteractor, StoredTreeState};
 use crate::contract::utils::NewToken;
 use crate::{
-    data_restore_driver::StorageUpdateState,
+    driver::StorageUpdateState,
+    events::events_state::RollUpEvents,
     events::{BlockEvent, EventType},
-    events_state::RollUpEvents,
     rollup_ops::RollupOpsBlock,
-    storage_interactor::StorageInteractor,
-    storage_interactor::StoredTreeState,
 };
 
 pub struct InMemoryStorageInteractor {
