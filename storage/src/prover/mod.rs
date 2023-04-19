@@ -53,6 +53,18 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(exit_proofs)
     }
 
+    pub async fn get_total_completed_proofs_num(&mut self) -> QueryResult<i64> {
+        let num = sqlx::query!(
+                r#"SELECT COUNT(*) FROM exit_proofs WHERE proof IS NOT NULL"#,
+            )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or(0);
+
+        Ok(num)
+    }
+
     /// Loads the specified proof task by account_id and sub_account_id and token_id.
     pub async fn get_proof_by_exit_info(
         &mut self,

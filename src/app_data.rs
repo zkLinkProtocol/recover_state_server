@@ -5,7 +5,7 @@ use crate::recover_progress::{Progress, RecoverProgress};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
-use crate::utils::{convert_balance_resp, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
+use crate::utils::{convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -308,14 +308,19 @@ impl AppData {
         &self,
         id: Option<u32>,
         num: u32,
-    ) -> Result<Vec<ExitProofData>, ExodusStatus> {
+    ) -> Result<Proofs, ExodusStatus> {
         let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
             .get_latest_proofs_by_id(id.map(|id| id as i64), num as i64)
             .await?;
         let proofs = proofs.into_iter().map(Into::into).collect();
-        Ok(proofs)
+
+        let total_completed_num = storage
+            .prover_schema()
+            .get_total_completed_proofs_num()
+            .await? as u32;
+        Ok(Proofs{ proofs, total_completed_num })
     }
 
     pub(crate) fn get_stored_block_info(
