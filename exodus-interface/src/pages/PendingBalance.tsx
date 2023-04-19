@@ -151,6 +151,8 @@ export const PendingBalanceRow: FC<{ item: PendingBalance }> = ({ item }) => {
   const contracts = useContracts()
   const currentChain = useCurrentChain()
   const [pending, setPending] = useState(false)
+
+  const amounts = item.balance ? formatEther(item.balance)?.split('.') : formatEther('0')
   return (
     <BalanceRowWrap>
       <BalanceRowToken>
@@ -160,7 +162,16 @@ export const PendingBalanceRow: FC<{ item: PendingBalance }> = ({ item }) => {
             <span>{item.symbol}</span>
           </Stack>
         </ColumnToken>
-        <ColumnBalance>{formatEther(item.balance)}</ColumnBalance>
+        <ColumnBalance>
+          <Stack direction="row" justifyContent="flex-end">
+            {amounts[0] ? <Typography fontSize={18}>{amounts[0]}</Typography> : null}
+            {amounts[1] ? (
+              <Typography fontSize={18} color="gray">
+                .{amounts[1]}
+              </Typography>
+            ) : null}
+          </Stack>
+        </ColumnBalance>
       </BalanceRowToken>
       <BalanceRowAction>
         <Button
