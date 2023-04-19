@@ -285,7 +285,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             "INSERT INTO exit_proofs (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) \
             VALUES ($1, $2, $3, $4, $5)\
             ON CONFLICT (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token) \
-            DO NOTHING RETURNING id",
+            DO UPDATE SET chain_id = $1 RETURNING id",
             task.chain_id, task.account_id, task.sub_account_id, task.l1_target_token, task.l2_source_token,
         )
             .fetch_one(self.0.conn())
