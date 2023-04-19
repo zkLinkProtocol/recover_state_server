@@ -22,7 +22,7 @@ import LastPageIcon from '@mui/icons-material/LastPage'
 import { Section } from './L2Balances'
 import { Header, encryptionAddress } from './Header'
 import { useEffect, useState } from 'react'
-import { useProofHistory, useTokens } from '../store/home/hooks'
+import { useNetworks, useProofHistory, useTokens } from '../store/home/hooks'
 import { useAppDispatch } from '../store'
 import { fetchProofHistory } from '../store/home/actions'
 import { TokenIcon } from '../components/Icon'
@@ -104,6 +104,7 @@ export const History = () => {
   const proofHistory = useProofHistory()
   const dispatch = useAppDispatch()
   const tokens = useTokens()
+  const networks = useNetworks()
 
   useEffect(() => {
     dispatch(
@@ -158,16 +159,13 @@ export const History = () => {
                         <span style={{ marginLeft: 10 }}>{token?.symbol}</span>
                       </Stack>
                     </TableBodyCell>
-                    <TableBodyCell>{exit_info.chain_id}</TableBodyCell>
+                    <TableBodyCell>
+                      {networks?.find((v) => v.layerTwoChainId === exit_info.chain_id)?.name}
+                    </TableBodyCell>
                     <TableBodyCell>{encryptionAddress(exit_info.account_address)}</TableBodyCell>
                   </StyledTableRow>
                 )
               })}
-              {/* {emptyRows > 0 && (
-                <StyledTableRow style={{ height: 53 * emptyRows }}>
-                  <TableCell colSpan={4} />
-                </StyledTableRow>
-              )} */}
             </TableBody>
             <TableFooter>
               <StyledTableRow>
