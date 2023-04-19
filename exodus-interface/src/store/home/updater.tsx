@@ -5,6 +5,7 @@ import {
   fetchRunningTaskId,
   updateBalances,
   updateContracts,
+  updateCurrentAccount,
   updateCurrentChain,
   updateStoredBlockInfo,
   updateTokens,
@@ -12,7 +13,12 @@ import {
 import { useWeb3React } from '@web3-react/core'
 import { connectorByName, ConnectorNames } from '../../connectors'
 import { http } from '../../api'
-import { useCurrentChain, useNetworks, useRecoverProgressCompleted } from './hooks'
+import {
+  useCurrentAccount,
+  useCurrentChain,
+  useNetworks,
+  useRecoverProgressCompleted,
+} from './hooks'
 import { useEffectOnce, useInterval } from 'usehooks-ts'
 import { useAppDispatch } from '..'
 import { RECOVER_PROGRESS_DELAY, RUNNING_TASK_ID_DELAY } from '../../config'
@@ -54,7 +60,7 @@ export const useFetchRunningTaskId = () => {
 
 export const Updater = () => {
   const dispatch = useAppDispatch()
-  const { account, isActive, chainId } = useWeb3React()
+  const { account, isActive, chainId, provider } = useWeb3React()
   const networks = useNetworks()
   const recoverProgressCompleted = useRecoverProgressCompleted()
   const currentChain = useCurrentChain()

@@ -9,13 +9,18 @@ import {
   Contracts,
   HomeState,
   NetworkInfo,
+  PendingBalance,
   ProofHistory,
   RecoverProgress,
   Tokens,
 } from './types'
 import { ChainId, L2ChainId, SubAccountId, TokenId } from '../../types/global'
 import { Web3Provider } from '@ethersproject/providers'
+import { Address } from 'zklink-js-sdk/build/types'
 
+export const useCurrentAccount = () => {
+  return useSelector<RootState, Address>((state) => state.home.account)
+}
 export const useNetworks = () => {
   return useSelector<RootState, NetworkInfo[]>((state) => state.home.networks)
 }
@@ -50,6 +55,15 @@ export const useBalances = () => {
 }
 export const useMulticallContracts = () => {
   return useSelector<RootState, string[] | undefined>((state) => state.home.multicallContracts)
+}
+export const usePendingBalances = (account?: Address) => {
+  const balances = useSelector<RootState, RootState['home']['pendingBalances']>(
+    (state) => state.home.pendingBalances
+  )
+  if (!account) {
+    return undefined
+  }
+  return balances[account]
 }
 
 export const useStoredBlockInfo = (chainId?: L2ChainId) => {

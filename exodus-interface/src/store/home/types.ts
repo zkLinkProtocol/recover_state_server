@@ -15,14 +15,15 @@ export interface Contracts {
   [x: number]: string
 }
 
-export interface Tokens {
-  [x: TokenId]: {
-    token_id: TokenId
-    symbol?: string
-    addresses: {
-      [x: L2ChainId]: Address
-    }
+export interface TokenInfo {
+  token_id: TokenId
+  symbol?: string
+  addresses: {
+    [x: L2ChainId]: Address
   }
+}
+export interface Tokens {
+  [x: TokenId]: TokenInfo
 }
 
 export interface Balances {
@@ -69,8 +70,11 @@ export interface ProofHistory {
   total_completed_num: number
   proofs: ProofInfo[]
 }
-
+export interface PendingBalance extends TokenInfo {
+  balance: Wei
+}
 export interface HomeState {
+  account: Address
   networks: NetworkInfo[]
   currentChain?: NetworkInfo
   contracts?: Contracts
@@ -89,4 +93,7 @@ export interface HomeState {
   }
   multicallContracts?: Address[]
   proofHistory?: ProofHistory
+  pendingBalances: {
+    [x: Address]: PendingBalance[]
+  }
 }

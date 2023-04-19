@@ -25,14 +25,19 @@ const sxButton = {
 const Network = styled('div')({
   position: 'relative',
 })
-const NetworkOptions = styled(Box)({
+const NetworkOptions = styled(Box)(({ theme }) => ({
   position: 'absolute',
   borderColor: 'rgba(33, 33, 33)',
   backgroundColor: '#FFFFFF',
   padding: '8px 0',
   top: '44px',
   boxShadow: '2px 2px 0 rgba(11, 11, 11, 1)',
-})
+
+  [theme.breakpoints.down('md')]: {
+    top: 'auto',
+    bottom: '44px',
+  },
+}))
 const Dot = styled('div')({
   width: 6,
   height: 6,
@@ -74,6 +79,19 @@ const Nav = styled(Stack)({
     },
   },
 })
+const Account = styled(Stack)(({ theme }) => ({
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  padding: 16,
+  [theme.breakpoints.down('md')]: {
+    backgroundColor: '#FFF',
+    position: 'fixed',
+    bottom: 0,
+    right: 0,
+    left: 0,
+    zIndex: 20,
+  },
+}))
 export const encryptionAddress = (address?: string, start: number = 6, end: number = 4) => {
   if (!address) {
     return 'Unknown Address'
@@ -115,44 +133,46 @@ export const Header = () => {
           History
         </Link>
       </Nav>
-      <Network>
+      <Account>
+        <Network sx={{ mr: 2 }}>
+          <Button
+            sx={sxButton}
+            variant="outlined"
+            color={currentChain?.name ? 'inherit' : 'error'}
+            onClick={(event) => {
+              event.stopPropagation()
+              setShowOptions(!showOptions)
+            }}
+          >
+            {currentChain?.name ?? 'Known Network'}
+          </Button>
+          {chains?.length && showOptions ? (
+            <NetworkOptions sx={{ border: 1 }}>
+              {chains.map((v) => (
+                <NetworkOption
+                  key={v.chainId}
+                  onClick={() => {
+                    setShowOptions(false)
+                    switchNetwork(v.chainId)
+                  }}
+                >
+                  {v.name} {currentChain?.chainId === v.chainId ? <Dot className="dot" /> : null}
+                </NetworkOption>
+              ))}
+            </NetworkOptions>
+          ) : null}
+        </Network>
         <Button
           sx={sxButton}
           variant="outlined"
-          color={currentChain?.name ? 'inherit' : 'error'}
-          onClick={(event) => {
-            event.stopPropagation()
-            setShowOptions(!showOptions)
+          color="inherit"
+          onClick={() => {
+            connectWallet(ConnectorNames.Metamask)
           }}
         >
-          {currentChain?.name ?? 'Known Network'}
+          {isActive ? encryptionAddress(account) : 'Connect Wallet'}
         </Button>
-        {chains?.length && showOptions ? (
-          <NetworkOptions sx={{ border: 1 }}>
-            {chains.map((v) => (
-              <NetworkOption
-                key={v.chainId}
-                onClick={() => {
-                  setShowOptions(false)
-                  switchNetwork(v.chainId)
-                }}
-              >
-                {v.name} {currentChain?.chainId === v.chainId ? <Dot className="dot" /> : null}
-              </NetworkOption>
-            ))}
-          </NetworkOptions>
-        ) : null}
-      </Network>
-      <Button
-        sx={sxButton}
-        variant="outlined"
-        color="inherit"
-        onClick={() => {
-          connectWallet(ConnectorNames.Metamask)
-        }}
-      >
-        {isActive ? encryptionAddress(account) : 'Connect Wallet'}
-      </Button>
+      </Account>
     </Stack>
   )
 }

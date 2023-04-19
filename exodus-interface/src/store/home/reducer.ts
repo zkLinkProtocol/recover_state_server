@@ -1,12 +1,14 @@
 import { createReducer } from '@reduxjs/toolkit'
 import {
   fetchNetworks,
+  fetchPendingBalances,
   fetchProofHistory,
   fetchProofs,
   fetchRecoverProgress,
   fetchRunningTaskId,
   updateBalances,
   updateContracts,
+  updateCurrentAccount,
   updateCurrentChain,
   updateStoredBlockInfo,
   updateTokens,
@@ -14,6 +16,7 @@ import {
 import { HomeState } from './types'
 
 const initialState: HomeState = {
+  account: '',
   networks: [],
   currentChain: undefined,
   contracts: {},
@@ -26,10 +29,14 @@ const initialState: HomeState = {
   proofs: {},
   multicallContracts: undefined,
   proofHistory: undefined,
+  pendingBalances: {},
 }
 
 export default createReducer<HomeState>(initialState, (builder) => {
   builder
+    .addCase(updateCurrentAccount, (state, { payload }) => {
+      state.account = payload
+    })
     .addCase(fetchNetworks.fulfilled, (state, { payload }) => {
       state.networks = payload
     })
@@ -62,5 +69,8 @@ export default createReducer<HomeState>(initialState, (builder) => {
     })
     .addCase(fetchProofHistory.fulfilled, (state, { payload }) => {
       state.proofHistory = payload
+    })
+    .addCase(fetchPendingBalances.fulfilled, (state, { payload }) => {
+      state.pendingBalances[payload.account] = payload.balances
     })
 })

@@ -27,7 +27,6 @@ import * as mathjs from 'mathjs'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import { SyncBlock } from './SyncBlock'
-import { Header } from './Header'
 
 export const Section = styled(Box)({
   backgroundColor: 'rgba(237, 237, 237)',
@@ -90,22 +89,18 @@ export const L2Balances = () => {
 
   return (
     <>
-      <Header />
-
-      <Section
-        sx={{
-          mb: 1,
-        }}
-      >
+      <Section>
         <Typography variant="h5">Layer2 Balances</Typography>
         <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
           Step 1: Connect your wallet to check your balance.
           <br />
           Step 2: Generate proofs for each token.
           <br />
-          Step 3: Send a withdrawal transaction to withdraw the tokens to your wallet.
+          Step 3: Send a withdrawal transaction to withdraw the tokens to pending balance.
           <br />
-          Step 4: Repeat the above steps for the other chains.
+          Step 4: Harvest tokens from pending balance to your wallet.
+          <br />
+          Step 5: Repeat the above steps for the other chains.
         </Typography>
         {recoverProgressCompleted ? <BalanceList /> : <SyncBlock />}
       </Section>
@@ -300,6 +295,16 @@ function toFixed(ether: Ether) {
 }
 
 const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
+  return (
+    <Stack spacing={0.5} width="100%">
+      {proofs?.map((proofInfo, index) => (
+        <ProofRow key={index} proofInfo={proofInfo} />
+      ))}
+    </Stack>
+  )
+}
+
+const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
   const tokens = useTokens()
   const currentChain = useCurrentChain()
   const contracts = useContracts()
@@ -307,38 +312,128 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
   const { provider, account } = useWeb3React()
   const runningTaskId = useRunningTaskId()
   const networks = useNetworks()
+  const [pending, setPending] = useState(false)
   return (
-    <Stack spacing={0.5} width="100%">
-      {proofs?.map((proofInfo, index) => (
-        <Stack
-          width="100%"
-          key={index}
-          flex="1"
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
-        >
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <TokenIcon symbol={tokens[proofInfo.exit_info.l1_target_token]?.symbol} size={18} />
-            <Typography variant="body1">
-              {tokens[proofInfo.exit_info.l1_target_token]?.symbol}:
-            </Typography>
-            <Typography variant="body2" color="GrayText">
-              {proofInfo.proof_info?.amount !== null && proofInfo.proof_info?.amount !== undefined
-                ? toFixed(formatEther(proofInfo.proof_info.amount))
-                : '-'}
-            </Typography>
-          </Stack>
-          {proofInfo.proof_info?.proof ? (
-            proofInfo.exit_info.chain_id === currentChain?.layerTwoChainId ? (
+    <Stack width="100%" flex="1" direction="row" alignItems="center" justifyContent="space-between">
+      <Stack direction="row" alignItems="center" spacing={0.5}>
+        <TokenIcon symbol={tokens[proofInfo.exit_info.l1_target_token]?.symbol} size={18} />
+        <Typography variant="body1">
+          {tokens[proofInfo.exit_info.l1_target_token]?.symbol}:
+        </Typography>
+        <Typography variant="body2" color="GrayText">
+          {proofInfo.proof_info?.amount !== null && proofInfo.proof_info?.amount !== undefined
+            ? toFixed(formatEther(proofInfo.proof_info.amount))
+            : '-'}
+        </Typography>
+      </Stack>
+      {proofInfo.proof_info?.proof ? (
+        proofInfo.exit_info.chain_id === currentChain?.layerTwoChainId ? (
+          <Typography
+            sx={(theme) => ({
+              color: theme.palette.success.main,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 18,
+            })}
+            variant="body1"
+          >
+            <Button
+              sx={{
+                fontSize: 16,
+                textTransform: 'none',
+                pt: 0,
+                pb: 0,
+              }}
+              color="success"
+              variant="text"
+              onClick={async () => {
+                try {
+                  if (
+                    !provider ||
+                    !contracts ||
+                    !currentChain ||
+                    !proofInfo?.proof_info ||
+                    pending
+                  ) {
+                    return
+                  }
+                  setPending(true)
+                  const payload = [
+                    {
+                      blockNumber: storedBlockInfo?.block_number,
+                      priorityOperations: storedBlockInfo?.priority_operations,
+                      pendingOnchainOperationsHash:
+                        storedBlockInfo?.pending_onchain_operations_hash,
+                      timestamp: storedBlockInfo?.timestamp,
+                      stateHash: storedBlockInfo?.state_hash,
+                      commitment: storedBlockInfo?.commitment,
+                      syncHash: storedBlockInfo?.sync_hash,
+                    },
+                    account,
+                    proofInfo.exit_info.account_id,
+                    proofInfo.exit_info.sub_account_id,
+                    proofInfo.exit_info.l1_target_token,
+                    proofInfo.exit_info.l2_source_token,
+                    proofInfo.proof_info.amount,
+                    proofInfo.proof_info.proof?.proof,
+                  ]
+                  const iface = new Interface(MainContract.abi)
+                  const fragment = iface.getFunction('performExodus')
+                  const calldata = iface.encodeFunctionData(fragment, payload)
+                  const tx = await provider.send('eth_sendTransaction', [
+                    {
+                      from: account,
+                      to: contracts[currentChain.layerTwoChainId],
+                      data: calldata,
+                    },
+                  ])
+                  if (tx) {
+                    toast.success(
+                      (t) => (
+                        <Stack>
+                          <Typography>Transaction sent successfully</Typography>
+                          <Button
+                            onClick={() => {
+                              window.open(currentChain.explorerUrl + '/tx/' + tx)
+                            }}
+                          >
+                            View On Explorer
+                          </Button>
+                        </Stack>
+                      ),
+                      {
+                        duration: 5000,
+                      }
+                    )
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message)
+                  console.log(e)
+                }
+                setPending(false)
+              }}
+            >
+              {pending ? <CircularProgress sx={{ mr: 0.5 }} color="success" size={14} /> : null}
+              Withdraw
+            </Button>
+          </Typography>
+        ) : (
+          <Typography color="gray" sx={{ fontSize: 14 }}>
+            On {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
+          </Typography>
+        )
+      ) : (
+        <>
+          {runningTaskId ? (
+            mathjs.subtract(proofInfo.proof_info.id, runningTaskId) > 0 ? (
+              <Typography sx={{ fontSize: 14 }} color="gray">
+                Queue Position: {mathjs.subtract(proofInfo.proof_info.id, runningTaskId)}
+              </Typography>
+            ) : (
               <Typography
                 sx={(theme) => ({
-                  color: theme.palette.success.main,
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                  fontSize: 18,
+                  color: theme.palette.info.main,
                 })}
-                variant="body1"
               >
                 <Button
                   sx={{
@@ -347,107 +442,16 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
                     pt: 0,
                     pb: 0,
                   }}
-                  color="success"
                   variant="text"
-                  onClick={async () => {
-                    try {
-                      if (!provider || !contracts || !currentChain || !proofInfo?.proof_info) {
-                        return
-                      }
-                      const payload = [
-                        {
-                          blockNumber: storedBlockInfo?.block_number,
-                          priorityOperations: storedBlockInfo?.priority_operations,
-                          pendingOnchainOperationsHash:
-                            storedBlockInfo?.pending_onchain_operations_hash,
-                          timestamp: storedBlockInfo?.timestamp,
-                          stateHash: storedBlockInfo?.state_hash,
-                          commitment: storedBlockInfo?.commitment,
-                          syncHash: storedBlockInfo?.sync_hash,
-                        },
-                        account,
-                        proofInfo.exit_info.account_id,
-                        proofInfo.exit_info.sub_account_id,
-                        proofInfo.exit_info.l1_target_token,
-                        proofInfo.exit_info.l2_source_token,
-                        proofInfo.proof_info.amount,
-                        proofInfo.proof_info.proof?.proof,
-                      ]
-                      const iface = new Interface(MainContract.abi)
-                      const fragment = iface.getFunction('performExodus')
-                      const calldata = iface.encodeFunctionData(fragment, payload)
-                      const tx = await provider.send('eth_sendTransaction', [
-                        {
-                          from: account,
-                          to: contracts[currentChain.layerTwoChainId],
-                          data: calldata,
-                        },
-                      ])
-                      if (tx) {
-                        toast.success(
-                          (t) => (
-                            <Stack>
-                              <Typography>Transaction sent successfully</Typography>
-                              <Button
-                                onClick={() => {
-                                  window.open(currentChain.explorerUrl + '/tx/' + tx)
-                                }}
-                              >
-                                View On Explorer
-                              </Button>
-                            </Stack>
-                          ),
-                          {
-                            duration: 5000,
-                          }
-                        )
-                      }
-                    } catch (e: any) {
-                      toast.error(e?.message)
-                      console.log(e)
-                    }
-                  }}
                 >
-                  Withdraw
+                  <CircularProgress sx={{ mr: 0.5 }} size={14} />
+                  <span>Generating</span>
                 </Button>
               </Typography>
-            ) : (
-              <Typography color="gray" sx={{ fontSize: 14 }}>
-                On {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
-              </Typography>
             )
-          ) : (
-            <>
-              {runningTaskId ? (
-                mathjs.subtract(proofInfo.proof_info.id, runningTaskId) > 0 ? (
-                  <Typography sx={{ fontSize: 14 }} color="gray">
-                    Queue Position: {mathjs.subtract(proofInfo.proof_info.id, runningTaskId)}
-                  </Typography>
-                ) : (
-                  <Typography
-                    sx={(theme) => ({
-                      color: theme.palette.info.main,
-                    })}
-                  >
-                    <Button
-                      sx={{
-                        fontSize: 16,
-                        textTransform: 'none',
-                        pt: 0,
-                        pb: 0,
-                      }}
-                      variant="text"
-                    >
-                      <CircularProgress sx={{ mr: 0.5 }} size={14} />
-                      <span>Generating</span>
-                    </Button>
-                  </Typography>
-                )
-              ) : null}
-            </>
-          )}
-        </Stack>
-      ))}
+          ) : null}
+        </>
+      )}
     </Stack>
   )
 }

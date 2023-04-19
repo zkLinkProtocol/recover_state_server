@@ -8,12 +8,20 @@ import {
   RecoverProgress,
   ProofHistory,
   NetworkInfo,
+  PendingBalance,
 } from './types'
-import { Address, L2ChainId, SubAccountId, TokenId } from '../../types/global'
+import { Address, L2ChainId, SubAccountId, TokenId, Wei } from '../../types/global'
 import { DunkirkResponse, http } from '../../api'
 import { AxiosResponse } from 'axios'
 import { STATIC_HOST } from '../../config'
+import { Web3Provider } from '@ethersproject/providers'
+import { RootState, useAppDispatch } from '..'
+import { useContracts, useTokens } from './hooks'
+import { Interface } from 'ethers/lib/utils'
+import MainContract from 'zklink-js-sdk/abi/ZkLink.json'
+import { BigNumber } from 'ethers'
 
+export const updateCurrentAccount = createAction<Address>('home/updateCurrentAccount')
 export const updateCurrentChain = createAction<NetworkInfo | undefined>('home/updateCurrentChain')
 export const updateConnectorName = createAction<string>('home/updateConnectorName')
 export const updateContracts = createAction<HomeState['contracts']>('home/updateContracts')
@@ -90,4 +98,51 @@ export const fetchProofHistory = createAsyncThunk<
     proofs_num,
   })
   return r.data.data
+})
+export const fetchPendingBalances = createAsyncThunk<
+  {
+    account: Address
+    balances: PendingBalance[]
+  },
+  {
+    provider: Web3Provider
+    account: Address
+  },
+  {
+    state: RootState
+  }
+>('home/fetchPendingBalances', async ({ provider, account }, { getState }) => {
+  const state = getState()
+  const { tokens, contracts, currentChain } = state.home
+
+  if (!tokens || !contracts || !currentChain) {
+    return Promise.reject()
+  }
+
+  const balances = []
+  for (let i in tokens) {
+    const iface = new Interface(MainContract.abi)
+    const fragment = iface.getFunction('getPendingBalance')
+    const calldata = iface.encodeFunctionData(fragment, [account, i])
+
+    const r = await provider.send('eth_call', [
+      {
+        from: account,
+        to: contracts[currentChain.layerTwoChainId],
+        data: calldata,
+      },
+    ])
+
+    if (BigNumber.from(r).isZero()) {
+      continue
+    }
+
+    const b = { ...tokens[i], balance: r }
+    balances.push(b)
+  }
+
+  return {
+    account,
+    balances,
+  }
 })
