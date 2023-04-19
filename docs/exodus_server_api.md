@@ -32,7 +32,6 @@ enum ExodusError {
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
-    PageNotExist = 105,
 
     InvalidL1L2Token = 201,
 
@@ -56,7 +55,6 @@ impl ToString for ExodusError {
             ExodusError::AccountNotExist => "The account not exist",
             ExodusError::ChainNotExist => "The chain not exist",
             ExodusError::ExitProofTaskNotExist => "The exit proof task not exist",
-            ExodusError::PageNotExist => "The page not exist",
 
             // Invalid parameters
             ExodusError::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",

@@ -25,19 +25,18 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(exit_proofs)
     }
 
-    pub async fn get_latest_proofs_by_id(
+    pub async fn get_proofs_by_page(
         &mut self,
         page: i64,
         num: i64,
     ) -> QueryResult<Vec<StoredExitProof>> {
-        let from_id = (page - 1) * num;
-        let exit_proofs =
-            sqlx::query_as!(
-                StoredExitProof,
-                r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 ORDER BY id DESC LIMIT $2"#,
-                from_id,
-                num
-            )
+        let offset = page * num;
+        let exit_proofs = sqlx::query_as!(
+            StoredExitProof,
+             r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL ORDER BY id DESC LIMIT $1 OFFSET $2"#,
+            num,
+            offset
+        )
             .fetch_all(self.0.conn())
             .await?;
 

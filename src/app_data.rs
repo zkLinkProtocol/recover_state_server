@@ -309,12 +309,10 @@ impl AppData {
         page: u32,
         num: u32,
     ) -> Result<Proofs, ExodusStatus> {
-        if page == 0 { return Err(ExodusStatus::PageNotExist) }
-
         let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
-            .get_latest_proofs_by_id(page as i64, num as i64)
+            .get_proofs_by_page(page as i64, num as i64)
             .await?;
         let proofs = proofs.into_iter().map(Into::into).collect();
 

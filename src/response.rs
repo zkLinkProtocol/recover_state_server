@@ -48,7 +48,6 @@ pub enum ExodusStatus {
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
-    PageNotExist = 105,
 
     InvalidL1L2Token = 201,
 
@@ -78,7 +77,6 @@ impl ToString for ExodusStatus {
             ExodusStatus::AccountNotExist => "The account not exist",
             ExodusStatus::ChainNotExist => "The chain not exist",
             ExodusStatus::ExitProofTaskNotExist => "The exit proof task not exist",
-            ExodusStatus::PageNotExist => "The page not exist",
 
             // Invalid parameters
             ExodusStatus::InvalidL1L2Token => {
