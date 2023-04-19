@@ -42,11 +42,13 @@ pub enum ExodusStatus {
     ProofGenerating = 51,
     ProofCompleted = 52,
     NonBalance = 60,
+    RecoverStateUnfinished = 70,
 
     TokenNotExist = 101,
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
+    PageNotExist = 105,
 
     InvalidL1L2Token = 201,
 
@@ -69,12 +71,14 @@ impl ToString for ExodusStatus {
             ExodusStatus::ProofGenerating => "The proof task is running",
             ExodusStatus::ProofCompleted => "The task has been completed",
             ExodusStatus::NonBalance => "The token of the account is no balance",
+            ExodusStatus::RecoverStateUnfinished => "Recovering state is unfinished",
 
             // Not exist info
             ExodusStatus::TokenNotExist => "The token not exist",
             ExodusStatus::AccountNotExist => "The account not exist",
             ExodusStatus::ChainNotExist => "The chain not exist",
             ExodusStatus::ExitProofTaskNotExist => "The exit proof task not exist",
+            ExodusStatus::PageNotExist => "The page not exist",
 
             // Invalid parameters
             ExodusStatus::InvalidL1L2Token => {

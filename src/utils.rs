@@ -2,9 +2,16 @@ use bigdecimal::num_bigint::{BigUint, ToBigInt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use zklink_prover::exit_type::ProofId;
+use zklink_prover::ExitProofData;
 use zklink_storage::chain::account::records::StorageBalance;
 use zklink_types::{ChainId, Deposit, SubAccountId, TokenId, ZkLinkAddress};
 use zklink_utils::{BigUintSerdeAsRadix10Str, BigUintSerdeWrapper};
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Proofs {
+    pub(crate) total_completed_num: u32,
+    pub(crate) proofs: Vec<ExitProofData>,
+}
 
 pub type SerialId = u64;
 pub type SubAccountBalances = HashMap<SubAccountId, HashMap<TokenId, BigUintSerdeWrapper>>;

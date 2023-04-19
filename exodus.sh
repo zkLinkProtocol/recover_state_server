@@ -11,7 +11,7 @@ elif [ "$1" == "continue" ]; then
 elif [ "$1" == "server" ]; then
   nohup ./target/release/exodus_server >> log/server.log 2>&1 &
 elif [ "$1" == "prover" ]; then
-  nohup ./target/release/exodus_prover tasks >> log/prover.log 2>&1 &
+  nohup ./target/release/exodus_prover tasks -w 4 >> log/prover.log 2>&1 &
 elif [ "$1" == "stop" ]; then
   pkill -f exodus_server
   pkill -f exodus_prover

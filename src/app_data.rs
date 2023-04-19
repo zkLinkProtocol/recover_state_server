@@ -5,9 +5,11 @@ use crate::recover_progress::{Progress, RecoverProgress};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
-use crate::utils::{convert_balance_resp, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
+use crate::utils::{convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
 use std::collections::HashMap;
+use std::sync::Arc;
 use std::time::Instant;
+use tokio::sync::OnceCell;
 use tracing::{debug, info};
 use zklink_crypto::params::USD_TOKEN_ID;
 use zklink_prover::{ExitInfo, ExitProofData};
@@ -18,15 +20,15 @@ use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
 use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 
-#[derive(Clone)]
 pub struct AppData {
     conn_pool: ConnectionPool,
+    
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
     pub(crate) recover_progress: RecoverProgress,
     proofs_cache: ProofsCache,
 
-    pub recovered_state: RecoveredState,
-    pub acquired_tokens: AcquiredTokens,
+    pub recovered_state: OnceCell<RecoveredState>,
+    pub acquired_tokens: OnceCell<AcquiredTokens>,
 }
 
 impl AppData {
@@ -36,34 +38,60 @@ impl AppData {
         proofs_cache: ProofsCache,
         recover_progress: RecoverProgress,
     ) -> AppData {
-        info!("Loading accounts state....");
-        let timer = Instant::now();
-        let recovered_state = RecoveredState::load_from_storage(&conn_pool).await;
-        debug!(
-            "Load accounts state elapsed time: {} ms",
-            timer.elapsed().as_millis()
-        );
-        info!("End to load accounts state");
-
-        info!("Loading tokens....");
-        let acquired_tokens = AcquiredTokens::load_from_storage(&conn_pool).await;
-        debug!(
-            "Load tokens elapsed time: {} ms",
-            timer.elapsed().as_millis()
-        );
-        info!("End to load tokens");
-
         Self {
             conn_pool,
             contracts,
             recover_progress,
             proofs_cache,
-            recovered_state,
-            acquired_tokens,
+            recovered_state: Default::default(),
+            acquired_tokens: Default::default(),
         }
     }
 
-    async fn access_storage(&self) -> anyhow::Result<StorageProcessor<'_>> {
+    pub fn is_not_sync_completed(&self) -> bool {
+        !self.acquired_tokens.initialized()
+            || !self.acquired_tokens.initialized()
+            || !self.recover_progress.is_completed()
+    }
+
+    pub fn recovered_state(&self) -> &RecoveredState{
+        self.recovered_state.get().unwrap()
+    }
+
+    pub fn acquired_tokens(&self) -> &AcquiredTokens{
+        self.acquired_tokens.get().unwrap()
+    }
+    
+    pub(crate) async fn sync_recover_progress(self: Arc<Self>) {
+        self.recover_progress
+            .sync_from_database(&self.conn_pool)
+            .await;
+        
+        self.recovered_state.get_or_init(||async{
+            info!("Loading accounts state....");
+            let timer = Instant::now();
+            let recovered_state = RecoveredState::load_from_storage(&self.conn_pool).await;
+            debug!(
+                "Load accounts state elapsed time: {} ms",
+                timer.elapsed().as_millis()
+            );
+            info!("End to load accounts state");            
+            recovered_state
+        }).await;
+        self.acquired_tokens.get_or_init(||async {
+            info!("Loading tokens....");
+            let timer = Instant::now();
+            let acquired_tokens = AcquiredTokens::load_from_storage(&self.conn_pool).await;
+            debug!(
+                "Load tokens elapsed time: {} ms",
+                timer.elapsed().as_millis()
+            );
+            info!("End to load tokens");
+            acquired_tokens
+        }).await;
+    }
+
+    async fn access_storage(&self) -> StorageProcessor<'_> {
         self.conn_pool.access_storage_with_retry().await
     }
 
@@ -71,7 +99,7 @@ impl AppData {
         &self,
         account_address: ZkLinkAddress,
     ) -> Result<SubAccountBalances, ExodusStatus> {
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let Some(StorageAccount{id, ..}) = storage.chain()
             .account_schema()
             .account_by_address(account_address.as_bytes())
@@ -101,7 +129,7 @@ impl AppData {
             return Err(ExodusStatus::InvalidL1L2Token);
         }
         if let Some(&id) = self
-            .recovered_state
+            .recovered_state()
             .account_id_by_address
             .get(&exit_info.account_address)
         {
@@ -156,7 +184,7 @@ impl AppData {
                 exit_task.l2_source_token,
             )?
             .0;
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let remaining_tasks = storage
             .prover_schema()
             .get_task_id((&exit_task).into())
@@ -188,7 +216,7 @@ impl AppData {
         }
 
         // Update to database
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let task_id = storage
             .prover_schema()
             .insert_exit_task((&exit_info).into())
@@ -224,7 +252,7 @@ impl AppData {
         }
 
         // Update to database
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let tasks_ids = storage
             .prover_schema()
             .insert_batch_exit_tasks(batch_exit_tasks.iter().map(|t| t.into()).collect())
@@ -243,7 +271,7 @@ impl AppData {
         &self,
         chain_id: ChainId,
     ) -> Result<Vec<UnprocessedPriorityOp>, ExodusStatus> {
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let priority_ops = storage
             .chain()
             .operations_schema()
@@ -268,7 +296,7 @@ impl AppData {
     }
 
     pub(crate) async fn running_max_task_id(&self) -> Result<TaskId, ExodusStatus> {
-        let mut storage = self.access_storage().await?;
+        let mut storage = self.access_storage().await;
         let running_task_id = storage
             .prover_schema()
             .get_running_max_task_id()
@@ -276,18 +304,25 @@ impl AppData {
         Ok(running_task_id.into())
     }
 
-    pub(crate) async fn get_proofs_by_id(
+    pub(crate) async fn get_proofs_by_page(
         &self,
-        id: Option<u32>,
+        page: u32,
         num: u32,
-    ) -> Result<Vec<ExitProofData>, ExodusStatus> {
-        let mut storage = self.access_storage().await?;
+    ) -> Result<Proofs, ExodusStatus> {
+        if page == 0 { return Err(ExodusStatus::PageNotExist) }
+
+        let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
-            .get_latest_proofs_by_id(id.map(|id| id as i64), num as i64)
+            .get_latest_proofs_by_id(page as i64, num as i64)
             .await?;
         let proofs = proofs.into_iter().map(Into::into).collect();
-        Ok(proofs)
+
+        let total_completed_num = storage
+            .prover_schema()
+            .get_total_completed_proofs_num()
+            .await? as u32;
+        Ok(Proofs{ proofs, total_completed_num })
     }
 
     pub(crate) fn get_stored_block_info(
@@ -297,12 +332,12 @@ impl AppData {
         if !self.contracts.contains_key(&chain_id) {
             return Err(ExodusStatus::ChainNotExist);
         }
-        Ok(self.recovered_state.stored_block_info(chain_id))
+        Ok(self.recovered_state().stored_block_info(chain_id))
     }
 
     pub(crate) async fn get_recover_progress(&self) -> Result<Progress, ExodusStatus> {
-        if !self.recover_progress.is_completed_state().await {
-            let mut storage = self.access_storage().await?;
+        if !self.recover_progress.is_completed() {
+            let mut storage = self.access_storage().await;
             let verified_block_num = storage
                 .chain()
                 .block_schema()
@@ -310,10 +345,9 @@ impl AppData {
                 .await?;
             drop(storage);
             self.recover_progress
-                .update_progress(verified_block_num.into())
-                .await;
+                .update_progress(verified_block_num.into());
         }
-        Ok(self.recover_progress.get_progress().await)
+        Ok(self.recover_progress.get_progress())
     }
 
     pub async fn generate_batch_proofs_tasks(
@@ -337,7 +371,7 @@ impl AppData {
             }
         } else {
             // get stable coin token(usdx)
-            for (&token_id, token) in self.acquired_tokens.usdx_tokens.iter() {
+            for (&token_id, token) in self.acquired_tokens().usdx_tokens.iter() {
                 for &chain_id in token.addresses.keys() {
                     exit_infos.push(ExitInfo {
                         chain_id,
@@ -359,18 +393,18 @@ impl AppData {
         sub_account_id: SubAccountId,
         token_id: TokenId,
     ) -> Result<(&AccountId, &TokenInfo), ExodusStatus> {
-        let Some(account_id) = self.recovered_state
+        let Some(account_id) = self.recovered_state()
             .account_id_by_address
             .get(address) else {
             return Err(ExodusStatus::AccountNotExist)
         };
-        let Some(token_info) = self.acquired_tokens
+        let Some(token_info) = self.acquired_tokens()
             .token_by_id
             .get(&token_id) else {
             return Err(ExodusStatus::TokenNotExist)
         };
         if self
-            .recovered_state
+            .recovered_state()
             .empty_balance(*account_id, sub_account_id, token_info.token_id)
         {
             return Err(ExodusStatus::NonBalance);

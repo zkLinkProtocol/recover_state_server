@@ -4,18 +4,18 @@
   - [Error Code](#Error-Code)
 - [API](#API)
     - [contracts](#contracts)
-    - [tokens](#tokens)
+    - [tokens(after completed state)](#tokens)
     - [recover_progress](#recover_progress)
-    - [running_max_task_id](#running_max_task_id)
-    - [get_token](#get_token)
-    - [get_stored_block_info](#get_stored_block_info)
-    - [get_balances](#get_balances)
-    - [get_unprocessed_priority_ops](#get_unprocessed_priority_ops)
-    - [get_proof_task_id](#get_proof_task_id)
-    - [get_proof_by_info](#get_proof_by_info)
-    - [get_proofs_by_id](#get_proofs_by_id)
-    - [generate_proof_task_by_info](#generate_proof_task_by_info)
-    - [generate_proof_tasks_by_token](#generate_proof_tasks_by_token)
+    - [running_max_task_id(after completed state)](#running_max_task_id)
+    - [get_token(after completed state)](#get_token)
+    - [get_stored_block_info(after completed state)](#get_stored_block_info)
+    - [get_balances(after completed state)](#get_balances)
+    - [get_unprocessed_priority_ops(after completed state)](#get_unprocessed_priority_ops)
+    - [get_proof_task_id(after completed state)](#get_proof_task_id)
+    - [get_proof_by_info(after completed state)](#get_proof_by_info)
+    - [get_proofs_by_page(after completed state)](#get_proofs_by_page)
+    - [generate_proof_task_by_info(after completed state)](#generate_proof_task_by_info)
+    - [generate_proof_tasks_by_token(after completed state)](#generate_proof_tasks_by_token)
 
 ## Basic Structure
 ### Error Code and message
@@ -26,11 +26,13 @@ enum ExodusError {
     ProofGenerating = 51,
     ProofCompleted = 52,
     NonBalance = 60,
+    RecoverStateUnfinished = 70,
 
     TokenNotExist = 101,
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
+    PageNotExist = 105,
 
     InvalidL1L2Token = 201,
 
@@ -46,6 +48,7 @@ impl ToString for ExodusError {
             ExodusError::ProofGenerating => "The proof task is running",
             ExodusError::ProofCompleted => "The task has been completed",
             ExodusError::NonBalance => "The token of the account is no balance",
+            ExodusError::RecoverStateUnfinished => "Recovering state is unfinished",
 
             // Error response
             // Not exist info
@@ -53,6 +56,7 @@ impl ToString for ExodusError {
             ExodusError::AccountNotExist => "The account not exist",
             ExodusError::ChainNotExist => "The chain not exist",
             ExodusError::ExitProofTaskNotExist => "The exit proof task not exist",
+            ExodusError::PageNotExist => "The page not exist",
 
             // Invalid parameters
             ExodusError::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
@@ -166,6 +170,18 @@ struct ProofInfo{
 ```
 
 ## API
+### Note
+if recover state isn't completed, **tokens, running_max_task_id, get_token, get_stored_block_info, get_balances, 
+get_unprocessed_priority_ops, get_proof_task_id, get_proof_by_info, get_proofs_by_page, generate_proof_task_by_info,
+generate_proof_tasks_by_token** api return 
+#### Response
+```json
+{
+    "code": 70,
+    "data": null,
+    "err_msg": "Recovering state is unfinished"
+}
+```
 ### contracts
 Get the ZkLink contract addresses of all chain.
 #### GET Request
@@ -186,6 +202,14 @@ Success returns a `HashMap<ChainId, ZkLinkAddress>`, Failure returns error descr
 Get the info of all token.
 #### GET Request
 #### Response
+if recover state isn't completed
+```json
+{
+    "code": 40,
+    "data": null,
+    "err_msg": "Recovering state is unfinished"
+}
+```
 ```json
 {
   "code": 0,
@@ -195,13 +219,6 @@ Get the info of all token.
       "symbol": "wMATIC",
       "addresses": {
         "1": "0x76c9ef75f019496376c04dd19c38637cacce9e42"
-      }
-    },
-    "53": {
-      "token_id": 53,
-      "symbol": "BTC5S",
-      "addresses": {
-        "2": "0x964419c7a8fd86b5c787deeb3e0e643e7f400521"
       }
     },
     "1": {
@@ -484,12 +501,12 @@ Request to get the task id(proof id) by exit info
 ```
 Success returns the id, Failure returns error description
 
-### get_proofs_by_id
-Get the specified number of proofs closer to the id by passing the id
+### get_proofs_by_page
+Get the specified number of proofs closer to the id by page(page 1,num 20 => proofs ids: 1~20)
 #### POST Request
 ```json
 {
-  "id": null,
+  "page": 1,
   "proofs_num": 1
 }
 ```
@@ -497,23 +514,26 @@ Get the specified number of proofs closer to the id by passing the id
 ```json
 {
     "code": 0,
-    "data": [
+    "data": {
+      "total_completed_num": 10,
+      "proofs": [
         {
-            "exit_info": {
-                "chain_id": 2,
-                "account_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "account_id": 0,
-                "sub_account_id": 0,
-                "l1_target_token": 50,
-                "l2_source_token": 50
-            },
-            "proof_info": {
-                "id": 1,
-                "amount": null,
-                "proof": null
-            }
+          "exit_info": {
+            "chain_id": 2,
+            "account_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "account_id": 0,
+            "sub_account_id": 0,
+            "l1_target_token": 50,
+            "l2_source_token": 50
+          },
+          "proof_info": {
+            "id": 1,
+            "amount": null,
+            "proof": null
+          }
         }
-    ],
+      ]
+    },
     "err_msg": null
 }
 ```

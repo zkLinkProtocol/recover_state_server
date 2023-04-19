@@ -27,30 +27,33 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
     pub async fn get_latest_proofs_by_id(
         &mut self,
-        id: Option<i64>,
+        page: i64,
         num: i64,
     ) -> QueryResult<Vec<StoredExitProof>> {
-        let exit_proofs = match id {
-            Some(id_value) => {
-                sqlx::query_as!(
-                    StoredExitProof,
-                    r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 ORDER BY id DESC LIMIT $2"#,
-                    id_value,
-                    num
-                )
-                .fetch_all(self.0.conn())
-                .await?
-            }
-            None => sqlx::query_as!(
+        let from_id = (page - 1) * num;
+        let exit_proofs =
+            sqlx::query_as!(
                 StoredExitProof,
-                r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL ORDER BY id DESC LIMIT $1"#,
+                r#"SELECT * FROM exit_proofs WHERE proof IS NOT NULL AND id < $1 ORDER BY id DESC LIMIT $2"#,
+                from_id,
                 num
             )
             .fetch_all(self.0.conn())
-            .await?,
-        };
+            .await?;
 
         Ok(exit_proofs)
+    }
+
+    pub async fn get_total_completed_proofs_num(&mut self) -> QueryResult<i64> {
+        let num = sqlx::query!(
+                r#"SELECT COUNT(*) FROM exit_proofs WHERE proof IS NOT NULL"#,
+            )
+            .fetch_one(self.0.conn())
+            .await?
+            .count
+            .unwrap_or(0);
+
+        Ok(num)
     }
 
     /// Loads the specified proof task by account_id and sub_account_id and token_id.

@@ -2,11 +2,12 @@ use actix_web::{http::StatusCode, test, web, App};
 use recover_state_config::RecoverStateConfig;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::AtomicU32;
 use tokio::sync::RwLock;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
-use crate::acquired_tokens::TokenInfo;
+use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::recover_progress::{Progress, RecoverProgress};
 use crate::request::TokenRequest;
 use crate::{proofs_cache::ProofsCache, response::ExodusResponse, server::exodus_config, AppData};
@@ -16,15 +17,15 @@ async fn create_app_data() -> AppData {
     let config = RecoverStateConfig::from_env();
     let recover_progress = RecoverProgress::new(&config).await;
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
-    let proofs_cache = ProofsCache::new(conn_pool.clone()).await;
+    let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
     let contracts = config.layer1.get_contracts();
     AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await
 }
 
 // Initialize an instance of Recover Progress for testing
-async fn get_test_recover_progress() -> RecoverProgress {
+fn get_test_recover_progress() -> RecoverProgress {
     RecoverProgress {
-        current_sync_height: Arc::new(RwLock::new(10.into())),
+        current_sync_height: AtomicU32::new(10),
         total_verified_block: 20.into(),
     }
 }
@@ -60,7 +61,7 @@ async fn test_get_contracts() {
 #[actix_rt::test]
 async fn test_get_tokens() {
     let app_data = create_app_data().await;
-    let expected_tokens = app_data.acquired_tokens.token_by_id.clone();
+    let expected_tokens = app_data.acquired_tokens().token_by_id.clone();
 
     let app = test::init_service(
         App::new()
@@ -95,8 +96,14 @@ async fn test_get_token() {
     };
     app_data
         .acquired_tokens
-        .token_by_id
-        .insert(expected_token.token_id, expected_token.clone());
+        .get_or_init(|| {
+            let mut tokens = AcquiredTokens::default();
+            tokens
+                .token_by_id
+                .insert(expected_token.token_id, expected_token.clone());
+            tokens
+        })
+        .await;
 
     let app = test::init_service(
         App::new()
@@ -126,7 +133,7 @@ async fn test_get_token() {
 async fn test_get_recover_progress() {
     // Create a test service instance
     let mut app_data = create_app_data().await;
-    app_data.recover_progress = get_test_recover_progress().await;
+    app_data.recover_progress = get_test_recover_progress().into();
     let mut app = test::init_service(
         App::new()
             .app_data(exodus_config)
