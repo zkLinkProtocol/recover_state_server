@@ -7,6 +7,7 @@ mod request;
 mod response;
 mod server;
 mod utils;
+// mod middleware;
 
 #[cfg(test)]
 mod test;

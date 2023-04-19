@@ -50,6 +50,7 @@ pub enum ExodusStatus {
     ExitProofTaskNotExist = 104,
 
     InvalidL1L2Token = 201,
+    ProofsLoadTooMany = 202,
 
     InternalErr = 500,
 }
@@ -81,7 +82,8 @@ impl ToString for ExodusStatus {
             // Invalid parameters
             ExodusStatus::InvalidL1L2Token => {
                 "The relationship between l1 token and l2 token is incorrect"
-            }
+            },
+            ExodusStatus::ProofsLoadTooMany => "There are too many proofs to obtain",
 
             // Internal error,
             ExodusStatus::InternalErr => "Exodus server internal error",

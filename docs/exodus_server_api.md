@@ -33,6 +33,7 @@ enum ExodusError {
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
+    ProofsLoadTooMany = 202,
 
     InvalidL1L2Token = 201,
 
@@ -59,6 +60,7 @@ impl ToString for ExodusError {
 
             // Invalid parameters
             ExodusError::InvalidL1L2Token => "The relationship between l1 token and l2 token is incorrect",
+            ExodusError::ProofsLoadTooMany => "There are too many proofs to obtain",
 
             // Internal error,
             ExodusError::InternalErr => "Exodus server internal error",

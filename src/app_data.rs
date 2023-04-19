@@ -24,6 +24,8 @@ use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
 use crate::utils::{convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
 
+const GET_PROOFS_NUM_LIMIT: u32 = 100;
+
 pub struct AppData {
     conn_pool: ConnectionPool,
     
@@ -313,6 +315,7 @@ impl AppData {
         page: u32,
         num: u32,
     ) -> Result<Proofs, ExodusStatus> {
+        if num > GET_PROOFS_NUM_LIMIT { return Err(ExodusStatus::ProofsLoadTooMany) }
         let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
