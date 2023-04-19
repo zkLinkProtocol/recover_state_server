@@ -13,7 +13,7 @@
     - [get_unprocessed_priority_ops(after completed state)](#get_unprocessed_priority_ops)
     - [get_proof_task_id(after completed state)](#get_proof_task_id)
     - [get_proof_by_info(after completed state)](#get_proof_by_info)
-    - [get_proofs_by_token](after completed state)(#get_proofs_by_token)
+    - [get_proofs_by_token(after completed state)](#get_proofs_by_token)
     - [get_proofs_by_page(after completed state)](#get_proofs_by_page)
     - [generate_proof_task_by_info(after completed state)](#generate_proof_task_by_info)
     - [generate_proof_tasks_by_token(after completed state)](#generate_proof_tasks_by_token)
