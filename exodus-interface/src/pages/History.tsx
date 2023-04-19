@@ -152,6 +152,9 @@ export const History = () => {
               {proofHistory?.proofs.map((row) => {
                 const { exit_info, proof_info } = row
                 const token = tokens[exit_info.l2_source_token]
+                const amounts = proof_info?.amount
+                  ? formatEther(proof_info?.amount)?.split('.')
+                  : formatEther('0')
                 return (
                   <StyledTableRow key={proof_info.id}>
                     <TableBodyCell>{proof_info.id}</TableBodyCell>
@@ -162,7 +165,16 @@ export const History = () => {
                       </Stack>
                     </TableBodyCell>
                     <TableBodyCell align="right">
-                      {proof_info?.amount ? formatEther(proof_info.amount) : null}
+                      {proof_info?.amount ? (
+                        <Stack direction="row" justifyContent="flex-end">
+                          {amounts[0] ? <Typography fontSize={18}>{amounts[0]}</Typography> : null}
+                          {amounts[1] ? (
+                            <Typography fontSize={18} color="gray">
+                              .{amounts[1]}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                      ) : null}
                     </TableBodyCell>
                     <TableBodyCell align="right">
                       {networks?.find((v) => v.layerTwoChainId === exit_info.chain_id)?.name}

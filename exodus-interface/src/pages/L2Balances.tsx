@@ -217,6 +217,8 @@ const BalanceRow: FC<{
     return () => clearInterval(t)
   }, [getProofs])
 
+  const amounts = item.balance ? formatEther(item.balance)?.split('.') : formatEther('0')
+
   return (
     <BalanceRowWrap>
       <BalanceRowToken>
@@ -224,7 +226,16 @@ const BalanceRow: FC<{
           <TokenIcon symbol={symbol} />
           <Typography sx={{ ml: 1, fontSize: 18 }}>{symbol || item.tokenId}</Typography>
         </ColumnToken>
-        <ColumnBalance>{Number(formatEther(item.balance)).toFixed(18)}</ColumnBalance>
+        <ColumnBalance>
+          <Stack direction="row" justifyContent="flex-end">
+            {amounts[0] ? <Typography fontSize={18}>{amounts[0]}</Typography> : null}
+            {amounts[1] ? (
+              <Typography fontSize={18} color="gray">
+                .{amounts[1]}
+              </Typography>
+            ) : null}
+          </Stack>
+        </ColumnBalance>
       </BalanceRowToken>
 
       <BalanceRowProof>
