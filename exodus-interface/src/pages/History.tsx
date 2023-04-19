@@ -26,6 +26,7 @@ import { useNetworks, useProofHistory, useTokens } from '../store/home/hooks'
 import { useAppDispatch } from '../store'
 import { fetchProofHistory } from '../store/home/actions'
 import { TokenIcon } from '../components/Icon'
+import { formatEther } from 'ethers/lib/utils'
 
 const StyledTableRow = styled(TableRow)({
   transition: 'background .2s ease',
@@ -134,7 +135,7 @@ export const History = () => {
       <Header />
 
       <Section>
-        <Typography variant="h5">Proof History</Typography>
+        <Typography variant="h5">Node History</Typography>
 
         <TableContainer>
           <Table sx={{ minWidth: 500 }}>
@@ -142,8 +143,9 @@ export const History = () => {
               <StyledTableRow>
                 <TableHeadCell sx={{ width: 100 }}>ID</TableHeadCell>
                 <TableHeadCell>Token</TableHeadCell>
-                <TableHeadCell>Chain</TableHeadCell>
-                <TableHeadCell>Address</TableHeadCell>
+                <TableHeadCell align="right">Amount</TableHeadCell>
+                <TableHeadCell align="right">Chain</TableHeadCell>
+                <TableHeadCell align="right">Address</TableHeadCell>
               </StyledTableRow>
             </TableHead>
             <TableBody>
@@ -153,16 +155,21 @@ export const History = () => {
                 return (
                   <StyledTableRow key={proof_info.id}>
                     <TableBodyCell>{proof_info.id}</TableBodyCell>
-                    <TableBodyCell>
+                    <TableBodyCell align="right">
                       <Stack flexDirection="row" alignItems="center">
-                        <TokenIcon symbol={token?.symbol} />
+                        <TokenIcon symbol={token?.symbol} size={20} />
                         <span style={{ marginLeft: 10 }}>{token?.symbol}</span>
                       </Stack>
                     </TableBodyCell>
-                    <TableBodyCell>
+                    <TableBodyCell align="right">
+                      {proof_info?.amount ? formatEther(proof_info.amount) : null}
+                    </TableBodyCell>
+                    <TableBodyCell align="right">
                       {networks?.find((v) => v.layerTwoChainId === exit_info.chain_id)?.name}
                     </TableBodyCell>
-                    <TableBodyCell>{encryptionAddress(exit_info.account_address)}</TableBodyCell>
+                    <TableBodyCell align="right">
+                      {encryptionAddress(exit_info.account_address)}
+                    </TableBodyCell>
                   </StyledTableRow>
                 )
               })}
@@ -171,7 +178,7 @@ export const History = () => {
               <StyledTableRow>
                 <TablePagination
                   // rowsPerPageOptions={[10, 20, 50]}
-                  colSpan={4}
+                  colSpan={5}
                   count={proofHistory?.total_completed_num || 0}
                   rowsPerPage={rowsPerPage}
                   page={page}
