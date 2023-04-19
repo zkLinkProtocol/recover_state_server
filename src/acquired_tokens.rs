@@ -17,9 +17,7 @@ pub struct AcquiredTokens {
 
 impl AcquiredTokens {
     pub(crate) async fn load_from_storage(conn_pool: &ConnectionPool) -> Self {
-        let mut storage = conn_pool
-            .access_storage_with_retry()
-            .await;
+        let mut storage = conn_pool.access_storage_with_retry().await;
         let stored_tokens = storage
             .tokens_schema()
             .load_tokens_from_db()

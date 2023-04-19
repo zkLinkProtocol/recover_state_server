@@ -108,10 +108,7 @@ impl ExodusProver {
     }
 
     pub async fn check_exit_info(&self, mut exit_info: ExitInfo) -> ExitInfo {
-        let mut storage = self
-            .conn_pool
-            .access_storage_with_retry()
-            .await;
+        let mut storage = self.conn_pool.access_storage_with_retry().await;
         storage
             .tokens_schema()
             .get_token(*exit_info.l1_target_token as i32)
@@ -155,7 +152,7 @@ impl ExodusProver {
 
         let proof_data = ExitProofData {
             exit_info,
-            proof_info: ProofInfo{
+            proof_info: ProofInfo {
                 id: 0,
                 amount: Some(amount.into()),
                 proof: Some(proof),

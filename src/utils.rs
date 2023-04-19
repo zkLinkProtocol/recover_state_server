@@ -23,14 +23,14 @@ pub struct UnprocessedPriorityOp {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct TaskId{
-    id: ProofId
+pub struct TaskId {
+    id: ProofId,
 }
 
 impl From<i64> for TaskId {
     fn from(value: i64) -> Self {
-        Self{
-            id: value as ProofId
+        Self {
+            id: value as ProofId,
         }
     }
 }

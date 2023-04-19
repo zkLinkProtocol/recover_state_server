@@ -2,8 +2,8 @@ use crate::response::ExodusStatus;
 use moka::future::Cache;
 use std::sync::Arc;
 use std::time::Duration;
-use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_prover::exit_type::ProofInfo;
+use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::chain::account::records::StorageAccount;
 use zklink_storage::ConnectionPool;
 use zklink_types::ZkLinkAddress;
@@ -46,9 +46,7 @@ impl ProofsCache {
                 proof_info,
             } = stored_proof.into();
             exit_info.account_address = ZkLinkAddress::from_slice(address.as_slice()).unwrap();
-            proofs_cache
-                .insert(exit_info, proof_info)
-                .await;
+            proofs_cache.insert(exit_info, proof_info).await;
         }
         drop(storage);
 
@@ -79,9 +77,7 @@ impl ProofsCache {
                 exit_info,
                 proof_info,
             } = exit_data.clone();
-            self.cache
-                .insert(exit_info, proof_info)
-                .await;
+            self.cache.insert(exit_info, proof_info).await;
 
             Ok(exit_data)
         } else {

@@ -1,11 +1,11 @@
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::time::Duration;
-use serde::{Deserialize, Serialize};
-use tokio::time::interval;
-use tracing::{info, warn};
 use offchain_recover_state::contract::ZkLinkContract;
 use offchain_recover_state::get_fully_on_chain_zklink_contract;
 use recover_state_config::RecoverStateConfig;
+use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::time::Duration;
+use tokio::time::interval;
+use tracing::{info, warn};
 use zklink_storage::ConnectionPool;
 use zklink_types::BlockNumber;
 
@@ -19,7 +19,7 @@ impl RecoverProgress {
     pub async fn from_config(config: &RecoverStateConfig) -> Self {
         let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
         let mut storage = conn_pool.access_storage_with_retry().await;
-        let verified_block_num  = storage
+        let verified_block_num = storage
             .chain()
             .block_schema()
             .get_last_block_number()
@@ -44,25 +44,23 @@ impl RecoverProgress {
         let mut storage = conn_pool.access_storage_with_retry().await;
         info!("Sync recovering state started!");
         loop {
-            if self.is_completed(){ break }
+            if self.is_completed() {
+                break;
+            }
 
             ticker.tick().await;
 
-            match storage
-                .chain()
-                .block_schema()
-                .get_last_block_number()
-                .await
-            {
+            match storage.chain().block_schema().get_last_block_number().await {
                 Ok(verified_block_num) => self.update_progress(verified_block_num.into()),
-                Err(e) => warn!("Failed to get last block number:{}", e)
+                Err(e) => warn!("Failed to get last block number:{}", e),
             }
         }
         info!("Recovering state completed!");
     }
 
     pub(crate) fn update_progress(&self, block_height: BlockNumber) {
-        self.current_sync_height.store(block_height.into(), Ordering::Relaxed);
+        self.current_sync_height
+            .store(block_height.into(), Ordering::Relaxed);
     }
 
     pub(crate) fn is_completed(&self) -> bool {

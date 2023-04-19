@@ -3,14 +3,13 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{App, HttpResponse, HttpServer, web};
 use actix_web::dev::Service;
+use actix_web::{web, App, HttpResponse, HttpServer};
 
 use recover_state_config::RecoverStateConfig;
 use zklink_prover::ExitInfo as ExitRequest;
 use zklink_storage::ConnectionPool;
 
-use crate::AppData;
 use crate::proofs_cache::ProofsCache;
 use crate::recover_progress::RecoverProgress;
 use crate::request::{
@@ -18,6 +17,7 @@ use crate::request::{
     UnprocessedDepositRequest,
 };
 use crate::response::{ExodusResponse, ExodusStatus};
+use crate::AppData;
 
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_contracts(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
@@ -29,7 +29,7 @@ async fn get_contracts(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpR
 async fn get_tokens(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
     if !data.acquired_tokens.initialized() {
         let response: ExodusResponse<()> = ExodusStatus::RecoverStateUnfinished.into();
-        return Ok(HttpResponse::Ok().json(response))
+        return Ok(HttpResponse::Ok().json(response));
     }
     let response = data.acquired_tokens().tokens();
     Ok(HttpResponse::Ok().json(response))
@@ -202,7 +202,8 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let recover_progress = RecoverProgress::from_config(&config).await;
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
     let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
-    let app_data = Arc::new(AppData::new(conn_pool.clone(), contracts, proofs_cache, recover_progress).await);
+    let app_data =
+        Arc::new(AppData::new(conn_pool.clone(), contracts, proofs_cache, recover_progress).await);
     let app_data_clone = app_data.clone();
     tokio::spawn(app_data.sync_recover_progress());
 
@@ -216,15 +217,18 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
             .wrap_fn(|req, srv| {
                 let data = req.app_data::<web::Data<Arc<AppData>>>().unwrap();
 
-                let fut: Pin<Box<dyn Future<Output=Result<_, _>>>> = match req.path(){
+                let fut: Pin<Box<dyn Future<Output = Result<_, _>>>> = match req.path() {
                     RECOVER_PROGRESS_PATH | CONTRACTS_PATH => Box::pin(srv.call(req)),
-                    _ => if data.is_not_sync_completed(){
-                        Box::pin(async move {
-                            let response: ExodusResponse<()> = ExodusStatus::RecoverStateUnfinished.into();
-                            Ok(req.into_response(HttpResponse::Ok().json(response)))
-                        })
-                    } else {
-                        Box::pin(srv.call(req))
+                    _ => {
+                        if data.is_not_sync_completed() {
+                            Box::pin(async move {
+                                let response: ExodusResponse<()> =
+                                    ExodusStatus::RecoverStateUnfinished.into();
+                                Ok(req.into_response(HttpResponse::Ok().json(response)))
+                            })
+                        } else {
+                            Box::pin(srv.call(req))
+                        }
                     }
                 };
                 async move {
@@ -245,14 +249,8 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
 pub fn exodus_config(cfg: &mut web::ServiceConfig) {
     cfg.route(CONTRACTS_PATH, web::get().to(get_contracts))
         .route("/tokens", web::get().to(get_tokens))
-        .route(
-            RECOVER_PROGRESS_PATH,
-            web::get().to(recover_progress),
-        )
-        .route(
-            "/running_max_task_id",
-            web::get().to(running_max_task_id),
-        )
+        .route(RECOVER_PROGRESS_PATH, web::get().to(recover_progress))
+        .route("/running_max_task_id", web::get().to(running_max_task_id))
         .route(
             "/get_unprocessed_priority_ops",
             web::post().to(get_unprocessed_priority_ops),
@@ -274,8 +272,5 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
             "/generate_proof_tasks_by_token",
             web::post().to(generate_proof_tasks_by_token),
         )
-        .route(
-            "/get_proof_task_id",
-            web::post().to(get_proof_task_id),
-        );
+        .route("/get_proof_task_id", web::post().to(get_proof_task_id));
 }

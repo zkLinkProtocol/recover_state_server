@@ -1,8 +1,8 @@
 use actix_web::{http::StatusCode, test, web, App};
 use recover_state_config::RecoverStateConfig;
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::AtomicU32;
+use std::sync::Arc;
 use tokio::sync::RwLock;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
@@ -134,13 +134,11 @@ async fn test_get_recover_progress() {
     // Create a test service instance
     let mut app_data = create_app_data().await;
     app_data.recover_progress = get_test_recover_progress().into();
-    let mut app = test::init_service(
-        App::new()
-            .app_data(exodus_config)
-    )
-        .await;
+    let mut app = test::init_service(App::new().app_data(exodus_config)).await;
 
-    let req = test::TestRequest::get().uri("/recover_progress").to_request();
+    let req = test::TestRequest::get()
+        .uri("/recover_progress")
+        .to_request();
     let resp = test::call_service(&app, req).await;
     assert!(resp.status().is_success());
 

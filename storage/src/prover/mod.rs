@@ -44,9 +44,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     pub async fn get_total_completed_proofs_num(&mut self) -> QueryResult<i64> {
-        let num = sqlx::query!(
-                r#"SELECT COUNT(*) FROM exit_proofs WHERE proof IS NOT NULL"#,
-            )
+        let num = sqlx::query!(r#"SELECT COUNT(*) FROM exit_proofs WHERE proof IS NOT NULL"#,)
             .fetch_one(self.0.conn())
             .await?
             .count
@@ -174,10 +172,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Query task id by exit info.
-    pub async fn get_task_id(
-        &mut self,
-        task: StoredExitInfo,
-    ) -> QueryResult<i64> {
+    pub async fn get_task_id(&mut self, task: StoredExitInfo) -> QueryResult<i64> {
         let start = Instant::now();
 
         // Gets the creation time of the target task
@@ -194,31 +189,22 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         .await?
         .id;
 
-        metrics::histogram!(
-            "sql.recover_state.get_task_id",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.recover_state.get_task_id", start.elapsed());
         Ok(target_task_id)
     }
 
     /// Query which task the prover is currently working on.
-    pub async fn get_running_max_task_id(
-        &mut self,
-    ) -> QueryResult<i64> {
+    pub async fn get_running_max_task_id(&mut self) -> QueryResult<i64> {
         let start = Instant::now();
 
-        let running_task_id = sqlx::query!(
-            "SELECT MAX(id) FROM exit_proofs WHERE created_at IS NOT NULL",
-        )
-            .fetch_one(self.0.conn())
-            .await?
-            .max
-            .unwrap_or_default();
+        let running_task_id =
+            sqlx::query!("SELECT MAX(id) FROM exit_proofs WHERE created_at IS NOT NULL",)
+                .fetch_one(self.0.conn())
+                .await?
+                .max
+                .unwrap_or_default();
 
-        metrics::histogram!(
-            "sql.recover_state.get_running_max_task_id",
-            start.elapsed()
-        );
+        metrics::histogram!("sql.recover_state.get_running_max_task_id", start.elapsed());
         Ok(running_task_id)
     }
 
@@ -302,10 +288,11 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         let mut tasks_ids = Vec::with_capacity(batch_exit_tasks.len());
         let mut transaction = self.0.start_transaction().await?;
         for exit_task in batch_exit_tasks {
-            tasks_ids.push(transaction
-                .prover_schema()
-                .insert_exit_task(exit_task)
-                .await?
+            tasks_ids.push(
+                transaction
+                    .prover_schema()
+                    .insert_exit_task(exit_task)
+                    .await?,
             );
         }
         transaction.commit().await?;

@@ -82,7 +82,7 @@ impl ToString for ExodusStatus {
             // Invalid parameters
             ExodusStatus::InvalidL1L2Token => {
                 "The relationship between l1 token and l2 token is incorrect"
-            },
+            }
             ExodusStatus::ProofsLoadTooMany => "There are too many proofs to obtain",
 
             // Internal error,

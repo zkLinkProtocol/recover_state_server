@@ -14,15 +14,15 @@ pub struct ExitProofData {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Default)]
-pub struct ProofInfo{
+pub struct ProofInfo {
     pub id: ProofId,
     pub(crate) amount: Option<BigUintSerdeWrapper>,
-    pub(crate) proof: Option<EncodedSingleProof>
+    pub(crate) proof: Option<EncodedSingleProof>,
 }
 
 impl ProofInfo {
-    pub fn new(id: i64) -> Self{
-        Self{
+    pub fn new(id: i64) -> Self {
+        Self {
             id: id as ProofId,
             ..Default::default()
         }

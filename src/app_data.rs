@@ -8,13 +8,13 @@ use tokio::sync::OnceCell;
 use tracing::{debug, info};
 
 use zklink_crypto::params::USD_TOKEN_ID;
-use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_prover::exit_type::{ProofId, ProofInfo};
-use zklink_storage::{ConnectionPool, StorageProcessor};
+use zklink_prover::{ExitInfo, ExitProofData};
 use zklink_storage::chain::account::records::StorageAccount;
-use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
+use zklink_storage::{ConnectionPool, StorageProcessor};
 use zklink_types::block::StoredBlockInfo;
 use zklink_types::utils::check_source_token_and_target_token;
+use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::proofs_cache::ProofsCache;
@@ -22,13 +22,15 @@ use crate::recover_progress::{Progress, RecoverProgress};
 use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
-use crate::utils::{convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
+use crate::utils::{
+    convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp,
+};
 
 const GET_PROOFS_NUM_LIMIT: u32 = 100;
 
 pub struct AppData {
     conn_pool: ConnectionPool,
-    
+
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
     pub(crate) recover_progress: RecoverProgress,
     proofs_cache: ProofsCache,
@@ -60,41 +62,45 @@ impl AppData {
             || !self.recover_progress.is_completed()
     }
 
-    pub fn recovered_state(&self) -> &RecoveredState{
+    pub fn recovered_state(&self) -> &RecoveredState {
         self.recovered_state.get().unwrap()
     }
 
-    pub fn acquired_tokens(&self) -> &AcquiredTokens{
+    pub fn acquired_tokens(&self) -> &AcquiredTokens {
         self.acquired_tokens.get().unwrap()
     }
-    
+
     pub(crate) async fn sync_recover_progress(self: Arc<Self>) {
         self.recover_progress
             .sync_from_database(&self.conn_pool)
             .await;
-        
-        self.recovered_state.get_or_init(||async{
-            info!("Loading accounts state....");
-            let timer = Instant::now();
-            let recovered_state = RecoveredState::load_from_storage(&self.conn_pool).await;
-            debug!(
-                "Load accounts state elapsed time: {} ms",
-                timer.elapsed().as_millis()
-            );
-            info!("End to load accounts state");            
-            recovered_state
-        }).await;
-        self.acquired_tokens.get_or_init(||async {
-            info!("Loading tokens....");
-            let timer = Instant::now();
-            let acquired_tokens = AcquiredTokens::load_from_storage(&self.conn_pool).await;
-            debug!(
-                "Load tokens elapsed time: {} ms",
-                timer.elapsed().as_millis()
-            );
-            info!("End to load tokens");
-            acquired_tokens
-        }).await;
+
+        self.recovered_state
+            .get_or_init(|| async {
+                info!("Loading accounts state....");
+                let timer = Instant::now();
+                let recovered_state = RecoveredState::load_from_storage(&self.conn_pool).await;
+                debug!(
+                    "Load accounts state elapsed time: {} ms",
+                    timer.elapsed().as_millis()
+                );
+                info!("End to load accounts state");
+                recovered_state
+            })
+            .await;
+        self.acquired_tokens
+            .get_or_init(|| async {
+                info!("Loading tokens....");
+                let timer = Instant::now();
+                let acquired_tokens = AcquiredTokens::load_from_storage(&self.conn_pool).await;
+                debug!(
+                    "Load tokens elapsed time: {} ms",
+                    timer.elapsed().as_millis()
+                );
+                info!("End to load tokens");
+                acquired_tokens
+            })
+            .await;
     }
 
     async fn access_storage(&self) -> StorageProcessor<'_> {
@@ -179,7 +185,7 @@ impl AppData {
             exit_task.l2_source_token,
             exit_task.l1_target_token,
         )
-            .0
+        .0
         {
             return Err(ExodusStatus::InvalidL1L2Token);
         }
@@ -229,7 +235,10 @@ impl AppData {
             .await?;
 
         // Update to cache
-        self.proofs_cache.cache.insert(exit_info, ProofInfo::new(task_id)).await;
+        self.proofs_cache
+            .cache
+            .insert(exit_info, ProofInfo::new(task_id))
+            .await;
         Ok(task_id.into())
     }
 
@@ -268,7 +277,10 @@ impl AppData {
         let mut tasks = HashMap::with_capacity(batch_exit_tasks.len());
         for (exit_task, task_id) in batch_exit_tasks.into_iter().zip(tasks_ids) {
             tasks.insert(task_id as ProofId, exit_task.clone());
-            self.proofs_cache.cache.insert(exit_task, ProofInfo::new(task_id)).await;
+            self.proofs_cache
+                .cache
+                .insert(exit_task, ProofInfo::new(task_id))
+                .await;
         }
         Ok(tasks)
     }
@@ -303,10 +315,7 @@ impl AppData {
 
     pub(crate) async fn running_max_task_id(&self) -> Result<TaskId, ExodusStatus> {
         let mut storage = self.access_storage().await;
-        let running_task_id = storage
-            .prover_schema()
-            .get_running_max_task_id()
-            .await?;
+        let running_task_id = storage.prover_schema().get_running_max_task_id().await?;
         Ok(running_task_id.into())
     }
 
@@ -315,27 +324,36 @@ impl AppData {
         page: u32,
         num: u32,
     ) -> Result<Proofs, ExodusStatus> {
-        if num > GET_PROOFS_NUM_LIMIT { return Err(ExodusStatus::ProofsLoadTooMany) }
+        if num > GET_PROOFS_NUM_LIMIT {
+            return Err(ExodusStatus::ProofsLoadTooMany);
+        }
         let mut storage = self.access_storage().await;
         let proofs = storage
             .prover_schema()
             .get_proofs_by_page(page as i64, num as i64)
             .await?;
-        let proofs = proofs.into_iter().map(|proof| {
-            let mut proof: ExitProofData = proof.into();
-            let account = self.recovered_state()
-                .accounts
-                .get(&proof.exit_info.account_id)
-                .unwrap();
-            proof.exit_info.account_address = account.address.clone();
-            proof
-        }).collect();
+        let proofs = proofs
+            .into_iter()
+            .map(|proof| {
+                let mut proof: ExitProofData = proof.into();
+                let account = self
+                    .recovered_state()
+                    .accounts
+                    .get(&proof.exit_info.account_id)
+                    .unwrap();
+                proof.exit_info.account_address = account.address.clone();
+                proof
+            })
+            .collect();
 
         let total_completed_num = storage
             .prover_schema()
             .get_total_completed_proofs_num()
             .await? as u32;
-        Ok(Proofs{ proofs, total_completed_num })
+        Ok(Proofs {
+            proofs,
+            total_completed_num,
+        })
     }
 
     pub(crate) fn get_stored_block_info(
