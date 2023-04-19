@@ -298,13 +298,6 @@ const BalanceRow: FC<{
   )
 }
 
-function toFixed(ether: Ether) {
-  let price = mathjs.multiply(mathjs.bignumber(ether), 1000000)
-  price = mathjs.floor(Number(price))
-  price = mathjs.divide(price, 1000000)
-  return price
-}
-
 const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
   return (
     <Stack spacing={0.5} width="100%">
@@ -333,7 +326,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
         </Typography>
         <Typography variant="body2" color="GrayText">
           {proofInfo.proof_info?.amount !== null && proofInfo.proof_info?.amount !== undefined
-            ? toFixed(formatEther(proofInfo.proof_info.amount))
+            ? formatEther(proofInfo.proof_info.amount)
             : '-'}
         </Typography>
       </Stack>
@@ -418,7 +411,10 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     )
                   }
                 } catch (e: any) {
-                  toast.error(e?.message)
+                  if (e?.code === -32603) {
+                  } else {
+                    toast.error(e?.message)
+                  }
                   console.log(e)
                 }
                 setPending(false)
