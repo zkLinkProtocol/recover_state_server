@@ -38,11 +38,11 @@ impl<T: Serialize + Clone> ExodusResponse<T> {
 #[derive(Copy, Clone, Serialize)]
 pub enum ExodusStatus {
     Ok = 0,
-    RecoverStateUnfinished = 40,
     ProofTaskAlreadyExists = 50,
     ProofGenerating = 51,
     ProofCompleted = 52,
     NonBalance = 60,
+    RecoverStateUnfinished = 70,
 
     TokenNotExist = 101,
     AccountNotExist = 102,
@@ -66,11 +66,11 @@ impl ToString for ExodusStatus {
         match self {
             // Normal response
             ExodusStatus::Ok => "Ok",
-            ExodusStatus::RecoverStateUnfinished => "Recovering state is unfinished",
             ExodusStatus::ProofTaskAlreadyExists => "The proof Task already exists",
             ExodusStatus::ProofGenerating => "The proof task is running",
             ExodusStatus::ProofCompleted => "The task has been completed",
             ExodusStatus::NonBalance => "The token of the account is no balance",
+            ExodusStatus::RecoverStateUnfinished => "Recovering state is unfinished",
 
             // Not exist info
             ExodusStatus::TokenNotExist => "The token not exist",

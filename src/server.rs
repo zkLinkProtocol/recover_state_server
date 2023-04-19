@@ -1,4 +1,16 @@
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
+
+use actix_cors::Cors;
+use actix_web::{App, HttpResponse, HttpServer, web};
+use actix_web::dev::Service;
+
+use recover_state_config::RecoverStateConfig;
+use zklink_prover::ExitInfo as ExitRequest;
+use zklink_storage::ConnectionPool;
+
+use crate::AppData;
 use crate::proofs_cache::ProofsCache;
 use crate::recover_progress::RecoverProgress;
 use crate::request::{
@@ -6,21 +18,15 @@ use crate::request::{
     UnprocessedDepositRequest,
 };
 use crate::response::{ExodusResponse, ExodusStatus};
-use crate::AppData;
-use actix_cors::Cors;
-use actix_web::{web, App, HttpResponse, HttpServer};
-use recover_state_config::RecoverStateConfig;
-use zklink_prover::ExitInfo as ExitRequest;
-use zklink_storage::ConnectionPool;
 
 /// Get the ZkLink contract addresses of all blockchain.
-async fn get_contracts(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+async fn get_contracts(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
     let contracts = data.get_contracts();
     Ok(HttpResponse::Ok().json(contracts))
 }
 
 /// Get the info of all tokens.
-async fn get_tokens(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+async fn get_tokens(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
     if !data.acquired_tokens.initialized() {
         let response: ExodusResponse<()> = ExodusStatus::RecoverStateUnfinished.into();
         return Ok(HttpResponse::Ok().json(response))
@@ -30,7 +36,7 @@ async fn get_tokens(data: web::Data<AppData>) -> actix_web::Result<HttpResponse>
 }
 
 /// Request to get recover state progress.
-async fn recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+async fn recover_progress(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
     let response = match data.get_recover_progress().await {
         Ok(progress) => ExodusResponse::Ok().data(progress),
         Err(err) => err.into(),
@@ -39,7 +45,7 @@ async fn recover_progress(data: web::Data<AppData>) -> actix_web::Result<HttpRes
 }
 
 /// Request to get max running task id.
-async fn running_max_task_id(data: web::Data<AppData>) -> actix_web::Result<HttpResponse> {
+async fn running_max_task_id(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
     let response = match data.running_max_task_id().await {
         Ok(task_id) => ExodusResponse::Ok().data(task_id),
         Err(err) => err.into(),
@@ -50,7 +56,7 @@ async fn running_max_task_id(data: web::Data<AppData>) -> actix_web::Result<Http
 /// Get token info(supported chains, token's contract addresses) by token_id
 async fn get_token(
     token_request: web::Json<TokenRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let token_id = token_request.into_inner().token_id;
     let response = match data.acquired_tokens().get_token(token_id).await {
@@ -63,7 +69,7 @@ async fn get_token(
 /// Get the ZkLink contract addresses of all blockchain.
 async fn get_stored_block_info(
     block_info_request: web::Json<StoredBlockInfoRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let chain_id = block_info_request.into_inner().chain_id;
     let response = match data.get_stored_block_info(chain_id) {
@@ -76,7 +82,7 @@ async fn get_stored_block_info(
 /// Get balances of all token by ZkLinkAddress
 async fn get_balances(
     balance_request: web::Json<BalanceRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let account_address = balance_request.into_inner().address;
     let response = match data
@@ -93,7 +99,7 @@ async fn get_balances(
 /// Get all unprocessed priority ops of target chain  by chain_id
 async fn get_unprocessed_priority_ops(
     unprocessed_deposit_request: web::Json<UnprocessedDepositRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let chain_id = unprocessed_deposit_request.into_inner().chain_id;
     let response = match data.get_unprocessed_priority_ops(chain_id).await {
@@ -106,7 +112,7 @@ async fn get_unprocessed_priority_ops(
 /// Get the specified number of proofs closer to the id by passing the id
 async fn get_proofs_by_id(
     proofs_request: web::Json<ProofsRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let proof_info = proofs_request.into_inner();
     let response = match data
@@ -122,7 +128,7 @@ async fn get_proofs_by_id(
 /// Get the proof by the specified exit info.
 async fn get_proof_by_info(
     exit_request: web::Json<ExitRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_request.into_inner();
     let response = match data.get_proof(exit_info).await {
@@ -135,7 +141,7 @@ async fn get_proof_by_info(
 /// Get all proofs of all blockchain by the specified ZkLinkAddress and TokenId.
 async fn get_proofs_by_token(
     batch_exit_info: web::Json<BatchExitRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = batch_exit_info.into_inner();
     let response = match data.get_proofs(exit_info).await {
@@ -148,7 +154,7 @@ async fn get_proofs_by_token(
 /// Request to generate single proof for the specified exit info.
 async fn generate_proof_task_by_info(
     exit_request: web::Json<ExitRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let exit_info = exit_request.into_inner();
     let response = match data.generate_proof_task(exit_info).await {
@@ -161,7 +167,7 @@ async fn generate_proof_task_by_info(
 /// Request to generate batch proofs of all blockchain for the specified token.
 async fn generate_proof_tasks_by_token(
     batch_exit_info: web::Json<BatchExitRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let batch_exit_info = batch_exit_info.into_inner();
     let response = match data.generate_proof_tasks(batch_exit_info).await {
@@ -174,7 +180,7 @@ async fn generate_proof_tasks_by_token(
 /// Request to get the task id(proof id)
 async fn get_proof_task_id(
     task_info: web::Json<ExitRequest>,
-    data: web::Data<AppData>,
+    data: web::Data<Arc<AppData>>,
 ) -> actix_web::Result<HttpResponse> {
     let task_info = task_info.into_inner();
     let response = match data.get_proof_task_id(task_info).await {
@@ -183,6 +189,9 @@ async fn get_proof_task_id(
     };
     Ok(HttpResponse::Ok().json(response))
 }
+
+const RECOVER_PROGRESS_PATH: &str = "/recover_progress";
+const CONTRACTS_PATH: &str = "/contracts";
 
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
@@ -204,6 +213,25 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
             Cors::default()
         };
         App::new()
+            .wrap_fn(|req, srv| {
+                let data = req.app_data::<web::Data<Arc<AppData>>>().unwrap();
+
+                let fut: Pin<Box<dyn Future<Output=Result<_, _>>>> = match req.path(){
+                    RECOVER_PROGRESS_PATH | CONTRACTS_PATH => Box::pin(srv.call(req)),
+                    _ => if data.is_not_sync_completed(){
+                        Box::pin(async move {
+                            let response: ExodusResponse<()> = ExodusStatus::RecoverStateUnfinished.into();
+                            Ok(req.into_response(HttpResponse::Ok().json(response)))
+                        })
+                    } else {
+                        Box::pin(srv.call(req))
+                    }
+                };
+                async move {
+                    let res = fut.await?;
+                    Ok(res)
+                }
+            })
             .wrap(cors)
             .app_data(web::Data::new(app_data_clone.clone()))
             .configure(exodus_config)
@@ -215,10 +243,10 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
 }
 
 pub fn exodus_config(cfg: &mut web::ServiceConfig) {
-    cfg.route("/contracts", web::get().to(get_contracts))
+    cfg.route(CONTRACTS_PATH, web::get().to(get_contracts))
         .route("/tokens", web::get().to(get_tokens))
         .route(
-            "/recover_progress",
+            RECOVER_PROGRESS_PATH,
             web::get().to(recover_progress),
         )
         .route(

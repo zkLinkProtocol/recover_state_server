@@ -48,6 +48,12 @@ impl AppData {
         }
     }
 
+    pub fn is_not_sync_completed(&self) -> bool {
+        !self.acquired_tokens.initialized()
+            || !self.acquired_tokens.initialized()
+            || !self.recover_progress.is_completed()
+    }
+
     pub fn recovered_state(&self) -> &RecoveredState{
         self.recovered_state.get().unwrap()
     }
