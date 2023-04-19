@@ -18,7 +18,7 @@ import { useAppDispatch } from '../store'
 import { fetchPendingBalances } from '../store/home/actions'
 import { TokenIcon } from '../components/Icon'
 import { PendingBalance } from '../store/home/types'
-import { FC, useEffect, useState } from 'react'
+import { FC, useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { PENDING_BALANCE_DELAY } from '../config'
 
@@ -70,25 +70,24 @@ const BalanceRowAction = styled(Stack)(({ theme }) => ({
 }))
 
 export const SectionPendingBalance = () => {
-  const { provider, account } = useWeb3React()
+  const { provider, chainId, account } = useWeb3React()
   const dispatch = useAppDispatch()
   const pendingBalances = usePendingBalances(account)
 
-  const requestBalance = () => {
+  const requestBalance = useCallback(() => {
     if (!provider || !account) {
       return
     }
-
     return dispatch(
       fetchPendingBalances({
         provider,
         account,
       })
     )
-  }
+  }, [chainId, account])
   useEffect(() => {
     requestBalance()
-  }, [account])
+  }, [requestBalance])
   useInterval(() => {
     requestBalance()
   }, PENDING_BALANCE_DELAY)

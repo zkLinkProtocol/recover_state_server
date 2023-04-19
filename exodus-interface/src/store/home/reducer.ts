@@ -10,6 +10,7 @@ import {
   updateContracts,
   updateCurrentAccount,
   updateCurrentChain,
+  updatePendingBalances,
   updateStoredBlockInfo,
   updateTokens,
 } from './actions'
@@ -71,6 +72,9 @@ export default createReducer<HomeState>(initialState, (builder) => {
       state.proofHistory = payload
     })
     .addCase(fetchPendingBalances.fulfilled, (state, { payload }) => {
+      state.pendingBalances[payload.account] = payload.balances
+    })
+    .addCase(updatePendingBalances, (state, { payload }) => {
       state.pendingBalances[payload.account] = payload.balances
     })
 })

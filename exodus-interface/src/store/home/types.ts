@@ -94,6 +94,6 @@ export interface HomeState {
   multicallContracts?: Address[]
   proofHistory?: ProofHistory
   pendingBalances: {
-    [x: Address]: PendingBalance[]
+    [x: Address]: PendingBalance[] | undefined
   }
 }

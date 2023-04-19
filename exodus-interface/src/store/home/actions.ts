@@ -140,9 +140,12 @@ export const fetchPendingBalances = createAsyncThunk<
     const b = { ...tokens[i], balance: r }
     balances.push(b)
   }
-
   return {
     account,
     balances,
   }
 })
+export const updatePendingBalances = createAction<{
+  account: Address
+  balances: PendingBalance[] | undefined
+}>('home/updatePendingBalances')

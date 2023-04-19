@@ -7,6 +7,7 @@ import {
   updateContracts,
   updateCurrentAccount,
   updateCurrentChain,
+  updatePendingBalances,
   updateStoredBlockInfo,
   updateTokens,
 } from './actions'
@@ -141,6 +142,18 @@ export const Updater = () => {
       connectorByName(ConnectorNames.Metamask).connectEagerly()
     }
   }, [isActive])
+
+  useEffect(() => {
+    if (!account || !chainId) {
+      return
+    }
+    dispatch(
+      updatePendingBalances({
+        account,
+        balances: undefined,
+      })
+    )
+  }, [chainId, account])
 
   return null
 }

@@ -1,5 +1,6 @@
 import {
   Box,
+  CircularProgress,
   Paper,
   Stack,
   Table,
@@ -116,9 +117,6 @@ export const History = () => {
     )
   }, [page, rowsPerPage])
 
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - (proofHistory?.total_completed_num || 0)) : 0
-
   const handleChangePage = (event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
     setPage(newPage)
   }
@@ -137,77 +135,91 @@ export const History = () => {
       <Section>
         <Typography variant="h5">Node History</Typography>
 
-        <TableContainer>
-          <Table sx={{ minWidth: 500 }}>
-            <TableHead>
-              <StyledTableRow>
-                <TableHeadCell sx={{ width: 100 }}>ID</TableHeadCell>
-                <TableHeadCell>Token</TableHeadCell>
-                <TableHeadCell align="right">Amount</TableHeadCell>
-                <TableHeadCell align="right">Chain</TableHeadCell>
-                <TableHeadCell align="right">Address</TableHeadCell>
-              </StyledTableRow>
-            </TableHead>
-            <TableBody>
-              {proofHistory?.proofs.map((row) => {
-                const { exit_info, proof_info } = row
-                const token = tokens[exit_info.l2_source_token]
-                const amounts = proof_info?.amount
-                  ? formatEther(proof_info?.amount)?.split('.')
-                  : formatEther('0')
-                return (
-                  <StyledTableRow key={proof_info.id}>
-                    <TableBodyCell>{proof_info.id}</TableBodyCell>
-                    <TableBodyCell align="right">
-                      <Stack flexDirection="row" alignItems="center">
-                        <TokenIcon symbol={token?.symbol} size={20} />
-                        <span style={{ marginLeft: 10 }}>{token?.symbol}</span>
-                      </Stack>
-                    </TableBodyCell>
-                    <TableBodyCell align="right">
-                      {proof_info?.amount ? (
-                        <Stack direction="row" justifyContent="flex-end">
-                          {amounts[0] ? <Typography fontSize={18}>{amounts[0]}</Typography> : null}
-                          {amounts[1] ? (
-                            <Typography fontSize={18} color="gray">
-                              .{amounts[1]}
-                            </Typography>
-                          ) : null}
+        {proofHistory ? (
+          <TableContainer>
+            <Table sx={{ minWidth: 500 }}>
+              <TableHead>
+                <StyledTableRow>
+                  <TableHeadCell sx={{ width: 100 }}>ID</TableHeadCell>
+                  <TableHeadCell>Token</TableHeadCell>
+                  <TableHeadCell align="right">Amount</TableHeadCell>
+                  <TableHeadCell align="right">Chain</TableHeadCell>
+                  <TableHeadCell align="right">Address</TableHeadCell>
+                </StyledTableRow>
+              </TableHead>
+              <TableBody>
+                {proofHistory?.proofs.map((row) => {
+                  const { exit_info, proof_info } = row
+                  const token = tokens[exit_info.l2_source_token]
+                  const amounts = proof_info?.amount
+                    ? formatEther(proof_info?.amount)?.split('.')
+                    : formatEther('0')
+                  return (
+                    <StyledTableRow key={proof_info.id}>
+                      <TableBodyCell>{proof_info.id}</TableBodyCell>
+                      <TableBodyCell align="right">
+                        <Stack flexDirection="row" alignItems="center">
+                          <TokenIcon symbol={token?.symbol} size={20} />
+                          <span style={{ marginLeft: 10 }}>{token?.symbol}</span>
                         </Stack>
-                      ) : null}
-                    </TableBodyCell>
-                    <TableBodyCell align="right">
-                      {networks?.find((v) => v.layerTwoChainId === exit_info.chain_id)?.name}
-                    </TableBodyCell>
-                    <TableBodyCell align="right">
-                      {encryptionAddress(exit_info.account_address)}
-                    </TableBodyCell>
-                  </StyledTableRow>
-                )
-              })}
-            </TableBody>
-            <TableFooter>
-              <StyledTableRow>
-                <TablePagination
-                  // rowsPerPageOptions={[10, 20, 50]}
-                  colSpan={5}
-                  count={proofHistory?.total_completed_num || 0}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  SelectProps={{
-                    inputProps: {
-                      'aria-label': 'rows per page',
-                    },
-                    native: true,
-                  }}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  ActionsComponent={TablePaginationActions}
-                />
-              </StyledTableRow>
-            </TableFooter>
-          </Table>
-        </TableContainer>
+                      </TableBodyCell>
+                      <TableBodyCell align="right">
+                        {proof_info?.amount ? (
+                          <Stack direction="row" justifyContent="flex-end">
+                            {amounts[0] ? (
+                              <Typography fontSize={18}>{amounts[0]}</Typography>
+                            ) : null}
+                            {amounts[1] ? (
+                              <Typography fontSize={18} color="gray">
+                                .{amounts[1]}
+                              </Typography>
+                            ) : null}
+                          </Stack>
+                        ) : null}
+                      </TableBodyCell>
+                      <TableBodyCell align="right">
+                        {networks?.find((v) => v.layerTwoChainId === exit_info.chain_id)?.name}
+                      </TableBodyCell>
+                      <TableBodyCell align="right">
+                        {encryptionAddress(exit_info.account_address)}
+                      </TableBodyCell>
+                    </StyledTableRow>
+                  )
+                })}
+              </TableBody>
+              <TableFooter>
+                <StyledTableRow>
+                  <TablePagination
+                    // rowsPerPageOptions={[10, 20, 50]}
+                    colSpan={5}
+                    count={proofHistory?.total_completed_num || 0}
+                    rowsPerPage={rowsPerPage}
+                    page={page}
+                    SelectProps={{
+                      inputProps: {
+                        'aria-label': 'rows per page',
+                      },
+                      native: true,
+                    }}
+                    onPageChange={handleChangePage}
+                    onRowsPerPageChange={handleChangeRowsPerPage}
+                    ActionsComponent={TablePaginationActions}
+                  />
+                </StyledTableRow>
+              </TableFooter>
+            </Table>
+          </TableContainer>
+        ) : (
+          <Stack
+            sx={{
+              width: '100%',
+              p: 5,
+            }}
+            alignItems="center"
+          >
+            <CircularProgress sx={{ mr: 0.5 }} color="success" size={24} />
+          </Stack>
+        )}
       </Section>
     </>
   )
