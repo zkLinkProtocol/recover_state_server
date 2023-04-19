@@ -1,4 +1,21 @@
 #![allow(dead_code)]
+
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Instant;
+
+use tokio::sync::OnceCell;
+use tracing::{debug, info};
+
+use zklink_crypto::params::USD_TOKEN_ID;
+use zklink_prover::{ExitInfo, ExitProofData};
+use zklink_prover::exit_type::{ProofId, ProofInfo};
+use zklink_storage::{ConnectionPool, StorageProcessor};
+use zklink_storage::chain::account::records::StorageAccount;
+use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
+use zklink_types::block::StoredBlockInfo;
+use zklink_types::utils::check_source_token_and_target_token;
+
 use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
 use crate::proofs_cache::ProofsCache;
 use crate::recover_progress::{Progress, RecoverProgress};
@@ -6,19 +23,6 @@ use crate::recovered_state::RecoveredState;
 use crate::request::BatchExitRequest;
 use crate::response::{ExodusResponse, ExodusStatus};
 use crate::utils::{convert_balance_resp, Proofs, PublicData, SubAccountBalances, TaskId, UnprocessedPriorityOp};
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
-use tokio::sync::OnceCell;
-use tracing::{debug, info};
-use zklink_crypto::params::USD_TOKEN_ID;
-use zklink_prover::{ExitInfo, ExitProofData};
-use zklink_prover::exit_type::{ProofId, ProofInfo};
-use zklink_storage::chain::account::records::StorageAccount;
-use zklink_storage::{ConnectionPool, StorageProcessor};
-use zklink_types::block::StoredBlockInfo;
-use zklink_types::utils::check_source_token_and_target_token;
-use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkLinkTx};
 
 pub struct AppData {
     conn_pool: ConnectionPool,
@@ -314,7 +318,15 @@ impl AppData {
             .prover_schema()
             .get_proofs_by_page(page as i64, num as i64)
             .await?;
-        let proofs = proofs.into_iter().map(Into::into).collect();
+        let proofs = proofs.into_iter().map(|proof| {
+            let mut proof: ExitProofData = proof.into();
+            let account = self.recovered_state()
+                .accounts
+                .get(&proof.exit_info.account_id)
+                .unwrap();
+            proof.exit_info.account_address = account.address.clone();
+            proof
+        }).collect();
 
         let total_completed_num = storage
             .prover_schema()
