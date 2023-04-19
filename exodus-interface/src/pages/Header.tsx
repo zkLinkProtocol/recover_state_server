@@ -3,15 +3,16 @@ import {
   useConnectWallet,
   useContracts,
   useCurrentChain,
+  useNetworks,
   useSwitchNetwork,
 } from '../store/home/hooks'
 import { ConnectorNames } from '../connectors'
 import { useWeb3React } from '@web3-react/core'
-import { ChainInfo, chainList } from '../config/chains'
 import { useEffect, useMemo, useState } from 'react'
 import { styled } from '@mui/system'
 import logoUrl from './../assets/zklink-logo.png'
 import { Link, useLocation } from 'react-router-dom'
+import { NetworkInfo } from '../store/home/types'
 
 const sxButton = {
   borderColor: 'rgba(33, 33, 33)',
@@ -82,18 +83,19 @@ export const encryptionAddress = (address?: string, start: number = 6, end: numb
 
 export const Header = () => {
   const location = useLocation()
+  const networks = useNetworks()
   const connectWallet = useConnectWallet()
   const { account, isActive } = useWeb3React()
   const currentChain = useCurrentChain()
   const contracts = useContracts()
   const [showOptions, setShowOptions] = useState(false)
   const switchNetwork = useSwitchNetwork()
-  const chains: ChainInfo[] = useMemo(() => {
+  const chains: NetworkInfo[] = useMemo(() => {
     if (!contracts) {
       return []
     }
-    return Object.values(chainList).filter((v) => !!contracts[v.l2ChainId])
-  }, [contracts])
+    return networks.filter((v) => !!contracts[v.layerTwoChainId])
+  }, [contracts, networks])
 
   useEffect(() => {
     document.body.addEventListener('click', (e) => {

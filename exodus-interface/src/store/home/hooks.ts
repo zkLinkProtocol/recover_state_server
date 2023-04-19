@@ -4,13 +4,37 @@ import { useCallback, useMemo } from 'react'
 import { connectorByName, ConnectorNames } from '../../connectors'
 import { updateConnectorName } from './actions'
 import { RootState } from '..'
-import { Balances, Contracts, HomeState, Tokens } from './types'
-import { ChainInfo, chainList } from '../../config/chains'
+import {
+  Balances,
+  Contracts,
+  HomeState,
+  NetworkInfo,
+  ProofHistory,
+  RecoverProgress,
+  Tokens,
+} from './types'
 import { ChainId, L2ChainId, SubAccountId, TokenId } from '../../types/global'
 import { Web3Provider } from '@ethersproject/providers'
 
+export const useNetworks = () => {
+  return useSelector<RootState, NetworkInfo[]>((state) => state.home.networks)
+}
 export const useCurrentChain = () => {
-  return useSelector<RootState, ChainInfo | undefined>((state) => state.home.currentChain)
+  return useSelector<RootState, NetworkInfo | undefined>((state) => state.home.currentChain)
+}
+export const useRecoverProgress = () => {
+  return useSelector<RootState, RecoverProgress | undefined>((state) => state.home.recoverProgress)
+}
+export const useRecoverProgressCompleted = () => {
+  const progress = useRecoverProgress()
+  if (progress) {
+    return progress.current_block >= progress.total_verified_block
+  } else {
+    return undefined
+  }
+}
+export const useRunningTaskId = () => {
+  return useSelector<RootState, number>((state) => state.home.runningTaskId)
 }
 export const useTokens = () => {
   return useSelector<RootState, Tokens>((state) => state.home.tokens)
@@ -61,6 +85,7 @@ export const useConnectWallet = () => {
 
 export function useSwitchNetwork() {
   const { provider } = useWeb3React<Web3Provider>()
+  const networks = useNetworks()
   return useCallback(
     async (chainId: ChainId) => {
       const chainIdString = `0x${Number(chainId).toString(16)}`
@@ -71,7 +96,7 @@ export function useSwitchNetwork() {
         await provider.send('wallet_switchEthereumChain', [{ chainId: chainIdString }])
       } catch (e: any) {
         if (e?.code === 4902) {
-          const network = Object.values(chainList).find((v) => v.chainId === chainId)
+          const network = networks.find((v) => v.chainId === chainId)
           if (!network) {
             return
           }
@@ -104,6 +129,10 @@ export function useSwitchNetwork() {
         }
       }
     },
-    [provider]
+    [provider, networks]
   )
+}
+
+export const useProofHistory = () => {
+  return useSelector<RootState, ProofHistory | undefined>((state) => state.home.proofHistory)
 }

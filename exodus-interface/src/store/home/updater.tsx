@@ -1,7 +1,8 @@
-import axios from 'axios'
 import { useEffect } from 'react'
-import { useDispatch } from 'react-redux'
 import {
+  fetchNetworks,
+  fetchRecoverProgress,
+  fetchRunningTaskId,
   updateBalances,
   updateContracts,
   updateCurrentChain,
@@ -11,109 +12,129 @@ import {
 import { useWeb3React } from '@web3-react/core'
 import { connectorByName, ConnectorNames } from '../../connectors'
 import { http } from '../../api'
-import { chainList, providerByChainId } from '../../config/chains'
-import { Contract } from '@ethersproject/contracts'
-import { Interface } from '@ethersproject/abi'
-import { useMulticallContracts } from './hooks'
+import { useCurrentChain, useNetworks, useRecoverProgressCompleted } from './hooks'
+import { useEffectOnce, useInterval } from 'usehooks-ts'
+import { useAppDispatch } from '..'
+import { RECOVER_PROGRESS_DELAY, RUNNING_TASK_ID_DELAY } from '../../config'
+
+export const useFetchRecoverProgress = () => {
+  const recoverProgressCompleted = useRecoverProgressCompleted()
+  const dispatch = useAppDispatch()
+  useEffectOnce(() => {
+    dispatch(fetchRecoverProgress())
+  })
+
+  useInterval(
+    () => {
+      if (!recoverProgressCompleted) {
+        dispatch(fetchRecoverProgress())
+      }
+    },
+    recoverProgressCompleted ? null : RECOVER_PROGRESS_DELAY
+  )
+}
+
+export const useFetchRunningTaskId = () => {
+  const recoverProgressCompleted = useRecoverProgressCompleted()
+  const dispatch = useAppDispatch()
+  useEffect(() => {
+    if (!recoverProgressCompleted) {
+      return
+    }
+    dispatch(fetchRunningTaskId())
+  }, [recoverProgressCompleted])
+
+  useInterval(
+    () => {
+      dispatch(fetchRunningTaskId())
+    },
+    recoverProgressCompleted ? RUNNING_TASK_ID_DELAY : null
+  )
+}
 
 export const Updater = () => {
-  const dispatch = useDispatch()
+  const dispatch = useAppDispatch()
   const { account, isActive, chainId } = useWeb3React()
-  useEffect(() => {
+  const networks = useNetworks()
+  const recoverProgressCompleted = useRecoverProgressCompleted()
+  const currentChain = useCurrentChain()
+
+  useFetchRecoverProgress()
+
+  useFetchRunningTaskId()
+
+  useEffectOnce(() => {
+    dispatch(fetchNetworks())
+  })
+
+  useEffectOnce(() => {
     http.get('/contracts').then((r) => {
       const { data } = r.data
       dispatch(updateContracts(data))
     })
-  }, [])
+  })
 
   useEffect(() => {
-    http.get('/tokens').then(async (r) => {
-      const { data } = r.data
-      // for (let tokenId in data) {
-      //   if (tokenId == '1') {
-      //     data[tokenId].symbol = 'USD'
-      //     continue
-      //   }
-      //   for (let chainId in data[tokenId].addresses) {
-      //     const address = data[tokenId].addresses[chainId]
-      //     if (address) {
-      //       try {
-      //         const p = providerByChainId(chainId)
-      //         const iface = new Interface(['function symbol() view returns (string)'])
-      //         const fragment = iface.getFunction('symbol')
-      //         const calldata = iface.encodeFunctionData(fragment!, [])
-      //         const resultData = await p.call({ to: address, data: calldata })
-      //         if (resultData === '0x') {
-      //           continue
-      //         }
-      //         const symbol = iface.decodeFunctionResult(fragment!, resultData)
-      //         data[tokenId].symbol = symbol[0]
-      //         break
-      //       } catch (e) {
-      //         console.log(e)
-      //       }
-      //     }
-      //   }
-      // }
-      dispatch(updateTokens(data))
-    })
-  }, [])
+    if (recoverProgressCompleted) {
+      http.get('/tokens').then((r) => {
+        const { data } = r.data
+        dispatch(updateTokens(data))
+      })
+    }
+  }, [recoverProgressCompleted])
 
   useEffect(() => {
-    if (account) {
+    if (!currentChain || !recoverProgressCompleted) {
+      return
+    }
+
+    http
+      .post('/get_stored_block_info', {
+        chain_id: currentChain?.layerTwoChainId,
+      })
+      .then((r) => {
+        dispatch(
+          updateStoredBlockInfo({
+            chainId: currentChain?.layerTwoChainId,
+            storedBlockInfo: r.data.data,
+          })
+        )
+      })
+  }, [currentChain, recoverProgressCompleted])
+
+  useEffect(() => {
+    if (account && recoverProgressCompleted) {
       http
         .post('/get_balances', {
           address: account,
         })
         .then((r) => {
           const { data } = r.data
-          // const balances = []
-          // for (let i in r.data) {
-          //   for (let t in r.data[i]) {
-          //     balances.push({
-          //       subAccountId: Number(i),
-          //       tokenId: Number(t),
-          //       balance: r.data[i][t],
-          //     })
-          //   }
-          // }
           dispatch(updateBalances(data))
         })
     }
-  }, [account])
-
-  useEffect(() => {
-    if (!isActive) {
-      connectorByName(ConnectorNames.Metamask).connectEagerly()
-    }
-  }, [isActive])
+  }, [account, recoverProgressCompleted])
 
   useEffect(() => {
     try {
       if (!chainId) {
         throw new Error('Unknown Network')
       }
-      const currentChain = Object.values(chainList)?.find((v) => v.chainId === chainId)
+      const currentChain = networks?.find((v) => v.chainId === chainId)
       if (!currentChain) {
         throw new Error('Unknown Network')
       }
       dispatch(updateCurrentChain(currentChain))
-      http
-        .post('/get_stored_block_info', {
-          chain_id: currentChain?.l2ChainId,
-        })
-        .then((r) => {
-          dispatch(
-            updateStoredBlockInfo({
-              chainId: currentChain?.l2ChainId,
-              storedBlockInfo: r.data.data,
-            })
-          )
-        })
     } catch (e) {
       dispatch(updateCurrentChain(undefined))
     }
-  }, [chainId])
+  }, [chainId, networks])
+
+  useEffect(() => {
+    if (!isActive) {
+      connectorByName(ConnectorNames.Metamask).connectEagerly()
+    }
+  }, [isActive])
 
   return null
 }

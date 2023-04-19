@@ -5,14 +5,17 @@ import {
   useBalances,
   useContracts,
   useCurrentChain,
+  useNetworks,
   useProofs,
+  useRecoverProgressCompleted,
+  useRunningTaskId,
   useStoredBlockInfo,
   useTokens,
 } from '../store/home/hooks'
 import { Ether, Wei } from '../types/global'
 import { http } from '../api'
 import { useWeb3React } from '@web3-react/core'
-import { toast } from 'react-toastify'
+import { toast } from 'react-hot-toast'
 import { ProofInfo } from '../store/home/types'
 import { fetchProofs } from '../store/home/actions'
 import { useAppDispatch } from '../store'
@@ -20,7 +23,6 @@ import { TokenIcon } from '../components/Icon'
 import { Interface } from '@ethersproject/abi'
 import { formatEther } from '@ethersproject/units'
 import MainContract from 'zklink-js-sdk/abi/ZkLink.json'
-import { chainList } from '../config/chains'
 import * as mathjs from 'mathjs'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
@@ -84,17 +86,8 @@ const BalanceRowProof = styled(Stack)(({ theme }) => ({
   },
 }))
 export const L2Balances = () => {
-  const balances = useBalances()
+  const recoverProgressCompleted = useRecoverProgressCompleted()
 
-  const renderList = () => {
-    const list = []
-    for (let i in balances) {
-      list.push(<BalanceList key={i} subAccountId={Number(i)} list={balances[i]} />)
-    }
-
-    return list
-  }
-  const list = renderList()
   return (
     <>
       <Header />
@@ -114,26 +107,45 @@ export const L2Balances = () => {
           <br />
           Step 4: Repeat the above steps for the other chains.
         </Typography>
-        <SyncBlock />
-        {list?.length ? (
-          list
-        ) : (
-          <Typography
-            sx={{
-              textAlign: 'center',
-              padding: '64px 0',
-            }}
-            color="gray"
-          >
-            No Balances
-          </Typography>
-        )}
+        {recoverProgressCompleted ? <BalanceList /> : <SyncBlock />}
       </Section>
     </>
   )
 }
 
-const BalanceList: FC<any> = ({ subAccountId, list }) => {
+const BalanceList = () => {
+  const balances = useBalances()
+
+  const renderList = () => {
+    const list = []
+    for (let i in balances) {
+      list.push(<SubAccount key={i} subAccountId={Number(i)} list={balances[i]} />)
+    }
+
+    return list
+  }
+  const list = renderList()
+
+  return (
+    <>
+      {list?.length ? (
+        list
+      ) : (
+        <Typography
+          sx={{
+            textAlign: 'center',
+            padding: '64px 0',
+          }}
+          color="gray"
+        >
+          No Balances
+        </Typography>
+      )}
+    </>
+  )
+}
+
+const SubAccount: FC<any> = ({ subAccountId, list }) => {
   const renderRows = () => {
     const rows = []
     for (let i in list) {
@@ -253,11 +265,9 @@ const BalanceRow: FC<{
                   setPending(false)
 
                   if (tasks.data?.err_msg) {
-                    toast.error(tasks.data?.err_msg, {
-                      autoClose: 5000,
-                    })
+                    toast.error(tasks.data?.err_msg)
                   } else if (tasks.data?.code === 0) {
-                    toast.success('Generate success', {})
+                    toast.success('Request sent successfully, waiting for generation')
 
                     dispatch(
                       fetchProofs({
@@ -293,23 +303,34 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
   const tokens = useTokens()
   const currentChain = useCurrentChain()
   const contracts = useContracts()
-  const storedBlockInfo = useStoredBlockInfo(currentChain?.l2ChainId)
+  const storedBlockInfo = useStoredBlockInfo(currentChain?.layerTwoChainId)
   const { provider, account } = useWeb3React()
+  const runningTaskId = useRunningTaskId()
+  const networks = useNetworks()
   return (
     <Stack spacing={0.5} width="100%">
       {proofs?.map((proofInfo, index) => (
-        <Stack width="100%" key={index} flex="1" direction="row" justifyContent="space-between">
+        <Stack
+          width="100%"
+          key={index}
+          flex="1"
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+        >
           <Stack direction="row" alignItems="center" spacing={0.5}>
             <TokenIcon symbol={tokens[proofInfo.exit_info.l1_target_token]?.symbol} size={18} />
             <Typography variant="body1">
               {tokens[proofInfo.exit_info.l1_target_token]?.symbol}:
             </Typography>
             <Typography variant="body2" color="GrayText">
-              {proofInfo.amount !== null ? toFixed(formatEther(proofInfo.amount)) : '-'}
+              {proofInfo.proof_info?.amount !== null && proofInfo.proof_info?.amount !== undefined
+                ? toFixed(formatEther(proofInfo.proof_info.amount))
+                : '-'}
             </Typography>
           </Stack>
-          {proofInfo.proof ? (
-            proofInfo.exit_info.chain_id === currentChain?.l2ChainId ? (
+          {proofInfo.proof_info?.proof ? (
+            proofInfo.exit_info.chain_id === currentChain?.layerTwoChainId ? (
               <Typography
                 sx={(theme) => ({
                   color: theme.palette.success.main,
@@ -329,39 +350,62 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
                   color="success"
                   variant="text"
                   onClick={async () => {
-                    if (!provider || !contracts || !currentChain || !proofInfo?.proof) {
-                      return
+                    try {
+                      if (!provider || !contracts || !currentChain || !proofInfo?.proof_info) {
+                        return
+                      }
+                      const payload = [
+                        {
+                          blockNumber: storedBlockInfo?.block_number,
+                          priorityOperations: storedBlockInfo?.priority_operations,
+                          pendingOnchainOperationsHash:
+                            storedBlockInfo?.pending_onchain_operations_hash,
+                          timestamp: storedBlockInfo?.timestamp,
+                          stateHash: storedBlockInfo?.state_hash,
+                          commitment: storedBlockInfo?.commitment,
+                          syncHash: storedBlockInfo?.sync_hash,
+                        },
+                        account,
+                        proofInfo.exit_info.account_id,
+                        proofInfo.exit_info.sub_account_id,
+                        proofInfo.exit_info.l1_target_token,
+                        proofInfo.exit_info.l2_source_token,
+                        proofInfo.proof_info.amount,
+                        proofInfo.proof_info.proof?.proof,
+                      ]
+                      const iface = new Interface(MainContract.abi)
+                      const fragment = iface.getFunction('performExodus')
+                      const calldata = iface.encodeFunctionData(fragment, payload)
+                      const tx = await provider.send('eth_sendTransaction', [
+                        {
+                          from: account,
+                          to: contracts[currentChain.layerTwoChainId],
+                          data: calldata,
+                        },
+                      ])
+                      if (tx) {
+                        toast.success(
+                          (t) => (
+                            <Stack>
+                              <Typography>Transaction sent successfully</Typography>
+                              <Button
+                                onClick={() => {
+                                  window.open(currentChain.explorerUrl + '/tx/' + tx)
+                                }}
+                              >
+                                View On Explorer
+                              </Button>
+                            </Stack>
+                          ),
+                          {
+                            duration: 5000,
+                          }
+                        )
+                      }
+                    } catch (e: any) {
+                      toast.error(e?.message)
+                      console.log(e)
                     }
-                    const payload = [
-                      {
-                        blockNumber: storedBlockInfo?.block_number,
-                        priorityOperations: storedBlockInfo?.priority_operations,
-                        pendingOnchainOperationsHash:
-                          storedBlockInfo?.pending_onchain_operations_hash,
-                        timestamp: storedBlockInfo?.timestamp,
-                        stateHash: storedBlockInfo?.state_hash,
-                        commitment: storedBlockInfo?.commitment,
-                        syncHash: storedBlockInfo?.sync_hash,
-                      },
-                      account,
-                      proofInfo.exit_info.account_id,
-                      proofInfo.exit_info.sub_account_id,
-                      proofInfo.exit_info.l1_target_token,
-                      proofInfo.exit_info.l2_source_token,
-                      proofInfo.amount,
-                      proofInfo.proof.proof,
-                    ]
-                    const iface = new Interface(MainContract.abi)
-                    const fragment = iface.getFunction('performExodus')
-                    const calldata = iface.encodeFunctionData(fragment, payload)
-                    const tx = await provider.send('eth_sendTransaction', [
-                      {
-                        from: account,
-                        to: contracts[currentChain.l2ChainId],
-                        data: calldata,
-                      },
-                    ])
-                    console.log(tx)
                   }}
                 >
                   Withdraw
@@ -369,28 +413,38 @@ const Proofs: FC<{ proofs: ProofInfo[] }> = ({ proofs }) => {
               </Typography>
             ) : (
               <Typography color="gray" sx={{ fontSize: 14 }}>
-                On {chainList[proofInfo.exit_info.chain_id].name}
+                On {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
               </Typography>
             )
           ) : (
-            <Typography
-              sx={(theme) => ({
-                color: theme.palette.info.main,
-              })}
-            >
-              <Button
-                sx={{
-                  fontSize: 16,
-                  textTransform: 'none',
-                  pt: 0,
-                  pb: 0,
-                }}
-                variant="text"
-              >
-                <CircularProgress sx={{ mr: 0.5 }} size={14} />
-                <span>Generating</span>
-              </Button>
-            </Typography>
+            <>
+              {runningTaskId ? (
+                mathjs.subtract(proofInfo.proof_info.id, runningTaskId) > 0 ? (
+                  <Typography sx={{ fontSize: 14 }} color="gray">
+                    Queue Position: {mathjs.subtract(proofInfo.proof_info.id, runningTaskId)}
+                  </Typography>
+                ) : (
+                  <Typography
+                    sx={(theme) => ({
+                      color: theme.palette.info.main,
+                    })}
+                  >
+                    <Button
+                      sx={{
+                        fontSize: 16,
+                        textTransform: 'none',
+                        pt: 0,
+                        pb: 0,
+                      }}
+                      variant="text"
+                    >
+                      <CircularProgress sx={{ mr: 0.5 }} size={14} />
+                      <span>Generating</span>
+                    </Button>
+                  </Typography>
+                )
+              ) : null}
+            </>
           )}
         </Stack>
       ))}

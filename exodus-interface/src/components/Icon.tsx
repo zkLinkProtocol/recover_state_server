@@ -1,5 +1,6 @@
 import { FC } from 'react'
 import { styled } from '@mui/system'
+import { STATIC_HOST } from '../config'
 
 const Icon = styled('img')({
   overflow: 'hidden',
@@ -15,8 +16,9 @@ export const TokenIcon: FC<{ symbol?: string; size?: number }> = ({ symbol, size
       sx={{
         width: size,
         height: size,
+        verticalAlign: 'middle',
       }}
-      src={`https://static.zk.link/token/icons/default/${symbol?.toLowerCase()}.svg`}
+      src={`${STATIC_HOST}/token/icons/default/${symbol?.toLowerCase()}.svg`}
     />
   )
 }

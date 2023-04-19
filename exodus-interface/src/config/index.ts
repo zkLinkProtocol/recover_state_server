@@ -5,4 +5,7 @@ function boolean(envValue: string | boolean) {
 export const ENV: 'devnet' | 'testnet' = process.env.REACT_APP_ENV! as 'devnet' | 'testnet'
 
 export const API_HOST = process.env.REACT_APP_API_HOST
-export const GITHUB_STATIC_PATH = process.env.REACT_APP_GITHUB_STATIC_HOST
+export const STATIC_HOST = process.env.REACT_APP_STATIC_HOST
+
+export const RUNNING_TASK_ID_DELAY = 10000
+export const RECOVER_PROGRESS_DELAY = 10000

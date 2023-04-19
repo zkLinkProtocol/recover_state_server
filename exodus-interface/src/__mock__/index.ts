@@ -1,12 +1,10 @@
-import axios from 'axios'
 import MockAdapter from 'axios-mock-adapter'
 import { http } from '../api'
 
-// This sets the mock adapter on the default instance
-const mock = new MockAdapter(http)
+const mock = new MockAdapter(http, {
+  onNoMatch: 'passthrough',
+})
 
-// Mock any GET request to /users
-// arguments for reply are (status, data, headers)
 mock.onGet('/contracts').reply(200, {
   code: 0,
   data: {
@@ -15,7 +13,21 @@ mock.onGet('/contracts').reply(200, {
   },
   err_msg: null,
 })
-
+mock.onGet('/recover_progress').reply(200, {
+  code: 0,
+  data: {
+    current_block: 1,
+    total_verified_block: 1,
+  },
+  err_msg: null,
+})
+mock.onGet('/running_max_task_id').reply(200, {
+  code: 0,
+  data: {
+    id: 100,
+  },
+  err_msg: null,
+})
 mock.onGet('/tokens').reply(200, {
   code: 0,
   data: {
@@ -178,13 +190,40 @@ mock.onPost('/get_stored_block_info').reply(200, {
   },
   err_msg: null,
 })
-mock
-  .onPost(/^\/get_balances/)
-  .reply(200, {
-    code: 0,
-    data: { '1': { '1': '9826567799000000000000', '41': '99900000000000000' } },
-    err_msg: null,
-  })
+mock.onPost(/^\/get_balances/).reply(200, {
+  code: 0,
+  data: { '1': { '1': '9826567799000000000000', '41': '99900000000000000' } },
+  err_msg: null,
+})
+mock.onPost('/get_proofs_by_page').reply((config) => {
+  return [
+    200,
+    {
+      code: 0,
+      data: {
+        total_completed_num: 1234,
+        proofs: [
+          {
+            exit_info: {
+              chain_id: 2,
+              account_address: '0x0000000000000000000000000000000000000000000000000000000000000000',
+              account_id: 0,
+              sub_account_id: 0,
+              l1_target_token: 50,
+              l2_source_token: 50,
+            },
+            proof_info: {
+              id: 1,
+              amount: null,
+              proof: null,
+            },
+          },
+        ],
+      },
+      err_msg: null,
+    },
+  ]
+})
 mock.onPost('/get_proofs_by_token').reply((config) => {
   const data = JSON.parse(config.data)
   if (data.token_id === 41) {
@@ -202,10 +241,10 @@ mock.onPost('/get_proofs_by_token').reply((config) => {
               l1_target_token: 41,
               l2_source_token: 41,
             },
-            amount: '23412818237457823',
-            proof: {
-              inputs: [],
-              proof: [],
+            proof_info: {
+              id: 234,
+              amount: '123456',
+              proof: '0x4566521312321321321321',
             },
           },
           {
@@ -217,10 +256,10 @@ mock.onPost('/get_proofs_by_token').reply((config) => {
               l1_target_token: 41,
               l2_source_token: 41,
             },
-            amount: '23412818237457823',
-            proof: {
-              inputs: [],
-              proof: [],
+            proof_info: {
+              id: 4103,
+              amount: '123456',
+              proof: '0x4566521312321321321321',
             },
           },
         ],
@@ -228,70 +267,83 @@ mock.onPost('/get_proofs_by_token').reply((config) => {
       },
     ]
   }
-  if (data.token_id !== 1) {
+  if (data.token_id === 1) {
     return [
       200,
       {
         code: 0,
-        data: null,
+        data: [
+          {
+            exit_info: {
+              chain_id: 1,
+              account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
+              account_id: 12,
+              sub_account_id: 1,
+              l1_target_token: 17,
+              l2_source_token: 1,
+            },
+            proof_info: {
+              id: 1000,
+              amount: null,
+              proof: null,
+            },
+          },
+          {
+            exit_info: {
+              chain_id: 1,
+              account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
+              account_id: 12,
+              sub_account_id: 1,
+              l1_target_token: 18,
+              l2_source_token: 1,
+            },
+            proof_info: {
+              id: 1001,
+              amount: null,
+              proof: null,
+            },
+          },
+          {
+            exit_info: {
+              chain_id: 2,
+              account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
+              account_id: 12,
+              sub_account_id: 1,
+              l1_target_token: 17,
+              l2_source_token: 1,
+            },
+            proof_info: {
+              id: 1002,
+              amount: null,
+              proof: null,
+            },
+          },
+          {
+            exit_info: {
+              chain_id: 2,
+              account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
+              account_id: 12,
+              sub_account_id: 1,
+              l1_target_token: 18,
+              l2_source_token: 1,
+            },
+            proof_info: {
+              id: 1003,
+              amount: null,
+              proof: null,
+            },
+          },
+        ],
         err_msg: '',
       },
     ]
   }
+
   return [
     200,
     {
       code: 0,
-      data: [
-        {
-          exit_info: {
-            chain_id: 1,
-            account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
-            account_id: 12,
-            sub_account_id: 1,
-            l1_target_token: 17,
-            l2_source_token: 1,
-          },
-          amount: null,
-          proof: null,
-        },
-        {
-          exit_info: {
-            chain_id: 1,
-            account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
-            account_id: 12,
-            sub_account_id: 1,
-            l1_target_token: 18,
-            l2_source_token: 1,
-          },
-          amount: null,
-          proof: null,
-        },
-        {
-          exit_info: {
-            chain_id: 2,
-            account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
-            account_id: 12,
-            sub_account_id: 1,
-            l1_target_token: 17,
-            l2_source_token: 1,
-          },
-          amount: null,
-          proof: null,
-        },
-        {
-          exit_info: {
-            chain_id: 2,
-            account_address: '0x04EBC47B5B0FA6E283DDC3C3B21DC9CD6B036D38',
-            account_id: 12,
-            sub_account_id: 1,
-            l1_target_token: 18,
-            l2_source_token: 1,
-          },
-          amount: null,
-          proof: null,
-        },
-      ],
+      data: null,
       err_msg: '',
     },
   ]
@@ -301,5 +353,3 @@ mock.onPost('/generate_proof_tasks_by_token').reply(200, {
   data: null,
   err_msg: '',
 })
-
-mock.onAny().passThrough()
