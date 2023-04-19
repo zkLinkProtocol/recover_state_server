@@ -512,23 +512,26 @@ Get the specified number of proofs closer to the id by passing the id
 ```json
 {
     "code": 0,
-    "data": [
+    "data": {
+      "total_completed_num": 10,
+      "proofs": [
         {
-            "exit_info": {
-                "chain_id": 2,
-                "account_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
-                "account_id": 0,
-                "sub_account_id": 0,
-                "l1_target_token": 50,
-                "l2_source_token": 50
-            },
-            "proof_info": {
-                "id": 1,
-                "amount": null,
-                "proof": null
-            }
+          "exit_info": {
+            "chain_id": 2,
+            "account_address": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "account_id": 0,
+            "sub_account_id": 0,
+            "l1_target_token": 50,
+            "l2_source_token": 50
+          },
+          "proof_info": {
+            "id": 1,
+            "amount": null,
+            "proof": null
+          }
         }
-    ],
+      ]
+    },
     "err_msg": null
 }
 ```
