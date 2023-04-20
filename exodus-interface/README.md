@@ -2,6 +2,12 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## To display the logo of the node provider
+
+You need to place either a `node.png` or `node.svg` file in the `public` directory and then run the build command.
+
+If you decide to use a png file, the recommended height is `52px`.
+
 ## Available Scripts
 
 In the project directory, you can run:

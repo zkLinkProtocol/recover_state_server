@@ -13,6 +13,8 @@ import { styled } from '@mui/system'
 import logoUrl from './../assets/zklink-logo.png'
 import { Link, useLocation } from 'react-router-dom'
 import { NetworkInfo } from '../store/home/types'
+import { useEffectOnce } from 'usehooks-ts'
+import axios from 'axios'
 
 const sxButton = {
   borderColor: 'rgba(33, 33, 33)',
@@ -108,6 +110,7 @@ export const Header = () => {
   const contracts = useContracts()
   const [showOptions, setShowOptions] = useState(false)
   const switchNetwork = useSwitchNetwork()
+  const [showDeployer, setShowDeployer] = useState<string | undefined>()
   const chains: NetworkInfo[] = useMemo(() => {
     if (!contracts) {
       return []
@@ -115,9 +118,22 @@ export const Header = () => {
     return networks.filter((v) => !!contracts[v.layerTwoChainId])
   }, [contracts, networks])
 
-  useEffect(() => {
+  useEffectOnce(() => {
     document.body.addEventListener('click', (e) => {
       setShowOptions(false)
+    })
+  })
+
+  useEffectOnce(() => {
+    axios.get(`${process.env.PUBLIC_URL}/node.png`).then((r) => {
+      if (r.status === 200) {
+        setShowDeployer('png')
+      }
+    })
+    axios.get(`${process.env.PUBLIC_URL}/node.svg`).then((r) => {
+      if (r.status === 200) {
+        setShowDeployer('svg')
+      }
     })
   })
 
@@ -125,6 +141,12 @@ export const Header = () => {
     <Stack height="88px" spacing={1} alignItems="center" direction="row">
       <img src={logoUrl} width="26" />
       <Typography variant="h5">zkLink</Typography>
+      {showDeployer ? (
+        <>
+          <Typography variant="h5">/</Typography>
+          <img src={`${process.env.PUBLIC_URL}/node.${showDeployer}`} height="26" />
+        </>
+      ) : null}
       <Nav>
         <Link className={location.pathname === '/' ? 'active' : ''} to={'/'}>
           Home
