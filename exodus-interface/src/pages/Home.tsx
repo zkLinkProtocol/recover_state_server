@@ -1,6 +1,6 @@
 import { styled, Container, Typography } from '@mui/material'
 import { Header } from './Header'
-import { L2Balances } from './L2Balances'
+import { SectionL2Balance } from './L2Balance'
 import { RouterProvider } from 'react-router'
 import { createBrowserRouter } from 'react-router-dom'
 import { History } from './History'
@@ -14,7 +14,7 @@ const router = createBrowserRouter([
         <Header />
 
         <SectionPendingBalance />
-        <L2Balances />
+        <SectionL2Balance />
       </>
     ),
   },

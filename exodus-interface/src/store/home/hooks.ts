@@ -5,7 +5,7 @@ import { connectorByName, ConnectorNames } from '../../connectors'
 import { updateConnectorName } from './actions'
 import { RootState } from '..'
 import {
-  Balances,
+  Balance,
   Contracts,
   HomeState,
   NetworkInfo,
@@ -50,20 +50,20 @@ export const useContracts = () => {
 export const useConnectorName = () => {
   return useSelector<RootState, ConnectorNames | undefined>((state) => state.home.connectorName)
 }
-export const useBalances = () => {
-  return useSelector<RootState, Balances>((state) => state.home.balances)
+export const useBalance = () => {
+  return useSelector<RootState, Balance>((state) => state.home.balance)
 }
 export const useMulticallContracts = () => {
   return useSelector<RootState, string[] | undefined>((state) => state.home.multicallContracts)
 }
-export const usePendingBalances = (account?: Address) => {
-  const balances = useSelector<RootState, RootState['home']['pendingBalances']>(
-    (state) => state.home.pendingBalances
+export const usePendingBalance = (account?: Address) => {
+  const balance = useSelector<RootState, RootState['home']['pendingBalance']>(
+    (state) => state.home.pendingBalance
   )
   if (!account) {
     return undefined
   }
-  return balances[account]
+  return balance[account]
 }
 
 export const useStoredBlockInfo = (chainId?: L2ChainId) => {

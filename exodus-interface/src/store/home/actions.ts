@@ -2,7 +2,7 @@ import { createAction, createAsyncThunk } from '@reduxjs/toolkit'
 import {
   Tokens,
   HomeState,
-  Balances,
+  Balance,
   StoredBlockInfo,
   ProofInfo,
   RecoverProgress,
@@ -26,7 +26,7 @@ export const updateCurrentChain = createAction<NetworkInfo | undefined>('home/up
 export const updateConnectorName = createAction<string>('home/updateConnectorName')
 export const updateContracts = createAction<HomeState['contracts']>('home/updateContracts')
 export const updateTokens = createAction<Tokens>('home/updateTokens')
-export const updateBalances = createAction<Balances>('home/updateBalances')
+export const updateBalances = createAction<Balance>('home/updateBalances')
 export const updateStoredBlockInfo = createAction<{
   chainId: L2ChainId
   storedBlockInfo: StoredBlockInfo

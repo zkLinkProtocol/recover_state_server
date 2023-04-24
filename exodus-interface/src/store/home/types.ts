@@ -26,7 +26,7 @@ export interface Tokens {
   [x: TokenId]: TokenInfo
 }
 
-export interface Balances {
+export interface Balance {
   [x: SubAccountId]: {
     [x: TokenId]: Wei
   }
@@ -82,7 +82,7 @@ export interface HomeState {
   runningTaskId: number
   connectorName?: ConnectorNames
   tokens: Tokens
-  balances: Balances
+  balance: Balance
   storedBlockInfos: {
     [x: L2ChainId]: StoredBlockInfo
   }
@@ -93,7 +93,7 @@ export interface HomeState {
   }
   multicallContracts?: Address[]
   proofHistory?: ProofHistory
-  pendingBalances: {
+  pendingBalance: {
     [x: Address]: PendingBalance[] | undefined
   }
 }

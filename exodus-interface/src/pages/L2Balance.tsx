@@ -2,7 +2,7 @@ import { Typography, Stack, Box } from '@mui/material'
 import { styled } from '@mui/system'
 import { FC, useEffect, useState, useCallback } from 'react'
 import {
-  useBalances,
+  useBalance,
   useContracts,
   useCurrentChain,
   useNetworks,
@@ -84,23 +84,28 @@ const BalanceRowProof = styled(Stack)(({ theme }) => ({
     width: '100%',
   },
 }))
-export const L2Balances = () => {
+export const SectionL2Balance = () => {
   const recoverProgressCompleted = useRecoverProgressCompleted()
 
   return (
     <>
       <Section>
-        <Typography variant="h5">Layer2 Balances</Typography>
+        <Typography variant="h5">Layer2 Balance</Typography>
         <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-          Step 1: Connect your wallet to check your balance.
+          Step 1: Connect your wallet, and wait for the initialization to be completed. You should
+          be able to see the balance of all your tokens on the webpage.
           <br />
-          Step 2: Generate proofs for each token.
+          Step 2: Click on "Generate" button for each token, wait for your proof. Once a ZK-Proof is
+          generated, the "Generate" button will change to "Submit" button.
           <br />
-          Step 3: Send a withdrawal transaction to withdraw the tokens to pending balance.
+          Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. Once the
+          proof is verified on-chain, the "Submit" button will change to "Withdraw" button. Note
+          that you'll need to have the destination blockchain gas token here.
           <br />
-          Step 4: Harvest tokens from pending balance to your wallet.
+          Step 4: Now, click on "Withdraw", sign with your wallet to send the withdraw request
+          on-chain.
           <br />
-          Step 5: Repeat the above steps for the other chains.
+          Step 5: Switch network and repeat the above steps.
         </Typography>
         {recoverProgressCompleted ? <BalanceList /> : <SyncBlock />}
       </Section>
@@ -109,7 +114,7 @@ export const L2Balances = () => {
 }
 
 const BalanceList = () => {
-  const balances = useBalances()
+  const balances = useBalance()
 
   const renderList = () => {
     const list = []
@@ -175,7 +180,7 @@ const SubAccount: FC<any> = ({ subAccountId, list }) => {
           <ColumnToken>Token</ColumnToken>
           <ColumnBalance>Balance</ColumnBalance>
         </BalanceRowToken>
-        <BalanceRowProof>Proofs / Withdrawal</BalanceRowProof>
+        <BalanceRowProof>Generate Proof / Submit Proof</BalanceRowProof>
       </BalanceRowWrap>
       {renderRows()}
     </Box>
@@ -421,7 +426,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
               }}
             >
               {pending ? <CircularProgress sx={{ mr: 0.5 }} color="success" size={14} /> : null}
-              Withdraw
+              Submit
             </Button>
           </Typography>
         ) : (

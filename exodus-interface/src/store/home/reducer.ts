@@ -25,12 +25,12 @@ const initialState: HomeState = {
   runningTaskId: 0,
   connectorName: undefined,
   tokens: {},
-  balances: {},
+  balance: {},
   storedBlockInfos: {},
   proofs: {},
   multicallContracts: undefined,
   proofHistory: undefined,
-  pendingBalances: {},
+  pendingBalance: {},
 }
 
 export default createReducer<HomeState>(initialState, (builder) => {
@@ -51,7 +51,7 @@ export default createReducer<HomeState>(initialState, (builder) => {
       state.tokens = payload
     })
     .addCase(updateBalances, (state, { payload }) => {
-      state.balances = payload
+      state.balance = payload
     })
     .addCase(updateStoredBlockInfo, (state, { payload }) => {
       state.storedBlockInfos[payload.chainId] = payload.storedBlockInfo
@@ -72,9 +72,9 @@ export default createReducer<HomeState>(initialState, (builder) => {
       state.proofHistory = payload
     })
     .addCase(fetchPendingBalances.fulfilled, (state, { payload }) => {
-      state.pendingBalances[payload.account] = payload.balances
+      state.pendingBalance[payload.account] = payload.balances
     })
     .addCase(updatePendingBalances, (state, { payload }) => {
-      state.pendingBalances[payload.account] = payload.balances
+      state.pendingBalance[payload.account] = payload.balances
     })
 })

@@ -1,10 +1,10 @@
 import { Button, CircularProgress, Stack, Typography, styled } from '@mui/material'
-import { Section } from './L2Balances'
+import { Section } from './L2Balance'
 import {
   useContracts,
   useCurrentAccount,
   useCurrentChain,
-  usePendingBalances,
+  usePendingBalance,
   useTokens,
 } from '../store/home/hooks'
 import { useWeb3React } from '@web3-react/core'
@@ -63,16 +63,15 @@ const BalanceRowToken = styled(Stack)(({ theme }) => ({
     width: '100%',
   },
 }))
-const BalanceRowAction = styled(Stack)(({ theme }) => ({
+const BalanceRowAction = styled('div')(({ theme }) => ({
   flex: 1,
   textAlign: 'right',
-  justifyContent: 'flex-end',
 }))
 
 export const SectionPendingBalance = () => {
   const { provider, chainId, account } = useWeb3React()
   const dispatch = useAppDispatch()
-  const pendingBalances = usePendingBalances(account)
+  const pendingBalances = usePendingBalance(account)
 
   const requestBalance = useCallback(() => {
     if (!provider || !account) {
@@ -98,10 +97,7 @@ export const SectionPendingBalance = () => {
         mb: 4,
       }}
     >
-      <Typography variant="h5">Pending Balances</Typography>
-      <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-        After sending the Layer2 withdrawal request, you can harvest tokens to your wallet.
-      </Typography>
+      <Typography variant="h5">Pending Balance</Typography>
 
       {pendingBalances?.length ? (
         <BalanceRowWrap
@@ -183,7 +179,6 @@ export const PendingBalanceRow: FC<{ item: PendingBalance }> = ({ item }) => {
           }}
           color="success"
           variant="text"
-          fullWidth={true}
           onClick={async () => {
             try {
               if (!provider || !contracts || !currentChain || pending) {
@@ -231,7 +226,7 @@ export const PendingBalanceRow: FC<{ item: PendingBalance }> = ({ item }) => {
           }}
         >
           {pending ? <CircularProgress sx={{ mr: 0.5 }} color="success" size={14} /> : null}
-          <span>Harvest</span>
+          <span>Withdraw</span>
         </Button>
       </BalanceRowAction>
     </BalanceRowWrap>
