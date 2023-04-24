@@ -5912,6 +5912,7 @@ dependencies = [
  "futures 0.3.26",
  "num",
  "num_cpus",
+ "offchain_recover_state",
  "recover_state_config",
  "serde",
  "serde_json",
