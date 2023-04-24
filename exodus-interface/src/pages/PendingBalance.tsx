@@ -98,6 +98,10 @@ export const SectionPendingBalance = () => {
       }}
     >
       <Typography variant="h5">Pending Balance</Typography>
+      <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
+        You will be able to withdraw tokens to your wallet once a ZK Proof to your request is
+        generated.
+      </Typography>
 
       {pendingBalances?.length ? (
         <BalanceRowWrap
