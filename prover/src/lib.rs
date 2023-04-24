@@ -1,19 +1,19 @@
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::{interval, sleep};
+use tracing::{error, info, warn};
+pub use exit_type::{ExitInfo, ExitProofData};
+pub use exodus_prover::ExodusProver;
+use offchain_recover_state::{contract::ZkLinkContract, get_fully_on_chain_zklink_contract};
+use recover_state_config::RecoverStateConfig;
+use zklink_storage::ConnectionPool;
+use crate::retries::with_retries;
+
 pub mod exit_proof;
 pub mod exit_type;
 pub mod exodus_prover;
 pub mod retries;
 pub mod utils;
-
-use crate::retries::with_retries;
-pub use exit_type::{ExitInfo, ExitProofData};
-pub use exodus_prover::ExodusProver;
-use offchain_recover_state::{contract::ZkLinkContract, get_fully_on_chain_zklink_contract};
-use recover_state_config::RecoverStateConfig;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::interval;
-use tracing::{error, info, warn};
-use zklink_storage::ConnectionPool;
 
 pub const SETUP_MIN_POW2: u32 = 20;
 pub const SETUP_MAX_POW2: u32 = 26;
@@ -37,7 +37,7 @@ pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<u
                             process_task(prover.clone(), exit_info).await;
                         } else {
                             info!("[Worker{}] is waiting for the new exit proof task......", i);
-                            tokio::time::sleep(Duration::from_secs(5)).await;
+                            sleep(Duration::from_secs(5)).await;
                         }
                     }
                     Err(err) => warn!("[Worker{}] failed to load new task:{}", i, err),
