@@ -50,7 +50,7 @@
   "scripts": {
     "start:devnet": "env-cmd -f .env.devnet react-scripts start",
     "build:devnet": "env-cmd -f .env.devnet react-scripts build",
-    "serve:devnet": "npx pm2 ./server/index.ts --name dunkirk-web-server",
+    "serve:devnet": "npx pm2 start ./server/index.js --name dunkirk-web-server",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
