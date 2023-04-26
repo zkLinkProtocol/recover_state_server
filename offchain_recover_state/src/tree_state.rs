@@ -305,10 +305,7 @@ impl TreeState {
             .contract_version
             .expect("contract version must be set")
             .supported_ops_numbers();
-        let available_chain_ids = ops_block
-            .contract_version
-            .expect("contract version must be set")
-            .available_chain_ids();
+        let available_chain_ids = self.last_serial_ids.keys().into_iter().copied().collect::<Vec<_>>();
 
         let block = Block::new_from_available_block_sizes(
             ops_block.block_num,
@@ -317,7 +314,7 @@ impl TreeState {
             ops,
             *available_block_chunk_sizes.first().unwrap(),
             support_ops_numbers,
-            available_chain_ids,
+            &available_chain_ids,
             gas_limit,
             gas_limit,
             ops_block.previous_block_root_hash,

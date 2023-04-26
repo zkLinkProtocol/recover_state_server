@@ -1,6 +1,5 @@
 // Built-in uses
 use std::convert::TryFrom;
-use zklink_types::ChainId;
 // External uses
 // Workspace uses
 use zklink_types::operations::ZkLinkOp;
@@ -83,7 +82,7 @@ impl ZkLinkContractVersion {
     pub fn available_block_chunk_sizes(&self) -> &'static [usize] {
         use ZkLinkContractVersion::*;
         match self {
-            V0 => &[20],
+            V0 => &[4],
         }
     }
 
@@ -91,15 +90,6 @@ impl ZkLinkContractVersion {
         use ZkLinkContractVersion::*;
         match self {
             V0 => &[111, 401, 511],
-        }
-    }
-
-    /// Returns supported block chunks sizes by the verifier contract
-    /// with the given version.
-    pub fn available_chain_ids(&self) -> &'static [ChainId] {
-        use ZkLinkContractVersion::*;
-        match self {
-            V0 => &[ChainId(1), ChainId(2)],
         }
     }
 }
