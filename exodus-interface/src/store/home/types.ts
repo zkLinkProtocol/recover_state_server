@@ -1,32 +1,41 @@
 import { Address, L2ChainId, SubAccountId, TokenId, Wei } from '../../types/global'
-import { ChainInfo } from '../../config/chains'
 import { ConnectorNames } from '../../connectors'
 
+export interface NetworkInfo {
+  name: string
+  chainId: number
+  layerTwoChainId: number
+  symbol: string
+  decimals: number
+  rpcUrl: string
+  explorerUrl: string
+  iconUrl: string
+}
 export interface Contracts {
   [x: number]: string
 }
 
-export interface Tokens {
-  [x: TokenId]: {
-    token_id: TokenId
-    symbol?: string
-    addresses: {
-      [x: L2ChainId]: Address
-    }
+export interface TokenInfo {
+  token_id: TokenId
+  symbol?: string
+  addresses: {
+    [x: L2ChainId]: Address
   }
 }
+export interface Tokens {
+  [x: TokenId]: TokenInfo
+}
 
-export interface Balances {
+export interface Balance {
   [x: SubAccountId]: {
     [x: TokenId]: Wei
   }
 }
 
-// export interface BalanceInfo {
-//   subAccountId: SubAccountId
-//   tokenId: TokenId
-//   balance: Wei
-// }
+export interface RecoverProgress {
+  current_block: number
+  total_verified_block: number
+}
 
 export interface ProofInfo {
   exit_info: {
@@ -37,11 +46,14 @@ export interface ProofInfo {
     l1_target_token: number
     l2_source_token: number
   }
-  amount: Wei | null
-  proof: {
-    inputs: string[]
-    proof: string[]
-  } | null
+  proof_info: {
+    id: number
+    amount: Wei | null
+    proof: {
+      inputs: string[]
+      proof: string[]
+    } | null
+  }
 }
 
 export interface StoredBlockInfo {
@@ -54,12 +66,23 @@ export interface StoredBlockInfo {
   sync_hash: string
 }
 
+export interface ProofHistory {
+  total_completed_num: number
+  proofs: ProofInfo[]
+}
+export interface PendingBalance extends TokenInfo {
+  balance: Wei
+}
 export interface HomeState {
-  currentChain: ChainInfo | undefined
-  contracts: Contracts | undefined
-  connectorName: ConnectorNames | undefined
+  account: Address
+  networks: NetworkInfo[]
+  currentChain?: NetworkInfo
+  contracts?: Contracts
+  recoverProgress?: RecoverProgress
+  runningTaskId: number
+  connectorName?: ConnectorNames
   tokens: Tokens
-  balances: Balances
+  balance: Balance
   storedBlockInfos: {
     [x: L2ChainId]: StoredBlockInfo
   }
@@ -68,5 +91,9 @@ export interface HomeState {
       [x: TokenId]: ProofInfo[]
     }
   }
-  multicallContracts: Address[] | undefined
+  multicallContracts?: Address[]
+  proofHistory?: ProofHistory
+  pendingBalance: {
+    [x: Address]: PendingBalance[] | undefined
+  }
 }

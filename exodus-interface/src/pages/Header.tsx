@@ -3,13 +3,18 @@ import {
   useConnectWallet,
   useContracts,
   useCurrentChain,
+  useNetworks,
   useSwitchNetwork,
 } from '../store/home/hooks'
 import { ConnectorNames } from '../connectors'
 import { useWeb3React } from '@web3-react/core'
-import { ChainInfo, chainList } from '../config/chains'
 import { useEffect, useMemo, useState } from 'react'
 import { styled } from '@mui/system'
+import logoUrl from './../assets/zklink-logo.png'
+import { Link, useLocation } from 'react-router-dom'
+import { NetworkInfo } from '../store/home/types'
+import { useEffectOnce } from 'usehooks-ts'
+import axios from 'axios'
 
 const sxButton = {
   borderColor: 'rgba(33, 33, 33)',
@@ -22,14 +27,19 @@ const sxButton = {
 const Network = styled('div')({
   position: 'relative',
 })
-const NetworkOptions = styled(Box)({
+const NetworkOptions = styled(Box)(({ theme }) => ({
   position: 'absolute',
   borderColor: 'rgba(33, 33, 33)',
   backgroundColor: '#FFFFFF',
   padding: '8px 0',
   top: '44px',
   boxShadow: '2px 2px 0 rgba(11, 11, 11, 1)',
-})
+
+  [theme.breakpoints.down('md')]: {
+    top: 'auto',
+    bottom: '44px',
+  },
+}))
 const Dot = styled('div')({
   width: 6,
   height: 6,
@@ -51,6 +61,39 @@ const NetworkOption = styled(Stack)({
     },
   },
 })
+const Nav = styled(Stack)({
+  flex: 1,
+  flexDirection: 'row',
+  padding: '0 40px',
+
+  a: {
+    color: '#333',
+    textDecoration: 'none',
+    fontSize: 20,
+    margin: '0 20px',
+    transition: 'color .2s ease',
+
+    '&:hover, &.active': {
+      color: '#2e7d32',
+    },
+    '&.active': {
+      color: '#2e7d32',
+    },
+  },
+})
+const Account = styled(Stack)(({ theme }) => ({
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  padding: 16,
+  [theme.breakpoints.down('md')]: {
+    backgroundColor: '#FFF',
+    position: 'fixed',
+    bottom: 0,
+    right: 0,
+    left: 0,
+    zIndex: 20,
+  },
+}))
 export const encryptionAddress = (address?: string, start: number = 6, end: number = 4) => {
   if (!address) {
     return 'Unknown Address'
@@ -59,66 +102,118 @@ export const encryptionAddress = (address?: string, start: number = 6, end: numb
 }
 
 export const Header = () => {
+  const location = useLocation()
+  const networks = useNetworks()
   const connectWallet = useConnectWallet()
   const { account, isActive } = useWeb3React()
   const currentChain = useCurrentChain()
   const contracts = useContracts()
   const [showOptions, setShowOptions] = useState(false)
   const switchNetwork = useSwitchNetwork()
-  const chains: ChainInfo[] = useMemo(() => {
+  const [showDeployer, setShowDeployer] = useState<string | undefined>()
+  const chains: NetworkInfo[] = useMemo(() => {
     if (!contracts) {
       return []
     }
-    return Object.values(chainList).filter((v) => !!contracts[v.l2ChainId])
-  }, [contracts])
+    return networks.filter((v) => !!contracts[v.layerTwoChainId])
+  }, [contracts, networks])
 
-  useEffect(() => {
+  useEffectOnce(() => {
     document.body.addEventListener('click', (e) => {
       setShowOptions(false)
     })
   })
+
   return (
     <Stack height="88px" spacing={1} alignItems="center" direction="row">
-      <Typography variant="h6">ZKLINK</Typography>
-      <Box flex="1"></Box>
-      <Network>
+      <img src={logoUrl} width="26" />
+      <Typography variant="h5">zkLink</Typography>
+
+      <Stack
+        sx={{
+          display: showDeployer === 'png' ? 'flex' : 'none',
+        }}
+        flexDirection="row"
+        alignItems="center"
+      >
+        <Typography sx={{ marginRight: 1 }} variant="h5">
+          /
+        </Typography>
+        <img
+          src={`${process.env.PUBLIC_URL}/node.png`}
+          onLoad={() => {
+            setShowDeployer('png')
+          }}
+          height="26"
+        />
+      </Stack>
+      <Stack
+        sx={{
+          display: showDeployer === 'svg' ? 'flex' : 'none',
+        }}
+        flexDirection="row"
+        alignItems="center"
+      >
+        <Typography sx={{ marginRight: 1 }} variant="h5">
+          /
+        </Typography>
+        <img
+          src={`${process.env.PUBLIC_URL}/node.svg`}
+          onLoad={() => {
+            setShowDeployer('svg')
+          }}
+          height="26"
+        />
+      </Stack>
+
+      <Nav>
+        <Link className={location.pathname === '/' ? 'active' : ''} to={'/'}>
+          Home
+        </Link>
+        <Link className={location.pathname === '/history' ? 'active' : ''} to={'/history'}>
+          History
+        </Link>
+      </Nav>
+      <Account>
+        <Network sx={{ mr: 2 }}>
+          <Button
+            sx={sxButton}
+            variant="outlined"
+            color={currentChain?.name ? 'inherit' : 'error'}
+            onClick={(event) => {
+              event.stopPropagation()
+              setShowOptions(!showOptions)
+            }}
+          >
+            {currentChain?.name ?? 'Known Network'}
+          </Button>
+          {chains?.length && showOptions ? (
+            <NetworkOptions sx={{ border: 1 }}>
+              {chains.map((v) => (
+                <NetworkOption
+                  key={v.chainId}
+                  onClick={() => {
+                    setShowOptions(false)
+                    switchNetwork(v.chainId)
+                  }}
+                >
+                  {v.name} {currentChain?.chainId === v.chainId ? <Dot className="dot" /> : null}
+                </NetworkOption>
+              ))}
+            </NetworkOptions>
+          ) : null}
+        </Network>
         <Button
           sx={sxButton}
           variant="outlined"
-          color={currentChain?.name ? 'inherit' : 'error'}
-          onClick={(event) => {
-            event.stopPropagation()
-            setShowOptions(!showOptions)
+          color="inherit"
+          onClick={() => {
+            connectWallet(ConnectorNames.Metamask)
           }}
         >
-          {currentChain?.name ?? 'Known Network'}
+          {isActive ? encryptionAddress(account) : 'Connect Wallet'}
         </Button>
-        {chains?.length && showOptions ? (
-          <NetworkOptions sx={{ border: 1 }}>
-            {chains.map((v) => (
-              <NetworkOption
-                key={v.chainId}
-                onClick={() => {
-                  setShowOptions(false)
-                  switchNetwork(v.chainId)
-                }}
-              >
-                {v.name} {currentChain?.chainId === v.chainId ? <Dot className="dot" /> : null}
-              </NetworkOption>
-            ))}
-          </NetworkOptions>
-        ) : null}
-      </Network>
-      <Button
-        sx={sxButton}
-        variant="outlined"
-        color="inherit"
-        onClick={() => {
-          connectWallet(ConnectorNames.Metamask)
-        }}
-      >
-        {isActive ? encryptionAddress(account) : 'Connect Wallet'}
-      </Button>
+      </Account>
     </Stack>
   )
 }

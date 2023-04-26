@@ -6,8 +6,7 @@ import { Home } from './pages/Home'
 import { Updater } from './store/Updater'
 import { Provider } from 'react-redux'
 import { store } from './store'
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   return (
@@ -16,7 +15,7 @@ function App() {
         <Web3ReactProvider connectors={connectors}>
           <Home />
           <Updater />
-          <ToastContainer />
+          <Toaster />
         </Web3ReactProvider>
       </ThemeProvider>
     </Provider>

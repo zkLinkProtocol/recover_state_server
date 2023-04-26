@@ -1,49 +1,57 @@
 import { createReducer } from '@reduxjs/toolkit'
 import {
-  fetchMulticallContracts,
+  fetchNetworks,
+  fetchPendingBalances,
+  fetchProofHistory,
   fetchProofs,
+  fetchRecoverProgress,
+  fetchRunningTaskId,
   updateBalances,
   updateContracts,
+  updateCurrentAccount,
   updateCurrentChain,
-  updateProofs,
+  updatePendingBalances,
   updateStoredBlockInfo,
   updateTokens,
 } from './actions'
-import { chainList } from '../../config/chains'
 import { HomeState } from './types'
-import { http } from '../../api'
 
 const initialState: HomeState = {
+  account: '',
+  networks: [],
   currentChain: undefined,
   contracts: {},
+  recoverProgress: undefined,
+  runningTaskId: 0,
   connectorName: undefined,
   tokens: {},
-  balances: {},
+  balance: {},
   storedBlockInfos: {},
   proofs: {},
   multicallContracts: undefined,
+  proofHistory: undefined,
+  pendingBalance: {},
 }
 
 export default createReducer<HomeState>(initialState, (builder) => {
   builder
+    .addCase(updateCurrentAccount, (state, { payload }) => {
+      state.account = payload
+    })
+    .addCase(fetchNetworks.fulfilled, (state, { payload }) => {
+      state.networks = payload
+    })
     .addCase(updateCurrentChain, (state, { payload }) => {
       state.currentChain = payload
     })
     .addCase(updateContracts, (state, { payload }) => {
-      if (!payload) {
-        return
-      }
-      if (!state.currentChain) {
-        const chainId = Number(Object.keys(payload)[0])
-        state.currentChain = chainList[chainId]
-      }
       state.contracts = payload
     })
     .addCase(updateTokens, (state, { payload }) => {
       state.tokens = payload
     })
     .addCase(updateBalances, (state, { payload }) => {
-      state.balances = payload
+      state.balance = payload
     })
     .addCase(updateStoredBlockInfo, (state, { payload }) => {
       state.storedBlockInfos[payload.chainId] = payload.storedBlockInfo
@@ -54,7 +62,19 @@ export default createReducer<HomeState>(initialState, (builder) => {
       }
       state.proofs[payload.subAccountId][payload.tokenId] = payload.data
     })
-    .addCase(fetchMulticallContracts.fulfilled, (state, { payload }) => {
-      state.multicallContracts = payload
+    .addCase(fetchRecoverProgress.fulfilled, (state, { payload }) => {
+      state.recoverProgress = payload
+    })
+    .addCase(fetchRunningTaskId.fulfilled, (state, { payload }) => {
+      state.runningTaskId = payload
+    })
+    .addCase(fetchProofHistory.fulfilled, (state, { payload }) => {
+      state.proofHistory = payload
+    })
+    .addCase(fetchPendingBalances.fulfilled, (state, { payload }) => {
+      state.pendingBalance[payload.account] = payload.balances
+    })
+    .addCase(updatePendingBalances, (state, { payload }) => {
+      state.pendingBalance[payload.account] = payload.balances
     })
 })
