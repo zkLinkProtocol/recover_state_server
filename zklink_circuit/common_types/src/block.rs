@@ -1,7 +1,6 @@
 //! zklink network block definition.
 
 use std::convert::TryInto;
-
 use chrono::DateTime;
 use chrono::Utc;
 use parity_crypto::digest::sha256;
@@ -168,6 +167,7 @@ impl Block {
         commit_gas_limit: U256,
         verify_gas_limit: U256,
         previous_block_root_hash: H256,
+        previous_block_sync_hash: H256,
         timestamp: u64,
     ) -> Self {
         let mut block = Self {
@@ -196,7 +196,7 @@ impl Block {
         );
         block.block_commitment = block_commitment;
         // cal sync hash depends on block_commitment
-        block.sync_hash = block.get_sync_hash(available_chain_ids);
+        block.sync_hash = block.get_sync_hash(previous_block_sync_hash, available_chain_ids);
         block
     }
 
@@ -379,8 +379,8 @@ impl Block {
                     processable_operations_hash.to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                .concat()
-                .keccak256();
+                    .concat()
+                    .keccak256();
             }
         }
         H256::from(processable_operations_hash)
@@ -398,8 +398,8 @@ impl Block {
                     onchain_operation_pubdata_hashs[op_chain_id].to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                .concat()
-                .keccak256();
+                    .concat()
+                    .keccak256();
             }
         }
         let onchain_op_pubdata_hashs = onchain_operation_pubdata_hashs
@@ -456,21 +456,31 @@ impl Block {
             .collect()
     }
 
-    pub fn get_sync_hash(&self, available_chain_ids: &[ChainId]) -> H256 {
+    pub fn get_sync_hash(
+        &self,
+        previous_block_sync_hash: H256,
+        available_chain_ids: &[ChainId],
+    ) -> H256 {
         let sync_hash = if self.block_number.0 == 0 {
             Vec::new().keccak256().to_vec()
         } else {
             let max_chain_id = available_chain_ids.iter().max().unwrap();
             let onchain_op_pubdata_hashs = self.get_onchain_op_pubdata_hashs(max_chain_id);
-            let mut sync_hash_tmp = self.block_commitment.as_bytes().to_vec();
+            let mut sync_hash_tmp = [
+                previous_block_sync_hash.as_bytes().to_vec(),
+                self.block_commitment.as_bytes().to_vec(),
+            ]
+                .concat()
+                .keccak256()
+                .to_vec();
             for i in available_chain_ids.iter() {
                 sync_hash_tmp = [
                     sync_hash_tmp,
                     onchain_op_pubdata_hashs[i.0 as usize].as_bytes().to_vec(),
                 ]
-                .concat()
-                .keccak256()
-                .to_vec();
+                    .concat()
+                    .keccak256()
+                    .to_vec();
             }
             sync_hash_tmp
         };

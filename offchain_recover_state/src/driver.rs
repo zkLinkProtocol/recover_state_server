@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::time::Duration;
 // External deps
 use tracing::{debug, info, warn};
-
+use parity_crypto::Keccak256;
 // Workspace deps
 use recover_state_config::{ChainType, RecoverStateConfig};
 use zklink_crypto::convert::FeConvert;
@@ -256,8 +256,13 @@ where
             .iter()
             .map(|(chain_id, _)| (*chain_id, -1))
             .collect();
-        let mut tree_state =
-            TreeState::load(BlockNumber(0), last_serial_ids, account_map, AccountId(0));
+        let mut tree_state = TreeState::load(
+            H256::from(Vec::new().keccak256()),
+            BlockNumber(0),
+            last_serial_ids,
+            account_map,
+            AccountId(0)
+        );
         tree_state.state.register_token(Token {
             id: USD_TOKEN_ID.into(),
             chains: vec![],
@@ -308,6 +313,7 @@ where
             .collect();
         let tree_state = interactor.get_tree_state(chain_ids).await;
         self.tree_state = TreeState::load(
+            tree_state.last_sync_hash,
             tree_state.last_block_number,
             tree_state.last_serial_ids,
             tree_state.account_map,

@@ -2,6 +2,7 @@ use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
 use std::collections::HashMap;
 use tracing::info;
+use parity_crypto::Keccak256;
 use zklink_crypto::convert::FeConvert;
 use zklink_crypto::Fr;
 use zklink_state::state::TransferOutcome;
@@ -22,6 +23,8 @@ type BlockAndUpdates = (Block, Vec<(AccountId, AccountUpdate, H256)>);
 pub struct TreeState {
     /// Accounts stored in a spase merkle tree
     pub state: ZkLinkState,
+    /// Last block sync hash
+    pub last_sync_hash: H256,
     /// The last fee account address
     pub last_fee_account_address: ZkLinkAddress,
     /// the current serial id of priority op of all chain.
@@ -39,6 +42,7 @@ impl TreeState {
     pub fn new() -> Self {
         Self {
             state: ZkLinkState::empty(),
+            last_sync_hash: H256::from(Vec::new().keccak256()),
             last_fee_account_address: ZkLinkAddress::default(),
             last_serial_ids: HashMap::new(),
         }
@@ -54,6 +58,7 @@ impl TreeState {
     /// * `fee_account` - The last fee account address
     ///
     pub fn load(
+        last_sync_hash: H256,
         current_block: BlockNumber,
         last_serial_ids: HashMap<ChainId, i64>,
         accounts: AccountMap,
@@ -66,6 +71,7 @@ impl TreeState {
             .address;
         Self {
             state,
+            last_sync_hash,
             last_fee_account_address,
             last_serial_ids,
         }
@@ -315,9 +321,11 @@ impl TreeState {
             gas_limit,
             gas_limit,
             ops_block.previous_block_root_hash,
+            self.last_sync_hash,
             ops_block.timestamp.unwrap_or_default(),
         );
 
+        self.last_sync_hash = block.sync_hash;
         *self.state.block_number += 1;
 
         Ok((block, accounts_updated))

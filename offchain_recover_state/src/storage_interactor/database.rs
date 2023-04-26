@@ -355,6 +355,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         }
 
         StoredTreeState {
+            last_sync_hash: block.sync_hash,
             last_block_number: last_block.into(),
             last_serial_ids,
             account_map,

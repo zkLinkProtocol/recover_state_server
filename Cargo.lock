@@ -3239,6 +3239,7 @@ dependencies = [
  "hex",
  "jsonrpc-core",
  "num",
+ "parity-crypto",
  "recover_state_config",
  "reqwest",
  "serde_json",

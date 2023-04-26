@@ -24,6 +24,7 @@ use crate::{
 };
 
 pub struct StoredTreeState {
+    pub last_sync_hash: H256,
     pub last_block_number: BlockNumber,
     pub last_serial_ids: HashMap<ChainId, i64>,
     pub account_map: AccountMap,

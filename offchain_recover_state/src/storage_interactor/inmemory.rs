@@ -147,6 +147,7 @@ impl StorageInteractor for InMemoryStorageInteractor {
             .collect();
         // TODO find a way how to get unprocessed_prior_ops and fee_acc_id
         StoredTreeState {
+            last_sync_hash: Default::default(),
             last_block_number: self.last_verified_block,
             last_serial_ids,
             account_map: self.accounts.clone(),
