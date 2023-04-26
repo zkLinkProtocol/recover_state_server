@@ -15,8 +15,7 @@ This repository contains the Server, Prover and React App for zkLink Exodus Mode
 - [License](#license)
 
 ## Prerequisites
-Before getting started, you need to select a suitable server. We recommend three configurations based on the required prove performance and cost:
-
+We recommend using the Ubuntu OS, and below are three recommended configurations.
 
 | AWS EC2 Instance | Price     | Prove Performance |
 |------------------|-----------|-------------------|
