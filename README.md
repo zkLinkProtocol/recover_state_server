@@ -105,9 +105,9 @@ If you want to see the recover state process, please:
 ```shell
 tail -f log/recover_state.log
 ```
-**Please be patient and wait until the command finishes.**
+**The program will close automatically when synchronization is complete.**
 
-If there is an interruption, run the `continue` command
+If there is an interruption, you can run the `continue` command
 ```shell
 ./exodus.sh continue
 ```
@@ -126,6 +126,11 @@ Please refer to prover [README.md](prover/README.md) for detailed command detail
 ### Close Exodus Server and Exodus Prove
 ```shell
 ./exodus.sh stop
+```
+
+### Clean Up Exodus All Data
+```shell
+./exodus.sh clean
 ```
 
 ## License

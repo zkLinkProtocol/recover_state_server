@@ -15,6 +15,9 @@ elif [ "$1" == "prover" ]; then
 elif [ "$1" == "stop" ]; then
   pkill -f exodus_server
   pkill -f exodus_prover
+elif [ "$1" == "clean" ]; then
+  cd storage
+  diesel database reset
 else
   echo "Usage: $0 {recover|continue|server|prover|stop}"
   exit 1
