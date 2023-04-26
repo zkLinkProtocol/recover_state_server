@@ -12,11 +12,10 @@ import {
 } from './types'
 import { Address, L2ChainId, SubAccountId, TokenId, Wei } from '../../types/global'
 import { DunkirkResponse, http } from '../../api'
-import { AxiosResponse } from 'axios'
+import axios, { AxiosResponse } from 'axios'
 import { STATIC_HOST } from '../../config'
 import { Web3Provider } from '@ethersproject/providers'
-import { RootState, useAppDispatch } from '..'
-import { useContracts, useTokens } from './hooks'
+import { RootState } from '..'
 import { Interface } from 'ethers/lib/utils'
 import MainContract from 'zklink-js-sdk/abi/ZkLink.json'
 import { BigNumber } from 'ethers'
@@ -38,12 +37,7 @@ export const updateProofs = createAction<{
 }>('home/updateProofs')
 
 export const fetchNetworks = createAsyncThunk<NetworkInfo[]>('home/fetchNetworks', async () => {
-  const r: AxiosResponse<NetworkInfo[]> = await http.get('/networks/list.json', {
-    baseURL: STATIC_HOST,
-    headers: {
-      // 'Content-Type': 'application/json',
-    },
-  })
+  const r: AxiosResponse<NetworkInfo[]> = await axios.get(`${STATIC_HOST}/networks/list.json`)
   return r.data
 })
 interface ProofsArgs {

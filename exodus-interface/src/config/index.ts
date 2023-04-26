@@ -4,7 +4,6 @@ function boolean(envValue: string | boolean) {
 
 export const ENV: 'devnet' | 'testnet' = process.env.REACT_APP_ENV! as 'devnet' | 'testnet'
 
-export const API_HOST = process.env.REACT_APP_API_HOST
 export const STATIC_HOST = process.env.REACT_APP_STATIC_HOST
 
 export const RUNNING_TASK_ID_DELAY = 10000
