@@ -5,7 +5,7 @@ const path = require('path')
 const proxy = require('koa-proxies')
 
 const app = new Koa()
-const port = process.env.PORT || 8081
+const port = process.env.PORT || 80
 
 app.use(
   proxy('/api', {
