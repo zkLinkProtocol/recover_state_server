@@ -68,6 +68,7 @@ cargo build --release
 ```
 This will create a binary file in the `target/release` directory.
 
+-----
 ### Configure the Environment Variables
 First, there is a `.env.eg` file in the root path of our project, copy and rename it to `.env`.
 ```shell
@@ -77,7 +78,14 @@ Then, you need to modify the following configuration:
 
 **note:**
 1. `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` must be configured by your current environment
+
+```shell
+export DATABASE_URL=postgres://user:password@localhost/plasma
+export RUNTIME_CONFIG_ZKLINK_HOME = /home/xxx_user/recover_state_server 
+
+```
 2. Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
+
 
 
 | configuration variables                        | description                                                  | example                                                              |
@@ -93,7 +101,7 @@ Then, you need to modify the following configuration:
 | `CHAIN_{CHAIN_ID}_CONTRACT_ADDRESS`            | The zkLink main contract address                             | "0x517aa9dec0E297B744aC7Ac8ddd8B127c1993055"                         |
 | `CHAIN_{CHAIN_ID}_CONTRACT_GENESIS_TX_HASH`    | The zkLink contract deployed tx hash                         | "0x5c576039ffefce307ffbc5556899ee0772efcf2046051cc4fe9ca633987061ca" |
 | `CHAIN_{CHAIN_ID}_CLIENT_CHAIN_ID`             | The real chain id defined in layer1                          | 80001                                                                |
-
+-----
 ### Recover ZkLink state
 To recover the state, run the following `recover` command:
 ```shell
@@ -111,7 +119,7 @@ If there is an interruption, you can run the `continue` command
 ```shell
 ./exodus.sh continue
 ```
-
+-----
 ### Start Exodus Server and Exodus Prove
 To start the server, run the following command:
 ```shell
