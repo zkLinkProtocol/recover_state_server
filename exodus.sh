@@ -1,8 +1,8 @@
 #!/bin/bash
 
-recover_dir=$RUNTIME_CONFIG_ZKLINK_HOME
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
 
-cd $recover_dir
+cd $DIR
 cargo build --release
 
 if [ ! -d "log" ]; then
