@@ -305,7 +305,10 @@ impl TreeState {
             .contract_version
             .expect("contract version must be set")
             .supported_ops_numbers();
-        let available_chain_ids = self.last_serial_ids.keys().into_iter().copied().collect::<Vec<_>>();
+        let available_chain_ids = self.last_serial_ids
+            .keys()
+            .copied()
+            .collect::<Vec<_>>();
 
         let block = Block::new_from_available_block_sizes(
             ops_block.block_num,

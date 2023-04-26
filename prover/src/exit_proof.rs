@@ -29,7 +29,7 @@ pub fn create_exit_proof(
     l2_source_token: TokenId,
     l1_target_token: TokenId,
     chain_id: ChainId,
-    total_chain_num: usize,
+    max_chain_num: usize,
 ) -> Result<(EncodedSingleProof, BigUint), anyhow::Error> {
     let timer = Instant::now();
     let (exit_circuit, withdraw_amount) = create_exit_circuit_with_public_input(
@@ -39,7 +39,7 @@ pub fn create_exit_proof(
         l2_source_token,
         l1_target_token,
         chain_id,
-        total_chain_num,
+        max_chain_num,
     );
     info!("Exit witness generated: {} s", timer.elapsed().as_secs());
 

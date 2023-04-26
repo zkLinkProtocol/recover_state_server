@@ -47,10 +47,10 @@ fn check_source_and_target_token(l2_token: TokenId, l1_token: TokenId) -> (bool,
 fn get_global_asset_account_witnesses(
     l2_source_token: TokenId,
     l1_target_token_after_mapping: TokenId,
-    total_chain_num: usize,
+    max_chain_num: usize,
     account_tree: &CircuitAccountTree,
 ) -> OpenValues {
-    (1..=total_chain_num)
+    (1..=max_chain_num)
         .map(|index| {
             if *l2_source_token == USD_TOKEN_ID {
                 (USDX_TOKEN_ID_LOWER_BOUND..=USDX_TOKEN_ID_UPPER_BOUND)
@@ -86,10 +86,10 @@ fn get_global_asset_account_witnesses(
 fn get_global_asset_account_audit_paths(
     l2_source_token: TokenId,
     l1_target_token_after_mapping: TokenId,
-    total_chain_num: usize,
+    max_chain_num: usize,
     account_tree: &CircuitAccountTree,
 ) -> GlobalAssetAccountAuditPath {
-    (1..=total_chain_num)
+    (1..=max_chain_num)
         .map(|index| {
             if *l2_source_token == USD_TOKEN_ID {
                 (USDX_TOKEN_ID_LOWER_BOUND..=USDX_TOKEN_ID_UPPER_BOUND).map(|usdx_id| {
@@ -170,7 +170,7 @@ pub fn create_exit_circuit_with_public_input(
     l2_source_token: TokenId,
     l1_target_token: TokenId,
     chain_id: ChainId,
-    total_chain_num: usize,
+    max_chain_num: usize,
 ) -> (ZkLinkExitCircuit<'static, Engine>, BigUint) {
     let (is_correct_tokens, l1_target_token_after_mapping) =
         check_source_and_target_token(l2_source_token, l1_target_token);
@@ -223,14 +223,14 @@ pub fn create_exit_circuit_with_public_input(
         get_global_asset_account_witnesses(
             l2_source_token,
             l1_target_token_after_mapping,
-            total_chain_num,
+            max_chain_num,
             account_tree,
         );
     let (global_audit_paths, (global_audit_balance_paths, global_audit_order_paths)) =
         get_global_asset_account_audit_paths(
             l2_source_token,
             l1_target_token_after_mapping,
-            total_chain_num,
+            max_chain_num,
             account_tree,
         );
     let sum = global_balances.iter().fold(Fr::zero(), |mut acc, bal| {
@@ -281,7 +281,7 @@ pub fn create_exit_circuit_with_public_input(
     let global_account_audit_datas = get_global_account_audit_datas(
         l2_source_token,
         l1_target_token_after_mapping_fe,
-        total_chain_num,
+        max_chain_num,
         global_account_witnesses,
         global_balances,
         global_orders,

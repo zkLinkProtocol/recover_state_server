@@ -146,7 +146,7 @@ impl ExodusProver {
             exit_info.l2_source_token,
             exit_info.l1_target_token,
             exit_info.chain_id,
-            self.config.layer1.chain_configs.len(),
+            **self.config.layer1.chain_ids.iter().max().unwrap() as usize,
         )
         .expect("Failed to generate exit proof");
 
