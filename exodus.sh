@@ -39,7 +39,7 @@ elif [ "$1" == "continue" ]; then
   echo "Continue exodus prover"
   cd exodus-interface
   npm run build:devnet
-  npx pm2 serve ./build/ --spa --name dunkirk-web --port $PORT
+  npm run serve:devnet
 elif [ "$1" == "server" ]; then
   nohup ./target/release/exodus_server >> log/server.log 2>&1 &
 elif [ "$1" == "prover" ]; then
