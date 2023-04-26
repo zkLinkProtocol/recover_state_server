@@ -27,8 +27,7 @@ if [ "$1" == "start" ]; then
   cd exodus-interface
   npm install
   npm run build:devnet
-  npx pm2 serve ./build/ --spa --name dunkirk-web --port $PORT
-  
+  npm run serve:devnet
 elif [ "$1" == "continue" ]; then
   # If there is an interruption, you can run the `continue` command
   nohup ./target/release/recover_state --continue >> log/recover_state.log 2>&1 &
