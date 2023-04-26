@@ -62,31 +62,29 @@ Explanation of .env Configuration Items: [env.md](env.md)
 Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
 
 -----
-### Recover ZkLink state
-To recover the state, run the following `start` command:
+
+### Starting the state recovery program, Prover program, and web service server
 ```shell
+export $PORT=80
 ./exodus.sh start
 ```
-This command will take several hours to complete.
+This command may take several hours to complete.
 
-If you want to see the recover state process, please:
+If you want to monitor the state recovery process, please run the following command:
 ```shell
 tail -f log/recover_state.log
 ```
 **The program will close automatically when synchronization is complete.**
 
-### Close Exodus Server and Exodus Prove
+### Stopping recovery program, Prover program, and web service server
 ```shell
 ./exodus.sh stop
 ```
 
-### Clean Up Exodus All Data
+### Cleaning Up All Exodus Data
 ```shell
 ./exodus.sh clean
 ```
-
-### Frontend setup
-Please refer to [Frontend setup](exodus-interface/README.md)
 
 ## License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
