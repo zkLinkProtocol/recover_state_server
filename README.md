@@ -4,15 +4,13 @@ This repository contains the Server, Prover and React App for zkLink Exodus Mode
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-    - Backend
-        - [Download the setup](#Download-the-setup)
-        - [Create the Database](#create-the-database)
-        - [Build the Project](#build-the-project)
-        - [Configure the Environment Variables](#configure-the-environment-variables)
-        - [Recover zklink State](#Recover-ZkLink-State)
-        - [Start Exodus Server and Exodus Prove](#Start-Exodus-Server-and-Exodus-Prove)
-    - [Frontend setup](exodus-interface/README.md)
+  - [Clone the git repository and download the setup file](#clone-the-git-repository-and-download-the-setup-file)
+  - [Configure the Environment Variables](#configure-the-environment-variables)
+  - [Starting the recovery program, prover program, and web service server](#starting-the-recovery-program-prover-program-and-web-service-server)
+  - [Stopping recovery program, Prover program, and web service server](#stopping-recovery-program-prover-program-and-web-service-server)
+  - [Cleaning Up All Exodus Data](#cleaning-up-all-exodus-data)
 - [License](#license)
+
 
 ## Prerequisites
 We recommend using the Ubuntu OS, and below are three recommended configurations.
