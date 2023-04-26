@@ -13,7 +13,7 @@ pub mod tree_state;
 mod tests;
 
 // How many blocks we will process at once.
-pub const VIEW_BLOCKS_STEP: u64 = 2_000;
+pub const VIEW_BLOCKS_STEP: u64 = 1_000;
 pub const END_BLOCK_OFFSET: u64 = 40;
 
 // An error returned by the rpc server because the number of requests was too frequent.
