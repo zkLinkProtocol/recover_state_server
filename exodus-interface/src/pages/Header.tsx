@@ -124,29 +124,48 @@ export const Header = () => {
     })
   })
 
-  useEffectOnce(() => {
-    axios.get(`${process.env.PUBLIC_URL}/node.png`).then((r) => {
-      if (r.status === 200) {
-        setShowDeployer('png')
-      }
-    })
-    axios.get(`${process.env.PUBLIC_URL}/node.svg`).then((r) => {
-      if (r.status === 200) {
-        setShowDeployer('svg')
-      }
-    })
-  })
-
   return (
     <Stack height="88px" spacing={1} alignItems="center" direction="row">
       <img src={logoUrl} width="26" />
       <Typography variant="h5">zkLink</Typography>
-      {showDeployer ? (
-        <>
-          <Typography variant="h5">/</Typography>
-          <img src={`${process.env.PUBLIC_URL}/node.${showDeployer}`} height="26" />
-        </>
-      ) : null}
+
+      <Stack
+        sx={{
+          display: showDeployer === 'png' ? 'flex' : 'none',
+        }}
+        flexDirection="row"
+        alignItems="center"
+      >
+        <Typography sx={{ marginRight: 1 }} variant="h5">
+          /
+        </Typography>
+        <img
+          src={`${process.env.PUBLIC_URL}/node.png`}
+          onLoad={() => {
+            setShowDeployer('png')
+          }}
+          height="26"
+        />
+      </Stack>
+      <Stack
+        sx={{
+          display: showDeployer === 'svg' ? 'flex' : 'none',
+        }}
+        flexDirection="row"
+        alignItems="center"
+      >
+        <Typography sx={{ marginRight: 1 }} variant="h5">
+          /
+        </Typography>
+        <img
+          src={`${process.env.PUBLIC_URL}/node.svg`}
+          onLoad={() => {
+            setShowDeployer('svg')
+          }}
+          height="26"
+        />
+      </Stack>
+
       <Nav>
         <Link className={location.pathname === '/' ? 'active' : ''} to={'/'}>
           Home
