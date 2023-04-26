@@ -9,6 +9,11 @@ if [ ! -d "log" ]; then
   mkdir log
 fi
 
+if [ "$PORT" = "" ]; then
+    PORT=80
+fi
+  
+
 if [ "$1" == "start" ]; then
   cd storage
   diesel database reset
@@ -20,7 +25,10 @@ if [ "$1" == "start" ]; then
   nohup ./target/release/exodus_prover tasks -w 4 >> log/prover.log 2>&1 &
   echo "start exodus prover"
   cd exodus-interface
-
+  npm install
+  npm run build:devnet
+  npx pm2 serve ./build/ --spa --name dunkirk-web --port $PORT
+  
 elif [ "$1" == "continue" ]; then
   # If there is an interruption, you can run the `continue` command
   nohup ./target/release/recover_state --continue >> log/recover_state.log 2>&1 &
