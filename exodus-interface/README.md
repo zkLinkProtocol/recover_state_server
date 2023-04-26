@@ -22,7 +22,7 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run serve:devnet"`
+### `npm run serve:devnet`
 
 Deploy your website with pm2, the default is port 80, you can change it.
 
