@@ -38,6 +38,7 @@ elif [ "$1" == "prover" ]; then
   # Please refer to prover [README.md](prover/README.md) for detailed command details
   nohup ./target/release/exodus_prover tasks -w 4 >> log/prover.log 2>&1 &
 elif [ "$1" == "stop" ]; then
+  pkill -f recover_state
   pkill -f exodus_server
   pkill -f exodus_prover
 elif [ "$1" == "clean" ]; then
