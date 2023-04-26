@@ -7,6 +7,4 @@ export interface DunkirkResponse<T = any> {
   err_msg: null | string
 }
 
-export const http = axios.create({
-  baseURL: API_HOST,
-})
+export const http = axios.create({})
