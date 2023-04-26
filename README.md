@@ -43,7 +43,7 @@ export DATABASE_URL=postgres://postgres:password@localhost/plasma
 ```shell
 git clone https://github.com/zkLinkProtocol/recover_state_server.git
 cd recover_state_server
-axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key -o ./zklink_keys
+axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E23.key -o ./zklink_keys
 ```
 
 -----
