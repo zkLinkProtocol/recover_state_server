@@ -4,15 +4,13 @@ This repository contains the Server, Prover and React App for zkLink Exodus Mode
 ## Table of Contents
 - [Prerequisites](#prerequisites)
 - [Getting Started](#getting-started)
-    - Backend
-        - [Download the setup](#Download-the-setup)
-        - [Create the Database](#create-the-database)
-        - [Build the Project](#build-the-project)
-        - [Configure the Environment Variables](#configure-the-environment-variables)
-        - [Recover zklink State](#Recover-ZkLink-State)
-        - [Start Exodus Server and Exodus Prove](#Start-Exodus-Server-and-Exodus-Prove)
-    - [Frontend setup](exodus-interface/README.md)
+  - [Clone the git repository and download the setup file](#clone-the-git-repository-and-download-the-setup-file)
+  - [Configure the Environment Variables](#configure-the-environment-variables)
+  - [Starting the recovery program, prover program, and web service server](#starting-the-recovery-program-prover-program-and-web-service-server)
+  - [Stopping recovery program, Prover program, and web service server](#stopping-recovery-program-prover-program-and-web-service-server)
+  - [Cleaning Up All Exodus Data](#cleaning-up-all-exodus-data)
 - [License](#license)
+
 
 ## Prerequisites
 We recommend using the Ubuntu OS, and below are three recommended configurations.
@@ -62,31 +60,29 @@ Explanation of .env Configuration Items: [env.md](env.md)
 Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
 
 -----
-### Recover ZkLink state
-To recover the state, run the following `start` command:
+
+### Starting the recovery program, prover program, and web service server
 ```shell
+export $PORT=80
 ./exodus.sh start
 ```
-This command will take several hours to complete.
+This command may take several hours to complete.
 
-If you want to see the recover state process, please:
+If you want to monitor the state recovery process, please run the following command:
 ```shell
 tail -f log/recover_state.log
 ```
-**The program will close automatically when synchronization is complete.**
+The recovery program will close automatically when synchronization is complete.
 
-### Close Exodus Server and Exodus Prove
+### Stopping recovery program, Prover program, and web service server
 ```shell
 ./exodus.sh stop
 ```
 
-### Clean Up Exodus All Data
+### Cleaning Up All Exodus Data
 ```shell
 ./exodus.sh clean
 ```
-
-### Frontend setup
-Please refer to [Frontend setup](exodus-interface/README.md)
 
 ## License
 This project is licensed under the MIT License - see the `LICENSE` file for details.
