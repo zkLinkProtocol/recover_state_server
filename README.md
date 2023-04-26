@@ -63,7 +63,7 @@ Before "dunkerque," a link will be published here that will display contract and
 
 -----
 
-### Starting the state recovery program, Prover program, and web service server
+### Starting the recovery program, prover program, and web service server
 ```shell
 export $PORT=80
 ./exodus.sh start
@@ -74,7 +74,7 @@ If you want to monitor the state recovery process, please run the following comm
 ```shell
 tail -f log/recover_state.log
 ```
-**The program will close automatically when synchronization is complete.**
+The recovery program will close automatically when synchronization is complete.
 
 ### Stopping recovery program, Prover program, and web service server
 ```shell
