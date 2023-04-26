@@ -45,13 +45,13 @@ export DATABASE_URL=postgres://postgres:password@localhost/plasma
 
 ```shell
 git clone https://github.com/zkLinkProtocol/recover_state_server.git
-cd recover_state_server/zklink_keys
-axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key
+cd recover_state_server
+axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E21.key -o ./zklink_keys
 ```
 
 -----
 ### Configure the Environment Variables
-There is a `.env.eg` file in the root path of our project, copy and rename it to `.env`. 
+There is a `.env.e.g` file in the root path of our project, copy and rename it to `.env`. 
 ```shell
 cp .env.e.g .env
 ```
