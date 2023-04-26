@@ -20,7 +20,7 @@ API_CONFIG_ENABLE_HTTP_CORS=true
 
 # [database]
 # Replace `USER_NAME` and `HOST` in the database URL with your PostgreSQL username
-DATABASE_URL="postgres://postgres:postgres@localhost/plasma"
+DATABASE_URL="postgres://postgres:password@localhost/plasma"
 # Number of open connections to the database
 DATABASE_POOL_SIZE=10
 
