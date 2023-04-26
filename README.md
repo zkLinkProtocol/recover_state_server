@@ -74,6 +74,8 @@ First, there is a `.env.eg` file in the root path of our project, copy and renam
 ```shell
 cp .env.e.g .env
 ```
+Explanation of .env Configuration Items: [env.md](env.md)
+
 Then, you need to modify the following configuration:
 
 **note:**
