@@ -53,8 +53,10 @@ axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E23.key -o 
 There is a `.env.e.g` file in the root path of our project, copy and rename it to `.env`. 
 ```shell
 cp .env.e.g .env
+
+# Must configure `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` based on your environment
 ```
-**Must configure `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` based on your environment.**
+
 
 Explanation of .env Configuration Items: [env.md](env.md)
 
@@ -65,7 +67,7 @@ Before "dunkerque," a link will be published here that will display contract and
 
 ### Starting the recovery program, prover program, and web service server
 ```shell
-export PORT=80  # The access port for the frontend page.
+export PORT=8081  # The access port for the frontend page.
 
 ./exodus.sh start
 ```
