@@ -11,5 +11,6 @@ categories = ["cryptography"]
 [dependencies]
 crypto = { package = "rust-crypto", version = "0.2" }
 num = { version = "0.4.0", features = ["serde"] }
+sha2 = "0.9"
 zklink_crypto = { path = "../crypto", version = "1.0" }
 zklink_types = { path = "../common_types", version = "1.0" }

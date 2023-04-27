@@ -1,6 +1,6 @@
-use std::ops::Sub;
+use crate::{exit_circuit::*, utils::*};
 use num::BigUint;
-use crate::{circuit::*, utils::*};
+use std::ops::Sub;
 
 #[derive(Clone)]
 pub struct CircuitElement<E: Engine> {
@@ -63,8 +63,10 @@ impl<E: Engine> CircuitElement<E> {
         max_length: usize,
     ) -> Result<Self, SynthesisError> {
         assert!(max_length <= E::Fr::NUM_BITS as usize);
-        let number =
-            AllocatedNum::alloc_constant(cs.namespace(|| "number from field element"), field_element)?;
+        let number = AllocatedNum::alloc_constant(
+            cs.namespace(|| "number from field element"),
+            field_element,
+        )?;
         CircuitElement::from_number_with_known_length(
             cs.namespace(|| "circuit_element"),
             number,
@@ -209,13 +211,15 @@ impl<E: Engine> CircuitElement<E> {
     pub fn enforce_specified_length<CS: ConstraintSystem<E>>(
         &self,
         mut cs: CS,
-        length: usize
+        length: usize,
     ) -> Result<(), SynthesisError> {
         if self.length <= length {
             Ok(())
         } else {
-            let number_repacked =
-                pack_bits_to_element(cs.namespace(|| "pack truncated bits"), &self.bits_le[0..length])?;
+            let number_repacked = pack_bits_to_element(
+                cs.namespace(|| "pack truncated bits"),
+                &self.bits_le[0..length],
+            )?;
             cs.enforce(
                 || format!("number can be represented in {} bits", length),
                 |lc| lc + self.number.get_variable(),
@@ -306,29 +310,6 @@ impl<E: Engine> CircuitElement<E> {
         Ok((selected_ce1, selected_ce2))
     }
 
-    pub fn min<CS: ConstraintSystem<E>>(
-        mut cs: CS,
-        x: &Self,
-        y: &Self,
-    ) -> Result<Self, SynthesisError> {
-        assert!(x.length <= E::Fr::NUM_BITS as usize);
-        assert_eq!(x.length, y.length);
-
-        let is_smaller = CircuitElement::less_than_fixed(
-            cs.namespace(||"select smaller"),
-            x,
-            y
-        )?;
-
-        let selected_ce = CircuitElement::conditionally_select(
-            cs.namespace(|| "smaller ce"),
-            x,
-            y,
-            &is_smaller,
-        )?;
-        Ok(selected_ce)
-    }
-
     // doesn't enforce length by design, though applied to both strict values will give strict result
     pub fn conditionally_select_with_number_strict<
         CS: ConstraintSystem<E>,
@@ -377,9 +358,9 @@ impl<E: Engine> CircuitElement<E> {
         let base = E::Fr::from_big_uint(
             BigUint::from(2u8)
                 .pow(length as u32)
-                .sub(BigUint::from(1u8))
-        ).unwrap();
-
+                .sub(BigUint::from(1u8)),
+        )
+        .unwrap();
 
         let expr = Expression::constant::<CS>(base) - x.get_number() + y.get_number();
         let bits = expr.into_bits_le_fixed(cs.namespace(|| "diff bits"), length + 1)?;
@@ -404,24 +385,28 @@ impl<E: Engine> CircuitElement<E> {
         let base = E::Fr::from_big_uint(
             BigUint::from(2u8)
                 .pow(length as u32)
-                .sub(BigUint::from(1u8))
-        ).unwrap();
+                .sub(BigUint::from(1u8)),
+        )
+        .unwrap();
 
         let expr = Expression::constant::<CS>(base) - x.get_number() + y.get_number();
         let bits = expr.into_bits_le_fixed(cs.namespace(|| "diff bits"), length + 1)?;
 
         let diff = Expression::equals(
             cs.namespace(|| "pack bits to element"),
-            expr, Expression::constant::<CS>(base)
+            expr,
+            Expression::constant::<CS>(base),
         )?;
 
         let less_equal = Boolean::and(
             cs.namespace(|| "less equal"),
             &Boolean::from(diff).not(),
-            &bits.last()
+            &bits
+                .last()
                 .expect("expr bit representation should always contain at least one bit")
-                .not()
-        )?.not();
+                .not(),
+        )?
+        .not();
 
         Ok(less_equal)
     }
@@ -438,7 +423,9 @@ impl<E: Engine> CircuitElement<E> {
         &self.bits_le
     }
 
-    pub fn bits_length(&self) -> usize{ self.length }
+    pub fn bits_length(&self) -> usize {
+        self.length
+    }
 
     pub fn get_bits_be(&self) -> Vec<Boolean> {
         let mut bits_be = self.bits_le.clone();
@@ -450,120 +437,5 @@ impl<E: Engine> CircuitElement<E> {
         self.number
             .get_value()
             .ok_or(SynthesisError::AssignmentMissing)
-    }
-}
-
-#[derive(Clone)]
-pub struct CircuitPubkey<E: RescueEngine + JubjubEngine> {
-    x: CircuitElement<E>,
-    y: CircuitElement<E>,
-    hash: CircuitElement<E>,
-}
-
-impl<E: RescueEngine + JubjubEngine> CircuitPubkey<E> {
-    pub fn from_xy_fe<
-        CS: ConstraintSystem<E>,
-        Fx: FnOnce() -> Result<E::Fr, SynthesisError>,
-        Fy: FnOnce() -> Result<E::Fr, SynthesisError>,
-    >(
-        mut cs: CS,
-        x: Fx,
-        y: Fy,
-        params: &<E as RescueEngine>::Params,
-    ) -> Result<Self, SynthesisError> {
-        let x_num = AllocatedNum::alloc(cs.namespace(|| "x_num"), x)?;
-        let y_num = AllocatedNum::alloc(cs.namespace(|| "y_num"), y)?;
-
-        Self::from_xy(cs, x_num, y_num, params)
-    }
-
-    pub fn from_xy<CS: ConstraintSystem<E>>(
-        mut cs: CS,
-        x: AllocatedNum<E>,
-        y: AllocatedNum<E>,
-        params: &<E as RescueEngine>::Params,
-    ) -> Result<Self, SynthesisError> {
-        let x_ce = CircuitElement::from_number(cs.namespace(|| "x"), x.clone())?;
-        let y_ce = CircuitElement::from_number(cs.namespace(|| "y"), y.clone())?;
-
-        let mut sponge_output =
-            rescue::rescue_hash(cs.namespace(|| "hash public key"), &[x, y], params)?;
-
-        assert_eq!(sponge_output.len(), 1);
-
-        let hash = sponge_output.pop().expect("must get an element");
-
-        let mut hash_bits = hash.into_bits_le_strict(cs.namespace(|| "pubkey hash into bits"))?;
-        hash_bits.truncate(NEW_PUBKEY_HASH_WIDTH);
-        let element = CircuitElement::from_le_bits(cs.namespace(|| "repack_hash"), hash_bits)?;
-
-        Ok(CircuitPubkey {
-            x: x_ce,
-            y: y_ce,
-            hash: element,
-        })
-    }
-    pub fn get_x(&self) -> CircuitElement<E> {
-        self.x.clone()
-    }
-    pub fn get_y(&self) -> CircuitElement<E> {
-        self.y.clone()
-    }
-    pub fn get_hash(&self) -> CircuitElement<E> {
-        self.hash.clone()
-    }
-    pub fn get_external_packing(&self) -> Vec<Boolean> {
-        let mut ext_bits = Vec::with_capacity(FR_BIT_WIDTH_PADDED);
-        ext_bits.push(self.get_x().get_bits_le()[0].clone());
-        ext_bits.extend(self.get_y().get_bits_be()[1..].to_vec());
-        reverse_bytes(&ext_bits)
-    }
-    pub fn conditionally_select<CS: ConstraintSystem<E>>(
-        mut cs: CS,
-        a: &Self,
-        b: &Self,
-        condition: &Boolean,
-    ) -> Result<Self, SynthesisError> {
-        let selected_x = CircuitElement::conditionally_select(
-            cs.namespace(|| "conditionally_select_x"),
-            &a.get_x(),
-            &b.get_x(),
-            condition,
-        )?;
-        let selected_y = CircuitElement::conditionally_select(
-            cs.namespace(|| "conditionally_select_y"),
-            &a.get_y(),
-            &b.get_y(),
-            condition,
-        )?;
-        let selected_hash = CircuitElement::conditionally_select(
-            cs.namespace(|| "conditionally_select_hash"),
-            &a.get_hash(),
-            &b.get_hash(),
-            condition,
-        )?;
-        Ok(CircuitPubkey {
-            x: selected_x,
-            y: selected_y,
-            hash: selected_hash,
-        })
-    }
-    pub fn equals<CS: ConstraintSystem<E>>(
-        mut cs: CS,
-        a: &Self,
-        b: &Self,
-    ) -> Result<Boolean, SynthesisError> {
-        let is_equal_x = Boolean::from(AllocatedNum::equals(
-            cs.namespace(|| "is_equal_x"),
-            a.get_x().get_number(),
-            b.get_x().get_number(),
-        )?);
-
-        let is_equal_y = Boolean::from(AllocatedNum::equals(
-            cs.namespace(|| "is_equal_y"),
-            a.get_x().get_number(),
-            b.get_x().get_number(),
-        )?);
-        Boolean::and(cs.namespace(|| "is_equal"), &is_equal_x, &is_equal_y)
     }
 }
