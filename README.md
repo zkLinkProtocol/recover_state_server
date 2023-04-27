@@ -27,11 +27,17 @@ Before you begin, you will need to have the following software installed:
 You also need to install the following dependencies:
 ```shell
 sudo apt-get update
+
 sudo apt-get install libpq-dev libssl-dev pkg-config axel
+
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+
 nvm install v16.20
+
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
 sudo apt install build-essential
+
 cargo install diesel_cli --no-default-features --features postgres
 
 ```
@@ -44,7 +50,9 @@ export DATABASE_URL=postgres://postgres:password@localhost/plasma
 
 ```shell
 git clone https://github.com/zkLinkProtocol/recover_state_server.git
+
 cd recover_state_server
+
 axel -c https://universal-setup.ams3.digitaloceanspaces.com/setup_2%5E23.key -o ./zklink_keys
 ```
 
@@ -68,6 +76,9 @@ Before "dunkerque," a link will be published here that will display contract and
 ### Starting the recovery program, prover program, and web service server
 ```shell
 export PORT=8081  # The access port for the frontend page.
+
+# Forward traffic from port 80 to port 8081
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 8081
 
 ./exodus.sh start
 ```
