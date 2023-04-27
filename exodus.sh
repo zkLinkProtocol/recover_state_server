@@ -49,7 +49,7 @@ elif [ "$1" == "stop" ]; then
   pkill -f exodus_server
   pkill -f exodus_prover
   cd exodus-interface
-  npx pm2 stop 0
+  npm run stop:devnet
 elif [ "$1" == "clean" ]; then
   cd storage
   diesel database reset
