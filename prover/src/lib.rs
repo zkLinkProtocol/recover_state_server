@@ -1,13 +1,13 @@
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::time::{interval, sleep};
-use tracing::{error, info, warn};
+use crate::retries::with_retries;
 pub use exit_type::{ExitInfo, ExitProofData};
 pub use exodus_prover::ExodusProver;
 use offchain_recover_state::{contract::ZkLinkContract, get_fully_on_chain_zklink_contract};
 use recover_state_config::RecoverStateConfig;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::{interval, sleep};
+use tracing::{error, info, warn};
 use zklink_storage::ConnectionPool;
-use crate::retries::with_retries;
 
 pub mod exit_proof;
 pub mod exit_type;

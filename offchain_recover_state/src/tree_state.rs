@@ -1,8 +1,8 @@
 use crate::rollup_ops::RollupOpsBlock;
 use anyhow::format_err;
+use parity_crypto::Keccak256;
 use std::collections::HashMap;
 use tracing::info;
-use parity_crypto::Keccak256;
 use zklink_crypto::convert::FeConvert;
 use zklink_crypto::Fr;
 use zklink_state::state::TransferOutcome;
@@ -297,25 +297,19 @@ impl TreeState {
         let gas_limit = 0.into();
 
         // Take the contract version into account when choosing block chunk sizes.
-        let available_block_chunk_sizes = ops_block
-            .contract_version
-            .expect("contract version must be set")
-            .available_block_chunk_sizes();
         let support_ops_numbers = ops_block
             .contract_version
             .expect("contract version must be set")
             .supported_ops_numbers();
-        let available_chain_ids = self.last_serial_ids
-            .keys()
-            .copied()
-            .collect::<Vec<_>>();
+        let available_chain_ids = self.last_serial_ids.keys().copied().collect::<Vec<_>>();
 
+        let chunk_size = ops.iter().map(|op| op.op.chunks()).sum();
         let block = Block::new_from_available_block_sizes(
             ops_block.block_num,
             self.root_hash(),
             ops_block.fee_account,
             ops,
-            *available_block_chunk_sizes.first().unwrap(),
+            chunk_size,
             support_ops_numbers,
             &available_chain_ids,
             gas_limit,

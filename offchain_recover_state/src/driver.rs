@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::time::Duration;
 // External deps
-use tracing::{debug, info, warn};
 use parity_crypto::Keccak256;
+use tracing::{debug, info, warn};
 // Workspace deps
 use recover_state_config::{ChainType, RecoverStateConfig};
 use zklink_crypto::convert::FeConvert;
@@ -17,7 +17,7 @@ use zklink_types::{
 
 // Local deps
 use crate::contract::update_token_events::{EvmTokenEvents, UpdateTokenEvents};
-use crate::contract::ZkLinkContract;
+use crate::contract::{ZkLinkContract, ZkLinkContractVersion};
 use crate::{
     error, events::events_state::RollUpEvents, rollup_ops::RollupOpsBlock,
     storage_interactor::StorageInteractor, tree_state::TreeState, PRC_REQUEST_FREQUENT_ERROR_SETS,
@@ -54,19 +54,17 @@ pub struct RecoverStateDriver<I: StorageInteractor, T: ZkLinkContract> {
     pub update_token_events: Vec<(ChainId, Option<Box<dyn UpdateTokenEvents>>)>,
     /// Provides uncompressed(upload all pubdata) layer1 rollup contract interface.
     pub zklink_contract: T,
-    /// Layer1 blocks heights that include correct UpgradeComplete events.
+    /// Layer2 blocks heights that include correct UpgradeComplete events.
     /// Should be provided via config.
-    pub contract_upgraded_blocks: Vec<u64>,
+    pub upgraded_layer2_blocks: Vec<u32>,
     /// The initial version of the deployed zkLink contract.
-    pub init_contract_version: u32,
+    pub init_contract_version: ZkLinkContractVersion,
     /// Rollup contract events state
     pub rollup_events: RollUpEvents,
     /// Rollup accounts state
     pub tree_state: TreeState,
     /// The step distance of viewing events in the layer1 blocks
-    pub view_blocks_step: u64,
-    /// The distance to the last layer1 block
-    pub end_block_offset: u64,
+    pub view_block_step: u64,
     /// Finite mode flag. In finite mode, driver will only work until
     /// amount of restored blocks will become equal to amount of known
     /// verified blocks. After that, it will stop.
@@ -89,7 +87,6 @@ where
     /// * `zklink_contract` - Current deployed zklink contract
     /// * `config` - the config that RecoverState need.
     /// * `view_blocks_step` - The step distance of viewing events in the layer1 blocks
-    /// * `end_block_offset` - The distance to the last layer1 block
     /// * `finite_mode` - Finite mode flag.
     /// * `final_hash` - Hash of the last block which we want to restore
     /// * `deploy_block_number` - the block number of deployed zklink contract
@@ -99,8 +96,6 @@ where
     pub async fn new(
         zklink_contract: T,
         config: &RecoverStateConfig,
-        view_blocks_step: u64,
-        end_block_offset: u64,
         finite_mode: bool,
         final_hash: Option<Fr>,
         deploy_block_number: u64,
@@ -121,25 +116,25 @@ where
             ..Default::default()
         };
 
+        let view_block_step = config.view_block_step;
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
         for config in &config.layer1.chain_configs {
             let token_events: Box<dyn UpdateTokenEvents> = match config.chain.chain_type {
-                ChainType::EVM => {
-                    Box::new(EvmTokenEvents::new(config, connection_pool.clone()).await)
-                }
+                ChainType::EVM => Box::new(
+                    EvmTokenEvents::new(view_block_step, config, connection_pool.clone()).await,
+                ),
                 ChainType::STARKNET => panic!("supported chain type."),
             };
             update_token_events.push((config.chain.chain_id, Some(token_events)))
         }
         Self {
             update_token_events,
-            contract_upgraded_blocks: Default::default(),
-            init_contract_version: Default::default(),
+            upgraded_layer2_blocks: config.upgrade_layer2_blocks.clone(),
+            init_contract_version: ZkLinkContractVersion::V0,
             zklink_contract,
             rollup_events: events_state,
             tree_state,
-            view_blocks_step,
-            end_block_offset,
+            view_block_step,
             finite_mode,
             final_hash,
             phantom_data: Default::default(),
@@ -261,7 +256,7 @@ where
             BlockNumber(0),
             last_serial_ids,
             account_map,
-            AccountId(0)
+            AccountId(0),
         );
         tree_state.state.register_token(Token {
             id: USD_TOKEN_ID.into(),
@@ -439,14 +434,18 @@ where
     /// Returns bool flag, true if there are new block events
     async fn exist_events_state(&mut self, interactor: &mut I) -> anyhow::Result<bool> {
         info!("Loading block events from zklink contract!");
+        let upgraded_num = self
+            .upgraded_layer2_blocks
+            .iter()
+            .filter(|&upgraded_block| *self.tree_state.state.block_number >= *upgraded_block)
+            .count() as u32;
+        let upgraded_contract_version = self.init_contract_version.upgrade(upgraded_num);
         let (block_events, last_watched_eth_block_number) = self
             .rollup_events
             .update_block_events(
                 &self.zklink_contract,
-                &self.contract_upgraded_blocks,
-                self.view_blocks_step,
-                self.end_block_offset,
-                self.init_contract_version,
+                self.view_block_step,
+                upgraded_contract_version,
             )
             .await?;
         interactor
