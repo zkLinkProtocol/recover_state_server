@@ -5,7 +5,6 @@ use crate::{
     storage_interactor::database::DatabaseStorageInteractor,
     storage_interactor::inmemory::InMemoryStorageInteractor,
     tests::utils::{create_log, u32_to_32bytes},
-    END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
 };
 use aggegate::agg_op::commit_op::BlocksCommitOperation;
 use chrono::Utc;

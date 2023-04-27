@@ -3,7 +3,6 @@ use offchain_recover_state::driver::RecoverStateDriver;
 use offchain_recover_state::log::init;
 use offchain_recover_state::{
     get_fully_on_chain_zklink_contract, storage_interactor::DatabaseStorageInteractor,
-    END_BLOCK_OFFSET, VIEW_BLOCKS_STEP,
 };
 use recover_state_config::RecoverStateConfig;
 use structopt::StructOpt;
@@ -55,8 +54,6 @@ async fn main() {
     let mut driver = RecoverStateDriver::new(
         zklink_contract,
         &config,
-        VIEW_BLOCKS_STEP,
-        END_BLOCK_OFFSET,
         opt.finite,
         final_hash,
         deploy_block_number,

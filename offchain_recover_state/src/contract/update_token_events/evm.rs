@@ -5,7 +5,6 @@ use crate::contract::utils::{
 use crate::contract::LogInfo;
 use crate::storage_interactor::DatabaseStorageInteractor;
 use crate::storage_interactor::StorageInteractor;
-use crate::VIEW_BLOCKS_STEP;
 use anyhow::format_err;
 use async_trait::async_trait;
 use ethers::contract::Contract;
@@ -20,17 +19,23 @@ use zklink_types::{ChainId, PriorityOp, ZkLinkAddress, ZkLinkPriorityOp};
 pub const ERC20_JSON: &str = include_str!("ERC20.json");
 
 pub struct EvmTokenEvents {
+    connection_pool: ConnectionPool,
     erc20_abi: ethers::abi::Abi,
     contract: Contract<Provider<Http>>,
+
     chain_id: ChainId,
     gas_token: String,
+    view_block_step: u64,
     last_sync_block_number: u64,
     last_sync_serial_id: i64,
-    connection_pool: ConnectionPool,
 }
 
 impl EvmTokenEvents {
-    pub async fn new(config: &Layer1Config, connection_pool: ConnectionPool) -> Self {
+    pub async fn new(
+        view_block_step: u64,
+        config: &Layer1Config,
+        connection_pool: ConnectionPool,
+    ) -> Self {
         let (last_watched_block_number, last_sync_serial_id) = {
             let mut storage = connection_pool.access_storage().await.unwrap();
             storage
@@ -50,6 +55,7 @@ impl EvmTokenEvents {
             contract: Contract::new(address, zklink_abi, client.into()),
             chain_id: config.chain.chain_id,
             gas_token: config.chain.gas_token.clone(),
+            view_block_step,
             last_sync_block_number: last_watched_block_number as u64,
             last_sync_serial_id,
             connection_pool,
@@ -150,7 +156,10 @@ impl EvmTokenEvents {
                     .call()
                     .await?
             };
-            info!("Loading token from layer1: {symbol}, address: {address}");
+            info!(
+                "Loading token from [{:?}] layer1: {symbol}, address: {address}",
+                self.chain_id
+            );
             token_symbols.push(symbol);
         }
         Ok((token_events, token_symbols))
@@ -160,7 +169,7 @@ impl EvmTokenEvents {
 #[async_trait]
 impl UpdateTokenEvents for EvmTokenEvents {
     fn reached_latest_block(&self, latest_block: u64) -> bool {
-        self.last_sync_block_number + VIEW_BLOCKS_STEP > latest_block
+        self.last_sync_block_number + self.view_block_step > latest_block
     }
 
     async fn block_number(&self) -> anyhow::Result<u64> {
@@ -170,7 +179,7 @@ impl UpdateTokenEvents for EvmTokenEvents {
 
     async fn update_token_events(&mut self) -> anyhow::Result<u64> {
         let from = self.last_sync_block_number + 1;
-        let to = self.last_sync_block_number + VIEW_BLOCKS_STEP;
+        let to = self.last_sync_block_number + self.view_block_step;
         let topics: Vec<H256> = vec![
             self.get_event_signature("NewToken"),
             self.get_event_signature("NewPriorityRequest"),

@@ -77,15 +77,6 @@ impl ZkLinkContractVersion {
             .expect("cannot upgrade past the latest contract version")
     }
 
-    /// Returns supported block chunks sizes by the verifier contract
-    /// with the given version.
-    pub fn available_block_chunk_sizes(&self) -> &'static [usize] {
-        use ZkLinkContractVersion::*;
-        match self {
-            V0 => &[4],
-        }
-    }
-
     pub fn supported_ops_numbers(&self) -> &'static [usize] {
         use ZkLinkContractVersion::*;
         match self {

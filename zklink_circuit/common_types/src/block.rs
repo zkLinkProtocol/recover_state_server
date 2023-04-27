@@ -379,8 +379,8 @@ impl Block {
                     processable_operations_hash.to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                    .concat()
-                    .keccak256();
+                .concat()
+                .keccak256();
             }
         }
         H256::from(processable_operations_hash)
@@ -398,8 +398,8 @@ impl Block {
                     onchain_operation_pubdata_hashs[op_chain_id].to_vec(),
                     executed_op.public_data().as_slice().to_vec(),
                 ]
-                    .concat()
-                    .keccak256();
+                .concat()
+                .keccak256();
             }
         }
         let onchain_op_pubdata_hashs = onchain_operation_pubdata_hashs
@@ -470,17 +470,17 @@ impl Block {
                 previous_block_sync_hash.as_bytes().to_vec(),
                 self.block_commitment.as_bytes().to_vec(),
             ]
-                .concat()
-                .keccak256()
-                .to_vec();
+            .concat()
+            .keccak256()
+            .to_vec();
             for i in available_chain_ids.iter() {
                 sync_hash_tmp = [
                     sync_hash_tmp,
                     onchain_op_pubdata_hashs[i.0 as usize].as_bytes().to_vec(),
                 ]
-                    .concat()
-                    .keccak256()
-                    .to_vec();
+                .concat()
+                .keccak256()
+                .to_vec();
             }
             sync_hash_tmp
         };

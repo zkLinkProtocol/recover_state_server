@@ -12,8 +12,7 @@ pub mod tree_state;
 #[cfg(test)]
 mod tests;
 
-// How many blocks we will process at once.
-pub const VIEW_BLOCKS_STEP: u64 = 1_000;
+// Delta between last block and last watched block
 pub const END_BLOCK_OFFSET: u64 = 40;
 
 // An error returned by the rpc server because the number of requests was too frequent.
