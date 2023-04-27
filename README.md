@@ -63,7 +63,8 @@ Before "dunkerque," a link will be published here that will display contract and
 
 ### Starting the recovery program, prover program, and web service server
 ```shell
-export $PORT=80
+export PORT=80  # The access port for the frontend page.
+
 ./exodus.sh start
 ```
 This command may take several hours to complete.
