@@ -28,8 +28,8 @@ You also need to install the following dependencies:
 ```shell
 sudo apt-get update
 sudo apt-get install libpq-dev libssl-dev pkg-config axel
-sudo apt install nodejs
-curl -qL https://www.npmjs.com/install.sh | sh
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+nvm install v16.20
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 cargo install diesel_cli --no-default-features --features postgres
 
