@@ -5879,7 +5879,6 @@ version = "1.0.0"
 dependencies = [
  "num",
  "rust-crypto",
- "sha2 0.9.9",
  "zklink_crypto",
  "zklink_types",
 ]

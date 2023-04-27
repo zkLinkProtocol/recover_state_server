@@ -13,7 +13,7 @@ RUNTIME_CONFIG_ZKLINK_HOME="/home/user/zklink/recover_state_server"
 # Directory for circuit keys
 RUNTIME_CONFIG_KEY_DIR="zklink_keys"
 # How many blocks we will process at once.
-VIEW_BLOCK_STEP=1000
+VIEW_BLOCK_STEP=100
 
 # [api]
 API_CONFIG_SERVER_HTTP_PORT=8080

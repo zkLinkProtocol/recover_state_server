@@ -15,7 +15,7 @@ pub use zklink_crypto::{
 pub use zklink_types::{operations::*, params::*, Order, H256};
 // Local deps
 pub use crate::{
-    account::AccountWitness, allocated_structures::*, element::CircuitElement,
+    account::AccountWitness, allocated_structures::*, element::CircuitElement, operation::OperationUnit,
     utils::{
         boolean_or, multi_or, multi_and, pack_bits_to_element_strict,
     },
@@ -38,7 +38,7 @@ pub fn check_account_data<E: RescueEngine, CS: ConstraintSystem<E>>(
         allocate_merkle_root(
             cs.namespace(|| "account_merkle_root"),
             &cur_account_leaf_bits,
-            &cur.account_id.get_bits_le(),
+            cur.account_id.get_bits_le(),
             &cur.account_audit_path,
             length_to_root,
             params,
@@ -76,7 +76,7 @@ pub fn allocate_account_leaf_bits<E: RescueEngine, CS: ConstraintSystem<E>>(
     branch: &AllocatedOperationBranch<E>,
     params: &E::Params,
 ) -> Result<(Vec<Boolean>, Boolean, CircuitElement<E>), SynthesisError> {
-    let mut account_data = vec![];
+    let mut account_data = Vec::with_capacity(NONCE_BIT_WIDTH + NEW_PUBKEY_HASH_WIDTH + ETH_ADDRESS_BIT_WIDTH + 2 * FR_BIT_WIDTH_PADDED);
     account_data.extend_from_slice(branch.account.nonce.get_bits_le());
     account_data.extend_from_slice(branch.account.pub_key_hash.get_bits_le());
     account_data.extend_from_slice(branch.account.address.get_bits_le());
@@ -132,7 +132,7 @@ pub fn allocate_merkle_root<E: RescueEngine, CS: ConstraintSystem<E>>(
 
     let leaf_packed = multipack::pack_into_witness(
         cs.namespace(|| "pack leaf bits into field elements"),
-        &leaf_bits,
+        leaf_bits,
     )?;
 
     let mut account_leaf_hash = rescue::rescue_hash(
@@ -161,7 +161,7 @@ pub fn allocate_merkle_root<E: RescueEngine, CS: ConstraintSystem<E>>(
             cs.namespace(|| "conditional reversal of preimage"),
             &cur_hash,
             path_element,
-            &direction_bit,
+            direction_bit,
         )?;
 
         // we do not use any personalization here cause

@@ -7,10 +7,9 @@ use tokio::sync::RwLock;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
-use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
-use crate::recover_progress::{Progress, RecoverProgress};
+use crate::app_data::{AppData, AcquiredTokens, TokenInfo, Progress, RecoverProgress, ProofsCache};
 use crate::request::TokenRequest;
-use crate::{proofs_cache::ProofsCache, r#mod::ExodusResponse, server::exodus_config, AppData};
+use crate::{response::ExodusResponse, server::exodus_config};
 
 async fn create_app_data() -> AppData {
     dotenvy::dotenv().unwrap();
@@ -107,7 +106,7 @@ async fn test_get_token() {
 
     let app = test::init_service(
         App::new()
-            .app_data(web::Data::new(app_data.clone()))
+            .app_data(web::Data::new(app_data))
             .configure(exodus_config),
     )
     .await;

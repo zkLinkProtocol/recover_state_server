@@ -31,6 +31,7 @@ impl<E:RescueEngine> std::fmt::Debug for AllocatedOrder<E>{
     }
 }
 
+
 impl<E: RescueEngine> AllocatedOperationBranch<E> {
     pub fn from_witness<CS: ConstraintSystem<E>>(
         mut cs: CS,
@@ -43,12 +44,12 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         )?;
         let account_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "account_address"),
-            || Ok(operation_branch.account_id.grab()?),
+            || operation_branch.account_id.grab(),
             account_tree_depth(),
         )?.pad(ACCOUNT_ID_BIT_WIDTH);
         let sub_account_id = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "sub_account_address"),
-            || Ok(operation_branch.sub_account_id.grab()?),
+            || operation_branch.sub_account_id.grab(),
             SUB_ACCOUNT_ID_BIT_WIDTH,
         )?;
         let account_audit_path = allocate_numbers_vec(
@@ -60,12 +61,12 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         // account balance leaf and merkle path
         let balance = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "balance"),
-            || Ok(operation_branch.witness.balance_value.grab()?),
+            || operation_branch.witness.balance_value.grab(),
             BALANCE_BIT_WIDTH,
         )?;
         let token = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "token"),
-            || Ok(operation_branch.token.grab()?),
+            || operation_branch.token.grab(),
             TOKEN_BIT_WIDTH,
         )?;
         let balance_audit_path = allocate_numbers_vec(
@@ -77,17 +78,17 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
         // account order slots leaf and merkle path
         let order_nonce = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "order nonce"),
-            || Ok(operation_branch.witness.order_nonce.grab()?),
+            || operation_branch.witness.order_nonce.grab(),
             ORDER_NONCE_BIT_WIDTH,
         )?;
         let order_residue = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "order residue"),
-            || Ok(operation_branch.witness.order_residue.grab()?),
+            || operation_branch.witness.order_residue.grab(),
             BALANCE_BIT_WIDTH,
         )?;
         let slot_number = CircuitElement::from_fe_with_known_length(
             cs.namespace(|| "slot id"),
-            || Ok(operation_branch.slot_number.grab()?),
+            || operation_branch.slot_number.grab(),
             SLOT_BIT_WIDTH,
         )?;
         let order_audit_path = allocate_numbers_vec(
@@ -139,7 +140,7 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             &max_num
         )?.add(
             cs.namespace(||"calculate actual slot id: sub_account_id * MAX_ORDER_NUMBER + slot"),
-            &slot
+            slot
         )
     }
 
@@ -158,7 +159,7 @@ impl<E: RescueEngine> AllocatedOperationBranch<E> {
             &max_num
         )?.add(
             cs.namespace(||"token_id + sub_account_id * MAX_TOKEN_NUMBER"),
-            &token
+            token
         )
     }
 
@@ -252,3 +253,242 @@ impl<E:RescueEngine> std::fmt::Debug for AllocatedOperationBranch<E>{
     }
 }
 
+pub struct AllocatedChunkData<E: Engine> {
+    pub is_chunk_last: Boolean,
+    pub is_chunk_first: Boolean,
+    pub chunk_number: AllocatedNum<E>,
+    pub tx_type: CircuitElement<E>,
+}
+
+#[derive(Clone)]
+pub struct AllocatedOperationData<E: Engine> {
+    pub ces_with_bool: Vec<CircuitElement<E>>,
+    pub ces_with_1_byte: Vec<CircuitElement<E>>,
+    pub ces_with_2_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_3_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_4_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_8_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_15_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_16_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_20_bytes: Vec<CircuitElement<E>>,
+    pub ces_with_max_bytes: Vec<CircuitElement<E>>,
+
+    pub fee_packed_ces: Vec<CircuitElement<E>>,
+    pub fee_unpacked_ces: Vec<CircuitElement<E>>,
+    pub amount_packed_ces: Vec<CircuitElement<E>>,
+    pub amount_unpacked_ces: Vec<CircuitElement<E>>,
+
+    pub first_sig_msg: CircuitElement<E>,
+    pub second_sig_msg: CircuitElement<E>,
+    pub third_sig_msg: CircuitElement<E>,
+
+    pub a: CircuitElement<E>,
+    pub b: CircuitElement<E>,
+}
+
+pub enum CommonArgs {
+    L2Token,
+    L1Token,
+
+    ValidFrom,
+    ValidUntil,
+}
+
+impl<E:Engine> std::ops::Index<CommonArgs> for AllocatedOperationData<E>{
+    type Output = CircuitElement<E>;
+
+    fn index(&self, index: CommonArgs) -> &Self::Output {
+        match index{
+            CommonArgs::L2Token => &self.ces_with_2_bytes[0],
+            CommonArgs::L1Token => &self.ces_with_2_bytes[1],
+
+            CommonArgs::ValidFrom => &self.ces_with_8_bytes[0],
+            CommonArgs::ValidUntil => &self.ces_with_8_bytes[1],
+        }
+    }
+}
+
+impl<E: RescueEngine> AllocatedOperationData<E> {
+    pub fn empty_from_zero(zero_element: AllocatedNum<E>) -> Result<Self, SynthesisError> {
+        let ce_with_bool = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 1);
+        let ce_with_1_byte = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 8);
+        let ce_with_2_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 2 * 8);
+        let ce_with_3_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 3 * 8);
+        let ce_with_4_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 4 * 8);
+        let ce_with_5_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 5 * 8);
+        let ce_with_8_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 8 * 8);
+        let ce_with_15_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 15 * 8);
+        let ce_with_16_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 16 * 8);
+        let ce_with_20_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), 20 * 8);
+        let ce_with_max_bytes = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), FR_BIT_WIDTH);
+
+        let first_sig_msg = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), E::Fr::CAPACITY as usize);
+        let second_sig_msg = CircuitElement::unsafe_empty_of_some_length(zero_element.clone(), E::Fr::CAPACITY as usize);
+        let third_sig_msg = CircuitElement::unsafe_empty_of_some_length(
+            zero_element,
+            MAX_CIRCUIT_MSG_HASH_BITS - (2 * E::Fr::CAPACITY as usize), //TODO: think of more consistent constant flow (ZKS-54).
+        );
+
+        Ok(AllocatedOperationData {
+            a: ce_with_16_bytes.clone(),
+            b: ce_with_16_bytes.clone(),
+            ces_with_bool: vec![ce_with_bool;ARGUMENT_WITH_BOOL_CAPACITY],
+            ces_with_1_byte: vec![ce_with_1_byte; ARGUMENT_WITH_1_BYTE_CAPACITY],
+            ces_with_2_bytes: vec![ce_with_2_bytes.clone(); ARGUMENT_WITH_2_BYTES_CAPACITY],
+            ces_with_3_bytes: vec![ce_with_3_bytes; ARGUMENT_WITH_3_BYTES_CAPACITY],
+            ces_with_4_bytes: vec![ce_with_4_bytes; ARGUMENT_WITH_4_BYTES_CAPACITY],
+            ces_with_8_bytes: vec![ce_with_8_bytes; ARGUMENT_WITH_8_BYTES_CAPACITY],
+            ces_with_15_bytes: vec![ce_with_15_bytes; ARGUMENT_WITH_15_BYTES_CAPACITY],
+            ces_with_16_bytes: vec![ce_with_16_bytes.clone(); ARGUMENT_WITH_16_BYTES_CAPACITY],
+            ces_with_20_bytes: vec![ce_with_20_bytes; ARGUMENT_WITH_20_BYTES_CAPACITY],
+            ces_with_max_bytes: vec![ce_with_max_bytes; ARGUMENT_WITH_MAX_BYTES_CAPACITY],
+            fee_packed_ces: vec![ce_with_2_bytes; SPECIAL_ARGUMENT_FEE_CAPACITY],
+            fee_unpacked_ces: vec![ce_with_16_bytes.clone(); SPECIAL_ARGUMENT_FEE_CAPACITY],
+            amount_packed_ces: vec![ce_with_5_bytes; SPECIAL_ARGUMENT_AMMOUNT_CAPACITY],
+            amount_unpacked_ces: vec![ce_with_16_bytes; SPECIAL_ARGUMENT_AMMOUNT_CAPACITY],
+            first_sig_msg,
+            second_sig_msg,
+            third_sig_msg,
+        })
+    }
+
+    fn convert_amounts<CS: ConstraintSystem<E>>(
+        mut cs: CS,
+        amount: Option<E::Fr>,
+        is_amount: bool
+    ) -> Result<(CircuitElement<E>, CircuitElement<E>), SynthesisError> {
+        let amount_packed = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "amount_packed"),
+            || amount.grab(),
+            if is_amount{ AMOUNT_EXPONENT_BIT_WIDTH + AMOUNT_MANTISSA_BIT_WIDTH }
+            else { FEE_EXPONENT_BIT_WIDTH + FEE_MANTISSA_BIT_WIDTH },
+        )?;
+        let amount_parsed = parse_with_exponent_le(
+            cs.namespace(|| "parse amount"),
+            amount_packed.get_bits_le(),
+            if is_amount {AMOUNT_EXPONENT_BIT_WIDTH} else { FEE_EXPONENT_BIT_WIDTH},
+            if is_amount {AMOUNT_MANTISSA_BIT_WIDTH} else { FEE_MANTISSA_BIT_WIDTH},
+            10,
+        )?;
+        let amount_unpacked = CircuitElement::from_number_with_known_length(
+            cs.namespace(|| "amount_unpacked"),
+            amount_parsed,
+            BALANCE_BIT_WIDTH,
+        )?;
+        Ok((amount_packed, amount_unpacked))
+    }
+
+    fn frs_convert_ces<CS:ConstraintSystem<E>>(
+        mut cs: CS,
+        frs: &[Option<E::Fr>],
+        bits_length: usize
+    ) -> Result<Vec<CircuitElement<E>>, SynthesisError>{
+        frs.iter()
+            .enumerate()
+            .map(|(idx, witness)| {
+                CircuitElement::from_fe_with_known_length(
+                    cs.namespace(|| format!("allocate {}th {}-bits CircuitElement", idx, bits_length)),
+                    || witness.grab(),
+                    bits_length,
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()
+    }
+
+    pub fn from_witness<CS: ConstraintSystem<E>>(
+        mut cs: CS,
+        op: &OperationUnit<E>,
+    ) -> Result<AllocatedOperationData<E>, SynthesisError> {
+        let ces_with_bool = Self::frs_convert_ces(cs.namespace(||"bool"), &op.args.frs_with_bool.0, 1)?;
+        let ces_with_1_byte = Self::frs_convert_ces(cs.namespace(||"1_byte"), &op.args.frs_with_1_byte.0, 8)?;
+        let ces_with_2_bytes = Self::frs_convert_ces(cs.namespace(||"2_bytes"), &op.args.frs_with_2_bytes.0, 2*8)?;
+        let ces_with_3_bytes = Self::frs_convert_ces(cs.namespace(||"3_bytes"), &op.args.frs_with_3_bytes.0, 3*8)?;
+        let ces_with_4_bytes = Self::frs_convert_ces(cs.namespace(||"4_bytes"), &op.args.frs_with_4_bytes.0, 4*8)?;
+        let ces_with_8_bytes = Self::frs_convert_ces(cs.namespace(||"8_bytes"), &op.args.frs_with_8_bytes.0, 8*8)?;
+        let ces_with_15_bytes = Self::frs_convert_ces(cs.namespace(||"15_bytes"), &op.args.frs_with_15_bytes.0, 15*8)?;
+        let ces_with_16_bytes = Self::frs_convert_ces(cs.namespace(||"16_bytes"), &op.args.frs_with_16_bytes.0, 16*8)?;
+        let ces_with_20_bytes = Self::frs_convert_ces(cs.namespace(||"20_bytes"), &op.args.frs_with_20_bytes.0, 20*8)?;
+        let ces_with_max_bytes = Self::frs_convert_ces(cs.namespace(||"max_bytes"), &op.args.frs_with_max_bytes.0, FR_BIT_WIDTH)?;
+        let (amounts_packed, amounts_unpacked) = op
+            .args
+            .amounts_packed
+            .0
+            .iter()
+            .enumerate()
+            .map(|(idx, &amount)| {
+                Self::convert_amounts(
+                    cs.namespace(|| format!("amount with index {}", idx)),
+                    amount,
+                    true
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .unzip();
+        let (fees_packed, fees_unpacked) = op
+            .args
+            .fees_packed
+            .0
+            .iter()
+            .enumerate()
+            .map(|(idx, &fee)| {
+                Self::convert_amounts(
+                    cs.namespace(|| format!("fee with index {}", idx)),
+                    fee,
+                    false
+                )
+            })
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .unzip();
+        let first_sig_msg = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "first_part_signature_message"),
+            || op.first_sig_msg.grab(),
+            E::Fr::CAPACITY as usize,
+        )?;
+
+        let second_sig_msg = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "second_part_signature_message"),
+            || op.second_sig_msg.grab(),
+            E::Fr::CAPACITY as usize, //TODO: think of more consistent constant flow (ZKS-54).
+        )?;
+
+        let third_sig_msg = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "third_part_signature_message"),
+            || op.third_sig_msg.grab(),
+            MAX_CIRCUIT_MSG_HASH_BITS - (2 * E::Fr::CAPACITY as usize), //TODO: think of more consistent constant flow (ZKS-54).
+        )?;
+        let a = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "a"),
+            || op.args.a.grab(),
+            BALANCE_BIT_WIDTH,
+        )?;
+        let b = CircuitElement::from_fe_with_known_length(
+            cs.namespace(|| "b"),
+            || op.args.b.grab(),
+            BALANCE_BIT_WIDTH,
+        )?;
+
+        Ok(AllocatedOperationData {
+            ces_with_bool,
+            ces_with_1_byte,
+            ces_with_2_bytes,
+            ces_with_3_bytes,
+            ces_with_4_bytes,
+            ces_with_8_bytes,
+            ces_with_15_bytes,
+            ces_with_16_bytes,
+            ces_with_20_bytes,
+            ces_with_max_bytes,
+            fee_packed_ces: fees_packed,
+            fee_unpacked_ces: fees_unpacked,
+            amount_packed_ces: amounts_packed,
+            amount_unpacked_ces: amounts_unpacked,
+            first_sig_msg,
+            second_sig_msg,
+            third_sig_msg,
+            a,
+            b
+        })
+    }
+}
