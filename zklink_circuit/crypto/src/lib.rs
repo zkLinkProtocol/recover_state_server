@@ -5,7 +5,6 @@ pub use franklin_crypto::bellman;
 pub use franklin_crypto::bellman::pairing;
 pub use franklin_crypto::bellman::pairing::ff;
 pub use rand;
-pub use recursive_aggregation_circuit;
 
 pub mod circuit;
 pub mod convert;

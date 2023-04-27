@@ -563,7 +563,7 @@ checksum = "2dabbe35f96fb9507f7330793dc490461b2962659ac5d427181e451a623751d1"
 [[package]]
 name = "bellman_ce"
 version = "0.3.2"
-source = "git+https://github.com/zk-liangliang/bellman.git?branch=beta#748939b823b2001ad017bf3748ee666716761282"
+source = "git+https://github.com/zkLinkProtocol/bellman.git?branch=beta#557bd11663da2a5adc503411183da04b93891f01"
 dependencies = [
  "bit-vec",
  "blake2s_const",
@@ -681,7 +681,7 @@ dependencies = [
 [[package]]
 name = "blake2s_const"
 version = "0.6.0"
-source = "git+https://github.com/zk-liangliang/bellman.git?branch=beta#748939b823b2001ad017bf3748ee666716761282"
+source = "git+https://github.com/zkLinkProtocol/bellman.git?branch=beta#557bd11663da2a5adc503411183da04b93891f01"
 dependencies = [
  "arrayref",
  "arrayvec 0.5.2",
@@ -2095,7 +2095,7 @@ dependencies = [
 [[package]]
 name = "franklin-crypto"
 version = "0.0.5"
-source = "git+https://github.com/zk-liangliang/franklin-crypto.git?branch=beta#4aefe474995574dc11e906821b6dc00634c06a78"
+source = "git+https://github.com/zkLinkProtocol/franklin-crypto.git?branch=beta#bfdd6b88d4040d0b6c3d7ad78bcb470414a8c5eb"
 dependencies = [
  "bellman_ce",
  "bit-vec",
@@ -4099,17 +4099,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "recursive_aggregation_circuit"
-version = "1.0.0"
-source = "git+https://github.com/zk-liangliang/link_aggregation_circuit.git?branch=master#7c55c14bd98006710aca35793ff8a7bd655af2f5"
-dependencies = [
- "franklin-crypto",
- "hex",
- "once_cell",
- "sha2 0.9.9",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5896,7 +5885,6 @@ dependencies = [
  "num",
  "rand 0.4.6",
  "rayon",
- "recursive_aggregation_circuit",
  "serde",
  "serde_json",
  "zklink_basic_types",

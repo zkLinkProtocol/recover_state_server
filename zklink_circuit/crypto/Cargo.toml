@@ -13,7 +13,7 @@ readme = "README.md"
 anyhow = "1.0"
 base64 = "0.13"
 fnv = "1.0.3"
-franklin_crypto = { package = "franklin-crypto", version = "0.0.5", git = "https://github.com/zk-liangliang/franklin-crypto.git", branch = "beta", features = [
+franklin_crypto = { package = "franklin-crypto", version = "0.0.5", git = "https://github.com/zkLinkProtocol/franklin-crypto.git", branch = "beta", features = [
   "multicore",
   "plonk",
 ] }
@@ -23,7 +23,6 @@ num = { version = "0.4.0", features = ["serde"] }
 
 rand = "0.4"
 rayon = "1.0.3"
-recursive_aggregation_circuit = { package = "recursive_aggregation_circuit", version = "1.0.0", git = "https://github.com/zk-liangliang/link_aggregation_circuit.git", branch = "master" }
 
 serde = "1.0"
 zklink_basic_types = { path = "../basic_types", version = "1.0" }
