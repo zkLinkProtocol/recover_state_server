@@ -22,7 +22,7 @@ if [ "$1" == "start" ]; then
   echo "start recovering state"
   nohup ./target/release/exodus_server >> log/server.log 2>&1 &
   echo "start exodus server"
-  nohup ./target/release/exodus_prover tasks -w 4 >> log/prover.log 2>&1 &
+  nohup ./target/release/exodus_prover tasks -w 2 >> log/prover.log 2>&1 &
   echo "start exodus prover"
   cd exodus-interface
   npm install
