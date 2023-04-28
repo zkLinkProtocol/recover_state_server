@@ -172,7 +172,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
     }
 
     /// Query task id by exit info.
-    pub async fn get_task_id(&mut self, task: StoredExitInfo) -> QueryResult<i64> {
+    pub async fn get_task_id(&mut self, task: StoredExitInfo) -> QueryResult<Option<i64>> {
         let start = Instant::now();
 
         // Gets the creation time of the target task
@@ -185,9 +185,9 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             task.l1_target_token,
             task.l2_source_token,
         )
-        .fetch_one(self.0.conn())
-        .await?
-        .id;
+            .fetch_optional(self.0.conn())
+            .await?
+            .map(|id|id.id);
 
         metrics::histogram!("sql.recover_state.get_task_id", start.elapsed());
         Ok(target_task_id)

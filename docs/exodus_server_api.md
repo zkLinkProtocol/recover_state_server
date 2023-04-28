@@ -33,9 +33,9 @@ enum ExodusError {
     AccountNotExist = 102,
     ChainNotExist = 103,
     ExitProofTaskNotExist = 104,
-    ProofsLoadTooMany = 202,
 
     InvalidL1L2Token = 201,
+    ProofsLoadTooMany = 202,
 
     InternalErr=500
 }
@@ -491,6 +491,7 @@ Request to get the task id(proof id) by exit info
 }
 ```
 #### Response
+correct
 ```json
 {
   "code": 0,
@@ -498,6 +499,14 @@ Request to get the task id(proof id) by exit info
     "id": 1
   },
   "err_msg": null
+}
+```
+not exist task
+```json
+{
+  "code": 104,
+  "data": null,
+  "err_msg": "The exit proof task not exist"
 }
 ```
 Success returns the id, Failure returns error description

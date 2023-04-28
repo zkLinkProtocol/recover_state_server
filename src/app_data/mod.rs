@@ -206,8 +206,10 @@ impl AppData {
         let remaining_tasks = storage
             .prover_schema()
             .get_task_id((&exit_task).into())
-            .await?;
-        Ok(remaining_tasks.into())
+            .await?
+            .map(Into::into)
+            .ok_or(ExodusStatus::ExitProofTaskNotExist)?;
+        Ok(remaining_tasks)
     }
 
     pub(crate) async fn generate_proof_task(

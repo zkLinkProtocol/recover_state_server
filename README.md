@@ -66,7 +66,7 @@ cp .env.e.g .env
 ```
 
 
-Explanation of .env Configuration Items: [env.md](env.md)
+Explanation of .env Configuration Items: [env.md](docs/env.md)
 
 **NOTE**
 Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
