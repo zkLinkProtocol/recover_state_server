@@ -96,6 +96,7 @@ impl TreeState {
         let mut accounts_updated = Vec::new();
         let mut ops = Vec::new();
         let mut current_op_block_index = 0u32;
+        let mut noop_num = 0usize;
 
         for (index, operation) in operations.into_iter().enumerate() {
             match operation {
@@ -282,7 +283,7 @@ impl TreeState {
                         &mut ops,
                     );
                 }
-                ZkLinkOp::Noop(_) => {}
+                ZkLinkOp::Noop(_) => noop_num += 1,
             }
         }
 
@@ -301,9 +302,10 @@ impl TreeState {
             .contract_version
             .expect("contract version must be set")
             .supported_ops_numbers();
-        let available_chain_ids = self.last_serial_ids.keys().copied().collect::<Vec<_>>();
+        let mut available_chain_ids = self.last_serial_ids.keys().copied().collect::<Vec<_>>();
+        available_chain_ids.sort();
 
-        let chunk_size = ops.iter().map(|op| op.op.chunks()).sum();
+        let chunk_size = ops.iter().map(|op| op.op.chunks()).sum::<usize>() + noop_num;
         let block = Block::new_from_available_block_sizes(
             ops_block.block_num,
             self.root_hash(),
@@ -667,11 +669,10 @@ mod test {
         );
         let op8 = ZkLinkOp::OrderMatching(Box::new(OrderMatchingOp {
             tx: tx8,
-            submitter: Default::default(),
-            maker: Default::default(),
-            taker: Default::default(),
+            maker_sell_amount: Default::default(),
             maker_context: Default::default(),
             taker_context: Default::default(),
+            taker_sell_amount: Default::default(),
         }));
         let pub_data8 = op8.public_data();
         let ops8 = get_rollup_ops_from_data(&pub_data8).expect("cant get ops from data 5");
@@ -922,7 +923,7 @@ mod test {
             contract_version: None,
         };
 
-        let mut tree = TreeState::new();
+        let mut tree = TreeState::default();
         let available_block_chunk_sizes = vec![10, 32, 72, 156, 322, 654];
         tree.apply_ops_block(&block)
             .expect("Cant update state from block");

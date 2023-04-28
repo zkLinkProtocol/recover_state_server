@@ -102,7 +102,6 @@ where
         connection_pool: ConnectionPool,
     ) -> Self {
         let mut storage = connection_pool.access_storage().await.unwrap();
-        let tree_state = TreeState::new();
 
         let last_watched_block_number = storage
             .recover_schema()
@@ -133,7 +132,7 @@ where
             init_contract_version: ZkLinkContractVersion::V0,
             zklink_contract,
             rollup_events: events_state,
-            tree_state,
+            tree_state: TreeState::default(),
             view_block_step,
             finite_mode,
             final_hash,
@@ -148,12 +147,15 @@ where
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
                 info!("Starting {:?} update token events", chain_id);
-                let cur_block_number = updating_event
-                    .block_number()
-                    .await
-                    .expect("Failed to get current block number");
-
                 loop {
+                    let cur_block_number = match updating_event.block_number().await {
+                        Ok(cur_block_number) => cur_block_number,
+                        Err(e) => {
+                            warn!("Failed to get {:?} block number: {}", chain_id, e);
+                            tokio::time::sleep(Duration::from_secs(10)).await;
+                            continue
+                        }
+                    };
                     if !updating_event.reached_latest_block(cur_block_number) {
                         match updating_event.update_token_events().await {
                             Ok(last_sync_block_number) => {
@@ -433,7 +435,7 @@ where
     /// Updates events state, saves new blocks, tokens events and the last watched block number in storage
     /// Returns bool flag, true if there are new block events
     async fn exist_events_state(&mut self, interactor: &mut I) -> anyhow::Result<bool> {
-        info!("Loading block events from zklink contract!");
+        info!("Loading block events from {:?} zklink contract!", self.zklink_contract.layer2_chain_id());
         let upgraded_num = self
             .upgraded_layer2_blocks
             .iter()
@@ -456,10 +458,6 @@ where
             )
             .await?;
         info!("Updating block events: {:?}", block_events);
-        info!(
-            "Updating block events to block_number: {}",
-            last_watched_eth_block_number
-        );
 
         Ok(!block_events.is_empty())
     }
