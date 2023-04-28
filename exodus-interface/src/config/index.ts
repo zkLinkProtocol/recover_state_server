@@ -1,9 +1,3 @@
-function boolean(envValue: string | boolean) {
-  return envValue === 'true' || envValue === true ? true : false
-}
-
-export const ENV: 'devnet' | 'testnet' = process.env.REACT_APP_ENV! as 'devnet' | 'testnet'
-
 export const STATIC_HOST = process.env.REACT_APP_STATIC_HOST
 export const NODE_NAME = process.env.REACT_APP_NODE_NAME
 

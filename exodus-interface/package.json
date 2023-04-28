@@ -48,10 +48,10 @@
     "zklink-js-sdk": "^0.12.24-alpha.1"
   },
   "scripts": {
-    "start:devnet": "env-cmd -f .env.devnet react-scripts start",
-    "build:devnet": "env-cmd -f .env.devnet react-scripts build",
-    "serve:devnet": "npx pm2 start ecosystem.config.js",
-    "stop:devnet":"npx pm2 stop ecosystem.config.js",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "serve": "npx pm2 start ecosystem.config.js",
+    "stop": "npx pm2 stop ecosystem.config.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

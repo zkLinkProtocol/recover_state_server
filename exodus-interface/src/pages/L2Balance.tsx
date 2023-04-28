@@ -431,7 +431,8 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
           </Typography>
         ) : (
           <Typography color="gray" sx={{ fontSize: 14 }}>
-            On {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
+            Switch to{' '}
+            {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
           </Typography>
         )
       ) : (

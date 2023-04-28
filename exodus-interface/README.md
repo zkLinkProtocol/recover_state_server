@@ -2,17 +2,23 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## To display the logo of the node provider
+## To display the logo and name of the node provider
+
+### Display logo
 
 You need to place either a `node.png` or `node.svg` file in the `public` directory and then run the build command.
 
 If you decide to use a png file, the recommended height is `52px`.
 
+### Display name
+
+Enter your node name to the `REACT_APP_NODE_NAME` variable in the `.env` file.
+
 ### `npm install`
 
 Install project dependencies.
 
-### `npm run build:devnet`
+### `npm run build`
 
 Builds the app for production to the `build` folder.\
 It correctly bundles React in production mode and optimizes the build for the best performance.
@@ -22,7 +28,7 @@ Your app is ready to be deployed!
 
 See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run serve:devnet`
+### `npm run serve`
 
 Deploy your website with pm2, the default is port 80, you can change it.
 
