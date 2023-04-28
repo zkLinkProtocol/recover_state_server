@@ -395,7 +395,6 @@ CREATE TABLE recover_state_rollup_ops
     PRIMARY KEY (block_num)
 );
 
--- todo: add index
 CREATE TABLE exit_proofs
 (
     id bigserial NOT NULL,
@@ -412,3 +411,4 @@ CREATE TABLE exit_proofs
     PRIMARY KEY (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token)
 );
 
+CREATE INDEX idx_account_query ON exit_proofs (account_id, l2_source_token);

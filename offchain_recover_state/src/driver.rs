@@ -153,7 +153,7 @@ where
                         Err(e) => {
                             warn!("Failed to get {:?} block number: {}", chain_id, e);
                             tokio::time::sleep(Duration::from_secs(10)).await;
-                            continue
+                            continue;
                         }
                     };
                     if !updating_event.reached_latest_block(cur_block_number) {
@@ -435,7 +435,10 @@ where
     /// Updates events state, saves new blocks, tokens events and the last watched block number in storage
     /// Returns bool flag, true if there are new block events
     async fn exist_events_state(&mut self, interactor: &mut I) -> anyhow::Result<bool> {
-        info!("Loading block events from {:?} zklink contract!", self.zklink_contract.layer2_chain_id());
+        info!(
+            "Loading block events from {:?} zklink contract!",
+            self.zklink_contract.layer2_chain_id()
+        );
         let upgraded_num = self
             .upgraded_layer2_blocks
             .iter()

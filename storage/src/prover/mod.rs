@@ -156,7 +156,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
         let stored_exit_proof = sqlx::query_as!(
             StoredExitProof,
-            "SELECT * FROM exit_proofs WHERE created_at IS NULL LIMIT 1",
+            "SELECT * FROM exit_proofs WHERE created_at IS NULL ORDER BY id ASC LIMIT 1",
         )
         .fetch_optional(transaction.conn())
         .await?;
@@ -185,9 +185,9 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
             task.l1_target_token,
             task.l2_source_token,
         )
-            .fetch_optional(self.0.conn())
-            .await?
-            .map(|id|id.id);
+        .fetch_optional(self.0.conn())
+        .await?
+        .map(|id| id.id);
 
         metrics::histogram!("sql.recover_state.get_task_id", start.elapsed());
         Ok(target_task_id)
