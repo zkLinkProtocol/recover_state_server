@@ -92,15 +92,14 @@ export const SectionL2Balance = () => {
       <Section>
         <Typography variant="h5">Layer2 Balance</Typography>
         <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-          Step 1: Connect your wallet, and wait for the initialization to be completed. You should
-          be able to see the balance of all your tokens on the webpage.
+          Step 1: Connect your wallet, and wait for the initialization to complete. You should see the balance of all your tokens on the webpage.
           <br />
-          Step 2: Click on "Generate" button for each token, wait for your proof. Once a ZK-Proof is
+          Step 2: Click on "Generate" button for each token, wait for your proof to be generated. Once a ZK-Proof is
           generated, the "Generate" button will change to "Submit" button.
           <br />
-          Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. Once the
-          proof is verified on-chain, the "Submit" button will change to "Withdraw" button. Note
-          that you'll need to have the destination blockchain gas token here.
+          Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. 
+          Once the proof is verified on-chain, a list of withdrawable balances will appear in the PendingBalance. 
+          Note that you'll need to have the destination blockchain gas token here.
           <br />
           Step 4: Now, click on "Withdraw", sign with your wallet to send the withdraw request
           on-chain.

@@ -99,8 +99,10 @@ export const SectionPendingBalance = () => {
     >
       <Typography variant="h5">Pending Balance</Typography>
       <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-        You will be able to withdraw tokens to your wallet once a ZK Proof to your request is
-        generated.
+        Click on "Withdraw" and sign with your wallet to send the withdraw request on-chain. 
+        <br/>
+        This action can only be executed once, and once the withdraw transaction is confirmed on-chain, 
+        this record will disappear. Please check your wallet to view the changes in your balance.
       </Typography>
 
       {pendingBalances?.length ? (
