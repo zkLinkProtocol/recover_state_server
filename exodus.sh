@@ -9,7 +9,7 @@ if [ ! -d "log" ]; then
 fi
 
 if [ "$PORT" = "" ]; then
-    PORT=8081
+    export PORT=8081
 fi
   
 
