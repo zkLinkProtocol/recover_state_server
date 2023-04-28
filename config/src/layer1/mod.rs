@@ -37,6 +37,10 @@ impl MultiChainConfigs {
             .map(|c| (c.chain.chain_id, c.contract.address.clone()))
             .collect()
     }
+
+    pub fn get_max_chain_num(&self) -> usize {
+        **self.chain_ids.iter().max().unwrap() as usize
+    }
 }
 
 #[derive(Debug, Clone)]

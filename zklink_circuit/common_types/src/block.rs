@@ -1,11 +1,11 @@
 //! zklink network block definition.
 
-use std::convert::TryInto;
 use chrono::DateTime;
 use chrono::Utc;
 use parity_crypto::digest::sha256;
 use parity_crypto::Keccak256;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use zklink_basic_types::{ChainId, H256, U256};
 use zklink_crypto::franklin_crypto::bellman::pairing::ff::{PrimeField, PrimeFieldRepr};
 use zklink_crypto::params::{ALL_DIFFERENT_TRANSACTIONS_TYPE_NUMBER, CHUNK_BYTES};

@@ -7,6 +7,7 @@ use structopt::StructOpt;
 use tracing::info;
 use zklink_prover::exit_type::ExitInfo;
 use zklink_prover::{run_exodus_prover, ExodusProver};
+use zklink_prover::proving_cache::ProvingCache;
 
 #[derive(StructOpt)]
 #[structopt(
@@ -73,7 +74,8 @@ async fn main() {
                 l1_target_token: l1_target_token.into(),
                 l2_source_token: l2_source_token.into(),
             };
-            let prover = ExodusProver::new(recover_state_config).await;
+            let proving_cache = ProvingCache::from_config(&recover_state_config).expect("Failed to generate proving cache");
+            let prover = ExodusProver::from_config(recover_state_config, proving_cache).await;
 
             info!("Start proving");
             let timer = Instant::now();

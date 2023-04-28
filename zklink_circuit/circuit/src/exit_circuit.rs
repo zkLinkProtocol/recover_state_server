@@ -1,4 +1,6 @@
 // Workspace deps
+use zklink_crypto::bellman::bn256::Bn256;
+use zklink_crypto::params;
 pub use zklink_crypto::{
     circuit::{utils::*, *},
     convert::FeConvert,
@@ -45,6 +47,25 @@ pub struct ZkLinkExitCircuit<'a, E: RescueEngine> {
     pub global_account_audit_data: Vec<OperationBranch<E>>,
     pub l1_target_token: Option<E::Fr>,
     pub l1_target_token_after_mapping: Option<E::Fr>,
+}
+
+/// Creates instance of the exodus mode zkLink circuit.
+impl<'a> ZkLinkExitCircuit<'a, Bn256> {
+    pub fn generate(total_chain_number: usize) -> Self {
+        ZkLinkExitCircuit::<'a, Bn256> {
+            params: &params::RESCUE_PARAMS,
+            chain_id: None,
+            pub_data_commitment: None,
+            root_hash: None,
+            account_audit_data: Default::default(),
+            global_account_audit_data: vec![
+                Default::default();
+                total_chain_number * USDX_TOKEN_ID_RANGE as usize
+            ],
+            l1_target_token: None,
+            l1_target_token_after_mapping: None,
+        }
+    }
 }
 
 // Implementation of our circuit:
