@@ -15,6 +15,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { NetworkInfo } from '../store/home/types'
 import { useEffectOnce } from 'usehooks-ts'
 import axios from 'axios'
+import { NODE_NAME } from '../config'
 
 const sxButton = {
   borderColor: 'rgba(33, 33, 33)',
@@ -110,7 +111,7 @@ export const Header = () => {
   const contracts = useContracts()
   const [showOptions, setShowOptions] = useState(false)
   const switchNetwork = useSwitchNetwork()
-  const [showDeployer, setShowDeployer] = useState<string | undefined>()
+  const [showNode, setShowNode] = useState<boolean>()
   const chains: NetworkInfo[] = useMemo(() => {
     if (!contracts) {
       return []
@@ -129,41 +130,35 @@ export const Header = () => {
       <img src={logoUrl} width="26" />
       <Typography variant="h5">zkLink</Typography>
 
-      <Stack
-        sx={{
-          display: showDeployer === 'png' ? 'flex' : 'none',
-        }}
-        flexDirection="row"
-        alignItems="center"
-      >
-        <Typography sx={{ marginRight: 1 }} variant="h5">
-          /
-        </Typography>
+      <Stack flexDirection="row" alignItems="center">
+        {showNode || (NODE_NAME != undefined && NODE_NAME != '') ? (
+          <Typography sx={{ marginRight: 1 }} variant="h5">
+            /
+          </Typography>
+        ) : null}
         <img
+          style={{ display: 'none', marginRight: 8 }}
           src={`${process.env.PUBLIC_URL}/node.png`}
-          onLoad={() => {
-            setShowDeployer('png')
+          onLoad={function (event) {
+            event.currentTarget.style.display = 'block'
+            setShowNode(true)
           }}
           height="26"
         />
-      </Stack>
-      <Stack
-        sx={{
-          display: showDeployer === 'svg' ? 'flex' : 'none',
-        }}
-        flexDirection="row"
-        alignItems="center"
-      >
-        <Typography sx={{ marginRight: 1 }} variant="h5">
-          /
-        </Typography>
         <img
+          style={{ display: 'none', marginRight: 8 }}
           src={`${process.env.PUBLIC_URL}/node.svg`}
-          onLoad={() => {
-            setShowDeployer('svg')
+          onLoad={function (event) {
+            setShowNode(true)
+            event.currentTarget.style.display = 'block'
           }}
           height="26"
         />
+        {NODE_NAME ? (
+          <Typography sx={{ marginRight: 1 }} variant="h5">
+            {NODE_NAME}
+          </Typography>
+        ) : null}
       </Stack>
 
       <Nav>
