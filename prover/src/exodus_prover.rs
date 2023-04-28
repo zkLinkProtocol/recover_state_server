@@ -1,5 +1,6 @@
 use crate::exit_proof::create_exit_proof;
 use crate::exit_type::{ExitProofData, ProofInfo};
+use crate::proving_cache::ProvingCache;
 use crate::ExitInfo;
 use recover_state_config::RecoverStateConfig;
 use tracing::info;
@@ -9,16 +10,16 @@ use zklink_crypto::params::account_tree_depth;
 use zklink_storage::ConnectionPool;
 use zklink_types::block::Block;
 
-#[derive(Clone)]
 pub struct ExodusProver {
     config: RecoverStateConfig,
+    proving_cache: ProvingCache,
     conn_pool: ConnectionPool,
     circuit_account_tree: CircuitAccountTree,
     pub last_executed_block: Block,
 }
 
 impl ExodusProver {
-    pub async fn new(config: RecoverStateConfig) -> Self {
+    pub async fn from_config(config: RecoverStateConfig, proving_cache: ProvingCache) -> Self {
         let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
         let mut storage = conn_pool
             .access_storage()
@@ -66,6 +67,7 @@ impl ExodusProver {
         drop(storage);
         Self {
             config,
+            proving_cache,
             conn_pool,
             circuit_account_tree,
             last_executed_block,
@@ -141,12 +143,13 @@ impl ExodusProver {
         let (proof, amount) = create_exit_proof(
             &self.config,
             &self.circuit_account_tree,
+            &self.proving_cache,
             exit_info.account_id,
             exit_info.sub_account_id,
             exit_info.l2_source_token,
             exit_info.l1_target_token,
             exit_info.chain_id,
-            **self.config.layer1.chain_ids.iter().max().unwrap() as usize,
+            self.config.layer1.get_max_chain_num(),
         )
         .expect("Failed to generate exit proof");
 
