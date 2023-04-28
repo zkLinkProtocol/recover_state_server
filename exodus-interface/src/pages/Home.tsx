@@ -2,11 +2,11 @@ import { styled, Container, Typography } from '@mui/material'
 import { Header } from './Header'
 import { SectionL2Balance } from './L2Balance'
 import { RouterProvider } from 'react-router'
-import { createBrowserRouter } from 'react-router-dom'
+import { createHashRouter } from 'react-router-dom'
 import { History } from './History'
 import { SectionPendingBalance } from './PendingBalance'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: '/',
     element: (
