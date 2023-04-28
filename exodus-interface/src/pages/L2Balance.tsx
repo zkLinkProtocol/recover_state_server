@@ -92,14 +92,15 @@ export const SectionL2Balance = () => {
       <Section>
         <Typography variant="h5">Layer2 Balance</Typography>
         <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-          Step 1: Connect your wallet, and wait for the initialization to complete. You should see the balance of all your tokens on the webpage.
+          Step 1: Connect your wallet, and wait for the initialization to complete. You should see
+          the balance of all your tokens on the webpage.
           <br />
-          Step 2: Click on "Generate" button for each token, wait for your proof to be generated. Once a ZK-Proof is
-          generated, the "Generate" button will change to "Submit" button.
+          Step 2: Click on "Generate" button for each token, wait for your proof to be generated.
+          Once a ZK-Proof is generated, the "Generate" button will change to "Submit" button.
           <br />
-          Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. 
-          Once the proof is verified on-chain, a list of withdrawable balances will appear in the PendingBalance. 
-          Note that you'll need to have the destination blockchain gas token here.
+          Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. Once the
+          proof is verified on-chain, a list of withdrawable balances will appear in the
+          PendingBalance. Note that you'll need to have the destination blockchain gas token here.
           <br />
           Step 4: Now, click on "Withdraw", sign with your wallet to send the withdraw request
           on-chain.
@@ -321,13 +322,30 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
   const runningTaskId = useRunningTaskId()
   const networks = useNetworks()
   const [pending, setPending] = useState(false)
+  const net = networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)
+  const token = tokens[proofInfo.exit_info.l1_target_token]
+  const layerOneTokenAddress = token.addresses[proofInfo.exit_info.chain_id]
   return (
     <Stack width="100%" flex="1" direction="row" alignItems="center" justifyContent="space-between">
-      <Stack direction="row" alignItems="center" spacing={0.5}>
-        <TokenIcon symbol={tokens[proofInfo.exit_info.l1_target_token]?.symbol} size={18} />
-        <Typography variant="body1">
-          {tokens[proofInfo.exit_info.l1_target_token]?.symbol}:
-        </Typography>
+      <Stack
+        sx={{
+          color: '#333',
+          textDecoration: 'none',
+          p: '0 4px',
+          borderRadius: '2px',
+          '&:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.05)',
+          },
+        }}
+        component={'a'}
+        href={`${net?.explorerUrl}/token/${layerOneTokenAddress}?a=${account}`}
+        target="_blank"
+        direction="row"
+        alignItems="center"
+        spacing={0.5}
+      >
+        <TokenIcon symbol={token?.symbol} size={18} />
+        <Typography variant="body1">{token?.symbol}:</Typography>
         <Typography variant="body2" color="GrayText">
           {proofInfo.proof_info?.amount !== null && proofInfo.proof_info?.amount !== undefined
             ? formatEther(proofInfo.proof_info.amount)
@@ -430,8 +448,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
           </Typography>
         ) : (
           <Typography color="gray" sx={{ fontSize: 14 }}>
-            Switch to{' '}
-            {networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)?.name}
+            Switch to {net?.name}
           </Typography>
         )
       ) : (
