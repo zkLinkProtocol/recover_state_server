@@ -401,7 +401,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
 
                   const payload = [
                     storedBlockInfo?.state_hash,
-                    proofInfo.exit_info.chain_id,
+                    proofInfo.exit_info.chain_id + 1,
                     proofInfo.exit_info.account_id,
                     proofInfo.exit_info.sub_account_id,
                     account,
@@ -426,7 +426,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     toast.success(
                       (t) => (
                         <Stack>
-                          <Typography>Request sent successfully</Typography>
+                          <Typography>{tx}</Typography>
                         </Stack>
                       ),
                       {
