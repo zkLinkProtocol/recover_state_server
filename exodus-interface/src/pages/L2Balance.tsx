@@ -380,7 +380,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     !contracts ||
                     !currentChain ||
                     !proofInfo?.proof_info ||
-                    pending
+                    verifyPending
                   ) {
                     return
                   }
