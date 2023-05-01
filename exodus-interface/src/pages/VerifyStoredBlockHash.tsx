@@ -14,7 +14,8 @@ export const VerifyStoredBlockHash = () => {
     '0x4904d6acf50dd3fdfb406825bd51dfc2abf7d85cdebb998f2d44f01427f03c07'
   )
   const { provider } = useWeb3React()
-  const storedBlockInfo = useStoredBlockInfo()
+  const currentChain = useCurrentChain()
+  const storedBlockInfo = useStoredBlockInfo(currentChain?.layerTwoChainId)
   const query = async () => {
     try {
       if (!provider) {
