@@ -208,7 +208,7 @@ impl RollUpEvents {
                 )
             {
                 // Split the event into two event
-                let mut second_event = first_event.clone();
+                let mut second_event = *first_event;
                 // Use checkpoint to split an event into two event(start -> checkpoint, checkpoint + 1 -> end)
                 first_event.end_block_num = checkpoint;
                 second_event.start_block_num = checkpoint + 1;
