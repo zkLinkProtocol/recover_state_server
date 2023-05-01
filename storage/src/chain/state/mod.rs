@@ -224,7 +224,7 @@ impl<'a, 'c> StateSchema<'a, 'c> {
     /// Applies the previously stored list of account changes to the stored state.
     pub async fn apply_state_update(&mut self, block_number: BlockNumber) -> QueryResult<()> {
         let start = Instant::now();
-        info!("Applying state update for block: {}", block_number);
+        info!("Applying {:?} state update for storage", block_number);
         let mut transaction = self.0.start_transaction().await?;
 
         // Collect the stored updates. This includes collecting entries from three tables:

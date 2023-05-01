@@ -11,25 +11,18 @@ use crate::contract::{
 use crate::END_BLOCK_OFFSET;
 
 /// Rollup contract events states description
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct RollUpEvents {
+    /// Last committed block number
+    pub last_committed_num: BlockNumber,
     /// Committed operations blocks events
     pub committed_events: Vec<BlockEvent>,
+    /// Last verified block number
+    pub last_verified_num: BlockNumber,
     /// Verified operations blocks events
     pub verified_events: Vec<BlockEvent>,
     /// Last watched layer1 block number
     pub last_watched_block_number: u64,
-}
-
-impl Default for RollUpEvents {
-    /// Create default Rollup contract events state
-    fn default() -> Self {
-        Self {
-            committed_events: Vec::new(),
-            verified_events: Vec::new(),
-            last_watched_block_number: 0,
-        }
-    }
 }
 
 impl RollUpEvents {
@@ -155,9 +148,9 @@ impl RollUpEvents {
                 let total_committed = U256::from_big_endian(&data[U256_SIZE..]).as_u32();
 
                 self.committed_events
-                    .retain(|bl| bl.block_num <= total_committed.into());
+                    .retain(|bl| bl.end_block_num <= total_committed.into());
                 self.verified_events
-                    .retain(|bl| bl.block_num <= total_executed.into());
+                    .retain(|bl| bl.end_block_num <= total_executed.into());
 
                 continue;
             }
@@ -167,31 +160,65 @@ impl RollUpEvents {
             let layer2_block_number = log.topics()[1];
 
             let mut block = BlockEvent {
-                block_num: BlockNumber(U256::from(layer2_block_number.as_bytes()).as_u32()),
+                start_block_num: Default::default(),
+                end_block_num: BlockNumber(U256::from(layer2_block_number.as_bytes()).as_u32()),
                 transaction_hash,
                 block_type: EventType::Committed,
                 contract_version,
             };
             if topic == block_verified_topic {
                 block.block_type = EventType::Verified;
+                block.start_block_num = self.last_verified_num;
+
                 self.verified_events.push(block);
+                self.last_verified_num = block.end_block_num + 1;
             } else if topic == block_committed_topic {
+                block.start_block_num = self.last_committed_num;
+
                 self.committed_events.push(block);
+                self.last_committed_num = block.end_block_num + 1;
             }
         }
     }
 
     /// Removes verified committed blocks events and all verified
     fn remove_verified_events(&mut self) {
-        let count_to_remove = self.verified_events.len();
+        // Find the maximum block number in verified_events
+        let verified_block_checkpoint = self.verified_events.iter().map(|event| event.end_block_num).max();
+        // Clear verified_events
         self.verified_events.clear();
-        self.committed_events.drain(0..count_to_remove);
+
+        // If there is a maximum block number, filter out events with smaller block numbers from committed_events
+        if let Some(checkpoint) = verified_block_checkpoint {
+            self.committed_events.retain(|event| checkpoint < event.end_block_num );
+        }
     }
 
     /// Returns only verified committed blocks from verified
-    pub fn get_only_verified_committed_events(&self) -> Vec<BlockEvent> {
-        let count_to_get = self.verified_events.len();
-        self.committed_events[0..count_to_get].to_vec()
+    pub fn get_only_verified_committed_events(&mut self) -> Vec<&BlockEvent> {
+        let verified_block_checkpoint = self.verified_events.iter().map(|event| event.end_block_num).max();
+
+        if let Some(checkpoint) = verified_block_checkpoint {
+            if let Some((index, first_event)) = self.committed_events
+                .iter_mut()
+                .enumerate()
+                .find(|(_, e)|
+                    e.start_block_num <= checkpoint
+                        && checkpoint < e.end_block_num
+                )
+            {
+                // Split the event into two event
+                let mut second_event = first_event.clone();
+                // Use checkpoint to split an event into two event(start -> checkpoint, checkpoint + 1 -> end)
+                first_event.end_block_num = checkpoint;
+                second_event.start_block_num = checkpoint + 1;
+                self.committed_events.insert(index + 1, second_event);
+            }
+            self.committed_events
+                .iter()
+                .filter(|event| event.end_block_num <= checkpoint)
+                .collect()
+        } else { vec![] }
     }
 }
 

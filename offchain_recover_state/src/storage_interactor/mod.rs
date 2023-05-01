@@ -136,8 +136,11 @@ pub trait StorageInteractor {
 ///
 pub fn stored_block_event_into_block_event(block: StoredBlockEvent) -> BlockEvent {
     BlockEvent {
-        block_num: BlockNumber(
-            u32::try_from(block.block_num).expect("Wrong block number - cant convert into u32"),
+        start_block_num: BlockNumber(
+            u32::try_from(block.start_block_num).expect("Wrong block number - cant convert into u32"),
+        ),
+        end_block_num: BlockNumber(
+            u32::try_from(block.end_block_num).expect("Wrong block number - cant convert into u32"),
         ),
         transaction_hash: H256::from_slice(block.transaction_hash.as_slice()),
         block_type: match &block.block_type {
@@ -163,7 +166,8 @@ pub fn block_event_into_stored_block_event(event: &BlockEvent) -> NewBlockEvent 
             EventType::Verified => "Verified".to_string(),
         },
         transaction_hash: event.transaction_hash.as_bytes().to_vec(),
-        block_num: i64::from(*event.block_num),
+        start_block_num: i64::from(*event.start_block_num),
+        end_block_num: i64::from(*event.end_block_num),
         contract_version: event.contract_version.into(),
     }
 }

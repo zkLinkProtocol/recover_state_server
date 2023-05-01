@@ -115,12 +115,11 @@ where
             ..Default::default()
         };
 
-        let view_block_step = config.view_block_step;
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
         for config in &config.layer1.chain_configs {
             let token_events: Box<dyn UpdateTokenEvents> = match config.chain.chain_type {
                 ChainType::EVM => Box::new(
-                    EvmTokenEvents::new(view_block_step, config, connection_pool.clone()).await,
+                    EvmTokenEvents::new(config, connection_pool.clone()).await,
                 ),
                 ChainType::STARKNET => panic!("supported chain type."),
             };
@@ -133,7 +132,7 @@ where
             zklink_contract,
             rollup_events: events_state,
             tree_state: TreeState::default(),
-            view_block_step,
+            view_block_step: config.view_block_step,
             finite_mode,
             final_hash,
             phantom_data: Default::default(),
@@ -142,7 +141,8 @@ where
 
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
-        for (chain_id, updating_event) in self.update_token_events.iter_mut() {
+        for (chain_id, updating_event) in self.update_token_events.iter_mut()
+            .filter(|c|c.0!=ChainId(3)) {
             let mut updating_event = updating_event.take().unwrap();
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
@@ -152,7 +152,7 @@ where
                         Ok(cur_block_number) => cur_block_number,
                         Err(e) => {
                             warn!("Failed to get {:?} block number: {}", chain_id, e);
-                            tokio::time::sleep(Duration::from_secs(10)).await;
+                            tokio::time::sleep(Duration::from_secs(5)).await;
                             continue;
                         }
                     };
@@ -510,11 +510,8 @@ where
         let mut blocks = Vec::new();
 
         let mut last_event_tx_hash = None;
-        for event in self
-            .rollup_events
-            .get_only_verified_committed_events()
-            .into_iter()
-        {
+        let events = self.rollup_events.get_only_verified_committed_events();
+        for event in events {
             // We use an aggregated block in contracts, which means that several BlockEvent can include the same tx_hash,
             // but for correct restore we need to generate RollupBlocks from this tx only once.
             // These blocks go one after the other, and checking only the last transaction hash is safe
@@ -525,20 +522,23 @@ where
             }
 
             let transaction_hash = event.transaction_hash;
-            let rollup_blocks = loop {
-                match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, &event).await {
+            let mut rollup_blocks = loop {
+                match RollupOpsBlock::get_rollup_ops_blocks(&self.zklink_contract, event).await {
                     Ok(res) => break res,
                     Err(e) => {
                         error!(
                             "Failed to get new operation block[{:?}] from events: {}\
                             \nTry again to new operation blocks",
-                            event.block_num, e
+                            event.end_block_num, e
                         );
                         tokio::time::sleep(Duration::from_secs(1)).await
                     }
                 };
             };
 
+            if event.blocks_num() != rollup_blocks.len() {
+                rollup_blocks.retain(|block| event.start_block_num <= block.block_num && block.block_num <= event.end_block_num);
+            }
             blocks.extend(rollup_blocks);
             last_event_tx_hash = Some(transaction_hash);
         }

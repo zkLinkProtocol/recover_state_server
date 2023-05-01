@@ -363,7 +363,8 @@ CREATE TABLE recover_state_events_state (
     id serial PRIMARY KEY,
     block_type text NOT NULL,
     transaction_hash bytea NOT NULL,
-    block_num bigint NOT NULL,
+    start_block_num bigint NOT NULL,
+    end_block_num bigint NOT NULL,
     contract_version smallint NOT NULL
 );
 

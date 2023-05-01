@@ -17,6 +17,7 @@ use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, PriorityOp, ZkLinkAddress, ZkLinkPriorityOp};
 
 pub const ERC20_JSON: &str = include_str!("ERC20.json");
+const VIEW_STEP_BLOCK: u64 = 1000;
 
 pub struct EvmTokenEvents {
     connection_pool: ConnectionPool,
@@ -32,7 +33,6 @@ pub struct EvmTokenEvents {
 
 impl EvmTokenEvents {
     pub async fn new(
-        view_block_step: u64,
         config: &Layer1Config,
         connection_pool: ConnectionPool,
     ) -> Self {
@@ -55,7 +55,7 @@ impl EvmTokenEvents {
             contract: Contract::new(address, zklink_abi, client.into()),
             chain_id: config.chain.chain_id,
             gas_token: config.chain.gas_token.clone(),
-            view_block_step,
+            view_block_step: VIEW_STEP_BLOCK,
             last_sync_block_number: last_watched_block_number as u64,
             last_sync_serial_id,
             connection_pool,

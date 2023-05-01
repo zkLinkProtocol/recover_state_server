@@ -283,7 +283,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
     }
 
     async fn get_block_events_state_from_storage(&mut self, chain_id: ChainId) -> RollUpEvents {
-        let last_watched_eth_block_number = self
+        let last_watched_block_number = self
             .storage
             .recover_schema()
             .last_watched_block_number(*chain_id as i16, "block")
@@ -291,6 +291,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Cant load last watched block number")
             .unwrap()
             .0 as u64;
+        let current_layer2_block_num = self
+            .storage
+            .chain()
+            .block_schema()
+            .get_last_block_number()
+            .await
+            .expect("Cant load last layer2 block number") as u32;
 
         let committed = self
             .storage
@@ -298,12 +305,15 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .load_committed_events_state()
             .await
             .expect("Cant load committed state");
-
-        let mut committed_events: Vec<BlockEvent> = vec![];
-        for event in committed {
-            let block_event = stored_block_event_into_block_event(event.clone());
-            committed_events.push(block_event);
-        }
+        let committed_events: Vec<BlockEvent>=  committed
+            .into_iter()
+            .map(stored_block_event_into_block_event)
+            .collect();
+        let last_committed_num = committed_events
+            .iter()
+            .map(|event|event.end_block_num)
+            .max()
+            .unwrap_or(current_layer2_block_num.into());
 
         let verified = self
             .storage
@@ -311,16 +321,22 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .load_verified_events_state()
             .await
             .expect("Cant load verified state");
-        let mut verified_events: Vec<BlockEvent> = vec![];
-        for event in verified {
-            let block_event = stored_block_event_into_block_event(event.clone());
-            verified_events.push(block_event);
-        }
+        let verified_events: Vec<BlockEvent>=  verified
+            .into_iter()
+            .map(stored_block_event_into_block_event)
+            .collect();
+        let last_verified_num = verified_events
+            .iter()
+            .map(|event|event.end_block_num)
+            .max()
+            .unwrap_or(current_layer2_block_num.into());
 
         RollUpEvents {
+            last_committed_num,
             committed_events,
+            last_verified_num,
             verified_events,
-            last_watched_block_number: last_watched_eth_block_number,
+            last_watched_block_number,
         }
     }
 

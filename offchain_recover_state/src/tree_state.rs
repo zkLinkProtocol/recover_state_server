@@ -83,7 +83,10 @@ impl TreeState {
         &mut self,
         ops_block: &RollupOpsBlock,
     ) -> Result<BlockAndUpdates, anyhow::Error> {
-        info!("Applying ops_block[{:?}]", ops_block.block_num);
+        self.state.token_by_id.insert(149.into(), zklink_types::Token { id: 149.into(), chains: vec![3.into()] });
+        self.state.token_by_id.insert(141.into(), zklink_types::Token { id: 149.into(), chains: vec![3.into(), 1.into(), 2.into(), 4.into(), 6.into(), 7.into()] });
+        self.state.token_by_id.insert(18.into(), zklink_types::Token { id: 18.into(), chains: vec![3.into(), 1.into(), 2.into(), 4.into(), 6.into(), 7.into()] });
+        info!("Applying layer2 block[{:?}]", ops_block.block_num);
         assert_eq!(self.state.block_number + 1, ops_block.block_num);
         assert_eq!(
             ops_block.previous_block_root_hash,
@@ -98,7 +101,7 @@ impl TreeState {
         let mut current_op_block_index = 0u32;
         let mut noop_num = 0usize;
 
-        for (index, operation) in operations.into_iter().enumerate() {
+        for operation in operations.into_iter() {
             match operation {
                 ZkLinkOp::Deposit(op) => {
                     let mut op = <ZkLinkState as TxHandler<Deposit>>::create_op(&self.state, op.tx)
@@ -268,9 +271,6 @@ impl TreeState {
                         &mut op,
                     )
                     .map_err(|e| format_err!("OrderMatching fail: {}", e))?;
-                    if ops_block.block_num == 1770.into() {
-                        info!("block_index: {}, \nupdates :{:?}", index, updates);
-                    }
                     let tx_result = OpSuccess {
                         updates,
                         executed_op: (*op).into(),
