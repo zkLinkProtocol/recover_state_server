@@ -137,7 +137,8 @@ pub trait StorageInteractor {
 pub fn stored_block_event_into_block_event(block: StoredBlockEvent) -> BlockEvent {
     BlockEvent {
         start_block_num: BlockNumber(
-            u32::try_from(block.start_block_num).expect("Wrong block number - cant convert into u32"),
+            u32::try_from(block.start_block_num)
+                .expect("Wrong block number - cant convert into u32"),
         ),
         end_block_num: BlockNumber(
             u32::try_from(block.end_block_num).expect("Wrong block number - cant convert into u32"),

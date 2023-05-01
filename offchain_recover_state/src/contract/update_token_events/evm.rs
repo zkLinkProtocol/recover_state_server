@@ -32,10 +32,7 @@ pub struct EvmTokenEvents {
 }
 
 impl EvmTokenEvents {
-    pub async fn new(
-        config: &Layer1Config,
-        connection_pool: ConnectionPool,
-    ) -> Self {
+    pub async fn new(config: &Layer1Config, connection_pool: ConnectionPool) -> Self {
         let (last_watched_block_number, last_sync_serial_id) = {
             let mut storage = connection_pool.access_storage().await.unwrap();
             storage

@@ -291,13 +291,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .expect("Cant load last watched block number")
             .unwrap()
             .0 as u64;
-        let current_layer2_block_num = self
-            .storage
-            .chain()
-            .block_schema()
-            .get_last_block_number()
-            .await
-            .expect("Cant load last layer2 block number") as u32;
+        let current_layer2_block_num =
+            self.storage
+                .chain()
+                .block_schema()
+                .get_last_block_number()
+                .await
+                .expect("Cant load last layer2 block number") as u32;
 
         let committed = self
             .storage
@@ -305,13 +305,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .load_committed_events_state()
             .await
             .expect("Cant load committed state");
-        let committed_events: Vec<BlockEvent>=  committed
+        let committed_events: Vec<BlockEvent> = committed
             .into_iter()
             .map(stored_block_event_into_block_event)
             .collect();
         let last_committed_num = committed_events
             .iter()
-            .map(|event|event.end_block_num)
+            .map(|event| event.end_block_num)
             .max()
             .unwrap_or(current_layer2_block_num.into());
 
@@ -321,13 +321,13 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
             .load_verified_events_state()
             .await
             .expect("Cant load verified state");
-        let verified_events: Vec<BlockEvent>=  verified
+        let verified_events: Vec<BlockEvent> = verified
             .into_iter()
             .map(stored_block_event_into_block_event)
             .collect();
         let last_verified_num = verified_events
             .iter()
-            .map(|event|event.end_block_num)
+            .map(|event| event.end_block_num)
             .max()
             .unwrap_or(current_layer2_block_num.into());
 

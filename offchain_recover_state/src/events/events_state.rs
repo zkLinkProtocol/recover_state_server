@@ -184,28 +184,35 @@ impl RollUpEvents {
     /// Removes verified committed blocks events and all verified
     fn remove_verified_events(&mut self) {
         // Find the maximum block number in verified_events
-        let verified_block_checkpoint = self.verified_events.iter().map(|event| event.end_block_num).max();
+        let verified_block_checkpoint = self
+            .verified_events
+            .iter()
+            .map(|event| event.end_block_num)
+            .max();
         // Clear verified_events
         self.verified_events.clear();
 
         // If there is a maximum block number, filter out events with smaller block numbers from committed_events
         if let Some(checkpoint) = verified_block_checkpoint {
-            self.committed_events.retain(|event| checkpoint < event.end_block_num );
+            self.committed_events
+                .retain(|event| checkpoint < event.end_block_num);
         }
     }
 
     /// Returns only verified committed blocks from verified
     pub fn get_only_verified_committed_events(&mut self) -> Vec<&BlockEvent> {
-        let verified_block_checkpoint = self.verified_events.iter().map(|event| event.end_block_num).max();
+        let verified_block_checkpoint = self
+            .verified_events
+            .iter()
+            .map(|event| event.end_block_num)
+            .max();
 
         if let Some(checkpoint) = verified_block_checkpoint {
-            if let Some((index, first_event)) = self.committed_events
+            if let Some((index, first_event)) = self
+                .committed_events
                 .iter_mut()
                 .enumerate()
-                .find(|(_, e)|
-                    e.start_block_num <= checkpoint
-                        && checkpoint < e.end_block_num
-                )
+                .find(|(_, e)| e.start_block_num <= checkpoint && checkpoint < e.end_block_num)
             {
                 // Split the event into two event
                 let mut second_event = *first_event;
@@ -218,7 +225,9 @@ impl RollUpEvents {
                 .iter()
                 .filter(|event| event.end_block_num <= checkpoint)
                 .collect()
-        } else { vec![] }
+        } else {
+            vec![]
+        }
     }
 }
 

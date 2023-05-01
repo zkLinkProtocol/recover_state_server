@@ -5,7 +5,9 @@ use std::sync::atomic::AtomicU32;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
-use crate::app_data::{AppData, AcquiredTokens, TokenInfo, ProofsCache, Progress, RecoverProgress, ExodusResponse};
+use crate::app_data::{
+    AcquiredTokens, AppData, ExodusResponse, Progress, ProofsCache, RecoverProgress, TokenInfo,
+};
 use crate::request::TokenRequest;
 use crate::server::exodus_config;
 

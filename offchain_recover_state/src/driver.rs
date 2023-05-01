@@ -118,9 +118,9 @@ where
         let mut update_token_events = Vec::with_capacity(config.layer1.chain_configs.len());
         for config in &config.layer1.chain_configs {
             let token_events: Box<dyn UpdateTokenEvents> = match config.chain.chain_type {
-                ChainType::EVM => Box::new(
-                    EvmTokenEvents::new(config, connection_pool.clone()).await,
-                ),
+                ChainType::EVM => {
+                    Box::new(EvmTokenEvents::new(config, connection_pool.clone()).await)
+                }
                 ChainType::STARKNET => panic!("supported chain type."),
             };
             update_token_events.push((config.chain.chain_id, Some(token_events)))
@@ -141,8 +141,11 @@ where
 
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
-        for (chain_id, updating_event) in self.update_token_events.iter_mut()
-            .filter(|c|c.0!=ChainId(3)) {
+        for (chain_id, updating_event) in self
+            .update_token_events
+            .iter_mut()
+            .filter(|c| c.0 != ChainId(3))
+        {
             let mut updating_event = updating_event.take().unwrap();
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
@@ -537,7 +540,10 @@ where
             };
 
             if event.blocks_num() != rollup_blocks.len() {
-                rollup_blocks.retain(|block| event.start_block_num <= block.block_num && block.block_num <= event.end_block_num);
+                rollup_blocks.retain(|block| {
+                    event.start_block_num <= block.block_num
+                        && block.block_num <= event.end_block_num
+                });
             }
             blocks.extend(rollup_blocks);
             last_event_tx_hash = Some(transaction_hash);
