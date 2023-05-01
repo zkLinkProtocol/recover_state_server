@@ -397,6 +397,8 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                       data: mainCalldata,
                     },
                   ])
+                  console.log({ verifyContractAddress })
+
                   const payload = [
                     storedBlockInfo?.state_hash,
                     proofInfo.exit_info.chain_id,
