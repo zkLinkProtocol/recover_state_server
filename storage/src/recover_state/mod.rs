@@ -271,7 +271,7 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             StoredBlockEvent,
             "SELECT * FROM recover_state_events_state
             WHERE block_type = $1
-            ORDER BY block_num ASC",
+            ORDER BY end_block_num ASC",
             state,
         )
         .fetch_all(self.0.conn())
@@ -334,9 +334,9 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
 
         for event in events.iter() {
             sqlx::query!(
-                "INSERT INTO recover_state_events_state (block_type, transaction_hash, block_num, contract_version) \
-                VALUES ($1, $2, $3, $4)",
-                event.block_type, event.transaction_hash, event.block_num, event.contract_version
+                "INSERT INTO recover_state_events_state (block_type, transaction_hash, start_block_num, end_block_num, contract_version) \
+                VALUES ($1, $2, $3, $4, $5)",
+                event.block_type, event.transaction_hash, event.start_block_num, event.end_block_num, event.contract_version,
             )
             .execute(transaction.conn())
             .await?;

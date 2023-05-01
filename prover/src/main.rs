@@ -6,8 +6,8 @@ use std::time::Instant;
 use structopt::StructOpt;
 use tracing::info;
 use zklink_prover::exit_type::ExitInfo;
-use zklink_prover::{run_exodus_prover, ExodusProver};
 use zklink_prover::proving_cache::ProvingCache;
+use zklink_prover::{run_exodus_prover, ExodusProver};
 
 #[derive(StructOpt)]
 #[structopt(
@@ -74,7 +74,8 @@ async fn main() {
                 l1_target_token: l1_target_token.into(),
                 l2_source_token: l2_source_token.into(),
             };
-            let proving_cache = ProvingCache::from_config(&recover_state_config).expect("Failed to generate proving cache");
+            let proving_cache = ProvingCache::from_config(&recover_state_config)
+                .expect("Failed to generate proving cache");
             let prover = ExodusProver::from_config(recover_state_config, proving_cache).await;
 
             info!("Start proving");

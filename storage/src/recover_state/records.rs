@@ -43,7 +43,8 @@ pub struct StoredStorageState {
 pub struct NewBlockEvent {
     pub block_type: String, // 'Committed', 'Verified'
     pub transaction_hash: Vec<u8>,
-    pub block_num: i64,
+    pub start_block_num: i64,
+    pub end_block_num: i64,
     pub contract_version: i16,
 }
 
@@ -52,6 +53,7 @@ pub struct StoredBlockEvent {
     pub id: i32,
     pub block_type: String, // 'Committed', 'Verified'
     pub transaction_hash: Vec<u8>,
-    pub block_num: i64,
+    pub start_block_num: i64,
+    pub end_block_num: i64,
     pub contract_version: i16,
 }

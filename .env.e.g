@@ -54,12 +54,12 @@ CHAIN_1_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_1.contracts]
 # The block number of contracts deployed
-CHAIN_1_CONTRACT_DEPLOYMENT_BLOCK=34887307
+CHAIN_1_CONTRACT_DEPLOYMENT_BLOCK=34920104
 # The zkLink main contract address
-CHAIN_1_CONTRACT_ADDRESS="0xAbbf03f6baC3E06c7C7fA6dec0f865bfb2aCf8b2"
+CHAIN_1_CONTRACT_ADDRESS="0xd5a67aE094D26451C5CE592798C9CaDE55f968aa"
 
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_1_CONTRACT_GENESIS_TX_HASH="0x80b1a303553ce8763292724166b5612759c1c44dbd83d845ae6ee334b6eb6117"
+CHAIN_1_CONTRACT_GENESIS_TX_HASH="0x55df09af604606e03193f8483bcbfe72aa351e437388f1a217a8e110f07a9050"
 
 # [chain_1.client]
 # Chain id defined in layer one
@@ -84,11 +84,11 @@ CHAIN_2_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_2.contracts]
 # The block number of contracts deployed
-CHAIN_2_CONTRACT_DEPLOYMENT_BLOCK=21292058
+CHAIN_2_CONTRACT_DEPLOYMENT_BLOCK=21316425
 # The zkLink main contract address
-CHAIN_2_CONTRACT_ADDRESS="0x4196e73177AFfD8BE3095aaD7F88CDA20994bBfF"
+CHAIN_2_CONTRACT_ADDRESS="0x7a185Fa2CC782639bCEeb28ecD0cD85b8709EC98"
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_2_CONTRACT_GENESIS_TX_HASH="0x5ae495454766108e596d2bb083f3668c97c0640e7a6808e9eddfa1ba71f7afda"
+CHAIN_2_CONTRACT_GENESIS_TX_HASH="0xa5e208014e89174bffed377d04b1a9e24190616598fd2bfe08c4228ecc602b6d"
 
 # [chain_2.client]
 # Chain id defined in layer one
@@ -113,12 +113,12 @@ CHAIN_3_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_3.contracts]
 # The block number of contracts deployed
-CHAIN_3_CONTRACT_DEPLOYMENT_BLOCK=29299507
+CHAIN_3_CONTRACT_DEPLOYMENT_BLOCK=29322741
 # The zkLink main contract address
-CHAIN_3_CONTRACT_ADDRESS="0xb6CBd075C1f6665DfAF4ca2B68376D7653c641D7"
+CHAIN_3_CONTRACT_ADDRESS="0x15ee6c6360f62db16250B84A2efDA48f001740E8"
 
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_3_CONTRACT_GENESIS_TX_HASH="0x9b9c90691734686c2ed9bceb25acbb86d1d1c0d7c93114bfee16c21d76090931"
+CHAIN_3_CONTRACT_GENESIS_TX_HASH="0x547d16698a2de3d63def0683ee7cddb091744a9993e40cbd6877d53af2473a2d"
 
 # [chain_3.client]
 # Chain id defined in layer one
@@ -143,12 +143,12 @@ CHAIN_4_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_4.contracts]
 # The block number of contracts deployed
-CHAIN_4_CONTRACT_DEPLOYMENT_BLOCK=8899983
+CHAIN_4_CONTRACT_DEPLOYMENT_BLOCK=8904500
 # The zkLink main contract address
-CHAIN_4_CONTRACT_ADDRESS="0xCE9505eEb2240340B6a95672FA07D83752E986DE"
+CHAIN_4_CONTRACT_ADDRESS="0x4d116306C418010F85d6905457239349914bF1Cd"
 
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_4_CONTRACT_GENESIS_TX_HASH="0xcd8ea8cef283465a2703d0e3b64077b2fca6aaacf5c67defda6c787e5dca342c"
+CHAIN_4_CONTRACT_GENESIS_TX_HASH="0x95004489ce3bebeac824d20f48da267292c5725aaef543c338f5f4d10e61075a"
 
 # [chain_4.client]
 # Chain id defined in layer one
@@ -169,7 +169,7 @@ CHAIN_5_CHAIN_TYPE=EVM
 CHAIN_5_GAS_TOKEN=ETH
 # Whether sender should commit compressed block
 # It must be keep same with the constant `ENABLE_COMMIT_COMPRESSED_BLOCK` defined in zkLink contract
-CHAIN_5_IS_COMMIT_COMPRESSED_BLOCKS=true
+CHAIN_5_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_5.contracts]
 # The block number of contracts deployed
@@ -203,12 +203,12 @@ CHAIN_6_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_6.contracts]
 # The block number of contracts deployed
-CHAIN_6_CONTRACT_DEPLOYMENT_BLOCK=1674567
+CHAIN_6_CONTRACT_DEPLOYMENT_BLOCK=1697790
 # The zkLink main contract address
-CHAIN_6_CONTRACT_ADDRESS="0xBcb2513B760CAa7E42117B7b72461da12d88cD1f"
+CHAIN_6_CONTRACT_ADDRESS="0xcC85Ae89DC053e34a58f04e88571644F41A0e5c0"
 
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_6_CONTRACT_GENESIS_TX_HASH="0xb8bda016af3e2ea8a291d07dc1590e08927ecf93f935cd1222f364aa98fed030"
+CHAIN_6_CONTRACT_GENESIS_TX_HASH="0x5d240af705735ef317990ffa610e8803358f97fe3a161bb5719d5b929c19af63"
 
 # [chain_6.client]
 # Chain id defined in layer one
@@ -233,12 +233,12 @@ CHAIN_7_IS_COMMIT_COMPRESSED_BLOCKS=false
 
 # [chain_7.contracts]
 # The block number of contracts deployed
-CHAIN_7_CONTRACT_DEPLOYMENT_BLOCK=569230
+CHAIN_7_CONTRACT_DEPLOYMENT_BLOCK=575035
 # The zkLink main contract address
-CHAIN_7_CONTRACT_ADDRESS="0xb0BBfEc0302032bec5d6fDF8050e4f56Bc3F42dB"
+CHAIN_7_CONTRACT_ADDRESS="0xc04A47344C362b6a4DD1E7b7Fd080ac6ABA36C95"
 
 # The zkLink contract deployed tx hash, used for recover data
-CHAIN_7_CONTRACT_GENESIS_TX_HASH="0x27190dfc54b9a8b5457743d559f8392fe45e63065a71473e3f6c36c549f96d42"
+CHAIN_7_CONTRACT_GENESIS_TX_HASH="0xe84d641b0d9baff69fa3e3d5046f2a69e7bd965213c71c714d2a6abcbc41af63"
 
 # [chain_7.client]
 # Chain id defined in layer one

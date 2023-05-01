@@ -1,3 +1,4 @@
+use crate::proving_cache::ProvingCache;
 use crate::retries::with_retries;
 pub use exit_type::{ExitInfo, ExitProofData};
 pub use exodus_prover::ExodusProver;
@@ -8,7 +9,6 @@ use std::time::Duration;
 use tokio::time::{interval, sleep};
 use tracing::{error, info, warn};
 use zklink_storage::ConnectionPool;
-use crate::proving_cache::ProvingCache;
 
 pub mod exit_proof;
 pub mod exit_type;
@@ -22,7 +22,8 @@ pub const SETUP_MAX_POW2: u32 = 26;
 
 pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<usize>) {
     // Priority generate cache.
-    let proving_cache = ProvingCache::from_config(&config).expect("Failed to generate proving cache");
+    let proving_cache =
+        ProvingCache::from_config(&config).expect("Failed to generate proving cache");
     // And then wait completed recovered state.
     wait_recovered_state(&config).await;
 

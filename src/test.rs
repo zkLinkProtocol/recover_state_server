@@ -2,15 +2,14 @@ use actix_web::{http::StatusCode, test, web, App};
 use recover_state_config::RecoverStateConfig;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicU32;
-use std::sync::Arc;
-use tokio::sync::RwLock;
 use zklink_storage::ConnectionPool;
 use zklink_types::{ChainId, TokenId, ZkLinkAddress};
 
-use crate::acquired_tokens::{AcquiredTokens, TokenInfo};
-use crate::recover_progress::{Progress, RecoverProgress};
+use crate::app_data::{
+    AcquiredTokens, AppData, ExodusResponse, Progress, ProofsCache, RecoverProgress, TokenInfo,
+};
 use crate::request::TokenRequest;
-use crate::{proofs_cache::ProofsCache, r#mod::ExodusResponse, server::exodus_config, AppData};
+use crate::server::exodus_config;
 
 async fn create_app_data() -> AppData {
     dotenvy::dotenv().unwrap();

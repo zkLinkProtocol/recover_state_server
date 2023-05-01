@@ -130,11 +130,21 @@ impl StorageInteractor for InMemoryStorageInteractor {
 
     async fn get_block_events_state_from_storage(&mut self, _chain_id: ChainId) -> RollUpEvents {
         let committed_events = self.load_committed_events_state();
-
+        let last_committed_num = committed_events
+            .iter()
+            .map(|event| event.end_block_num)
+            .max()
+            .unwrap_or_default();
         let verified_events = self.load_verified_events_state();
-
+        let last_verified_num = verified_events
+            .iter()
+            .map(|event| event.end_block_num)
+            .max()
+            .unwrap_or_default();
         RollUpEvents {
+            last_committed_num,
             committed_events,
+            last_verified_num,
             verified_events,
             last_watched_block_number: self.last_watched_block,
         }

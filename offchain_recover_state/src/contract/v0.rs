@@ -93,7 +93,7 @@ pub(super) fn rollup_ops_blocks_from_bytes_inner(
                     &operation[fee_account_argument_id],
                 ) {
                     let ops = contract_version.get_rollup_ops_from_data(public_data.as_slice())?;
-                    info!("Get block {block_number} successfully!");
+                    info!("Get layer2 block {block_number} successfully from zklink contract!");
                     blocks.push(RollupOpsBlock {
                         block_num: BlockNumber(block_number.as_u32()),
                         ops,

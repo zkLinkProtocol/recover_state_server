@@ -16,14 +16,22 @@ pub enum EventType {
 /// Rollup Contract event description
 #[derive(Debug, Copy, Clone, Eq)]
 pub struct BlockEvent {
-    /// Rollup block number
-    pub block_num: BlockNumber,
+    /// Start rollup block number
+    pub start_block_num: BlockNumber,
+    /// End rollup block number
+    pub end_block_num: BlockNumber,
     /// Layer1 transaction hash
     pub transaction_hash: H256,
     /// Rollup block type
     pub block_type: EventType,
     /// Version of ZkLink contract
     pub contract_version: ZkLinkContractVersion,
+}
+
+impl BlockEvent {
+    pub fn blocks_num(&self) -> usize {
+        (*self.end_block_num - *self.start_block_num + 1) as usize
+    }
 }
 
 impl PartialOrd for BlockEvent {
@@ -34,12 +42,12 @@ impl PartialOrd for BlockEvent {
 
 impl Ord for BlockEvent {
     fn cmp(&self, other: &BlockEvent) -> Ordering {
-        self.block_num.cmp(&other.block_num)
+        self.end_block_num.cmp(&other.end_block_num)
     }
 }
 
 impl PartialEq for BlockEvent {
     fn eq(&self, other: &BlockEvent) -> bool {
-        self.block_num == other.block_num
+        self.end_block_num == other.end_block_num
     }
 }

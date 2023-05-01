@@ -9,7 +9,7 @@ if [ ! -d "log" ]; then
 fi
 
 if [ "$PORT" = "" ]; then
-    PORT=80
+    export PORT=8081
 fi
   
 
@@ -26,8 +26,8 @@ if [ "$1" == "start" ]; then
   echo "start exodus prover"
   cd exodus-interface
   npm install
-  npm run build:devnet
-  npm run serve:devnet
+  npm run build
+  npm run serve
 elif [ "$1" == "continue" ]; then
   cargo build --release
   # If there is an interruption, you can run the `continue` command
@@ -38,8 +38,8 @@ elif [ "$1" == "continue" ]; then
   nohup ./target/release/exodus_prover tasks -w 1 >> log/prover.log 2>&1 &
   echo "Continue exodus prover"
   cd exodus-interface
-  npm run build:devnet
-  npm run serve:devnet
+  npm run build
+  npm run serve
 elif [ "$1" == "server" ]; then
   cargo build --release
   nohup ./target/release/exodus_server >> log/server.log 2>&1 &
@@ -52,7 +52,7 @@ elif [ "$1" == "stop" ]; then
   pkill -f exodus_server
   pkill -f exodus_prover
   cd exodus-interface
-  npm run stop:devnet
+  npm run stop
 elif [ "$1" == "clean" ]; then
   cd storage
   diesel database reset
