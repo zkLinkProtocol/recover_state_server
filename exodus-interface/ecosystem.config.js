@@ -4,7 +4,7 @@ module.exports = {
     script: './server/index.js',
     watch: '.',
     env: {
-      "PORT": process.env.PORT || 80,
+      "PORT": process.env.PORT || 8081,
     }
   }]
 };
