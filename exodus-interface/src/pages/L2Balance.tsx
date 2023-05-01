@@ -401,7 +401,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                   ])
                   const fragment = iface.getFunction('verifyExitProof')
                   const calldata = iface.encodeFunctionData(fragment, payload)
-                  const tx = await provider.send('call', [
+                  const tx = await provider.send('eth_call', [
                     {
                       from: account,
                       to: contracts[currentChain.layerTwoChainId],
