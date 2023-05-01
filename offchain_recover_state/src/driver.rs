@@ -147,7 +147,7 @@ where
             updates.push(tokio::spawn(async move {
                 info!("Starting {:?} update token events", chain_id);
                 loop {
-                    let cur_block_number = match updating_event.block_number().await {
+                    let latest_block = match updating_event.block_number().await {
                         Ok(cur_block_number) => cur_block_number,
                         Err(e) => {
                             warn!("Failed to get {:?} block number: {}", chain_id, e);
@@ -155,8 +155,8 @@ where
                             continue;
                         }
                     };
-                    if !updating_event.reached_latest_block(cur_block_number) {
-                        match updating_event.update_token_events().await {
+                    if !updating_event.reached_latest_block(latest_block) {
+                        match updating_event.update_token_events(latest_block).await {
                             Ok(last_sync_block_number) => {
                                 info!(
                                     "{:?} updating token events to block number:{}",

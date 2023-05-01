@@ -18,6 +18,7 @@ use zklink_types::{ChainId, PriorityOp, ZkLinkAddress, ZkLinkPriorityOp};
 
 pub const ERC20_JSON: &str = include_str!("ERC20.json");
 const VIEW_STEP_BLOCK: u64 = 1000;
+const END_BLOCK_DELTA: u64 = 3;
 
 pub struct EvmTokenEvents {
     connection_pool: ConnectionPool,
@@ -166,7 +167,7 @@ impl EvmTokenEvents {
 #[async_trait]
 impl UpdateTokenEvents for EvmTokenEvents {
     fn reached_latest_block(&self, latest_block: u64) -> bool {
-        self.last_sync_block_number + self.view_block_step > latest_block
+        latest_block - self.last_sync_block_number <= END_BLOCK_DELTA
     }
 
     async fn block_number(&self) -> anyhow::Result<u64> {
@@ -174,9 +175,12 @@ impl UpdateTokenEvents for EvmTokenEvents {
         Ok(block_number)
     }
 
-    async fn update_token_events(&mut self) -> anyhow::Result<u64> {
+    async fn update_token_events(&mut self, latest_block: u64) -> anyhow::Result<u64> {
         let from = self.last_sync_block_number + 1;
-        let to = self.last_sync_block_number + self.view_block_step;
+        let to = std::cmp::min(
+            self.last_sync_block_number + self.view_block_step,
+            latest_block,
+        );
         let topics: Vec<H256> = vec![
             self.get_event_signature("NewToken"),
             self.get_event_signature("NewPriorityRequest"),
