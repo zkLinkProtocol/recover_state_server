@@ -35,6 +35,7 @@ const NetworkOptions = styled(Box)(({ theme }) => ({
   padding: '8px 0',
   top: '44px',
   boxShadow: '2px 2px 0 rgba(11, 11, 11, 1)',
+  zIndex: 10,
 
   [theme.breakpoints.down('md')]: {
     top: 'auto',
