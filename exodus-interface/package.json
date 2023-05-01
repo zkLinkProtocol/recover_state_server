@@ -72,5 +72,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "proxy": "http://35.78.170.163:8080"
 }

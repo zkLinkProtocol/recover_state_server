@@ -322,6 +322,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
   const runningTaskId = useRunningTaskId()
   const networks = useNetworks()
   const [pending, setPending] = useState(false)
+  const [verifyPending, setVerifyPending] = useState(false)
   const net = networks?.find((v) => v.layerTwoChainId === proofInfo.exit_info.chain_id)
   const token = tokens[proofInfo.exit_info.l1_target_token]
   const layerOneTokenAddress = token.addresses[proofInfo.exit_info.chain_id]
@@ -363,6 +364,77 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
             })}
             variant="body1"
           >
+            <Button
+              sx={{
+                fontSize: 16,
+                textTransform: 'none',
+                pt: 0,
+                pb: 0,
+              }}
+              color="primary"
+              variant="text"
+              onClick={async () => {
+                try {
+                  if (
+                    !provider ||
+                    !contracts ||
+                    !currentChain ||
+                    !proofInfo?.proof_info ||
+                    pending
+                  ) {
+                    return
+                  }
+                  setVerifyPending(true)
+                  const payload = [
+                    storedBlockInfo?.state_hash,
+                    proofInfo.exit_info.chain_id,
+                    proofInfo.exit_info.account_id,
+                    proofInfo.exit_info.sub_account_id,
+                    account,
+                    proofInfo.exit_info.l1_target_token,
+                    proofInfo.exit_info.l2_source_token,
+                    proofInfo.proof_info.amount,
+                    proofInfo.proof_info.proof?.proof,
+                  ]
+                  const iface = new Interface(MainContract.abi)
+                  const fragment = iface.getFunction('verifyExitProof')
+                  const calldata = iface.encodeFunctionData(fragment, payload)
+                  const tx = await provider.send('call', [
+                    {
+                      from: account,
+                      to: contracts[currentChain.layerTwoChainId],
+                      data: calldata,
+                    },
+                  ])
+                  console.log(tx)
+
+                  if (tx) {
+                    toast.success(
+                      (t) => (
+                        <Stack>
+                          <Typography>Request sent successfully</Typography>
+                        </Stack>
+                      ),
+                      {
+                        duration: 5000,
+                      }
+                    )
+                  }
+                } catch (e: any) {
+                  if (e?.code === -32603) {
+                  } else {
+                    toast.error(e?.message)
+                  }
+                  console.log(e)
+                }
+                setVerifyPending(false)
+              }}
+            >
+              {verifyPending ? (
+                <CircularProgress sx={{ mr: 0.5 }} color="primary" size={14} />
+              ) : null}
+              Verify
+            </Button>
             <Button
               sx={{
                 fontSize: 16,
