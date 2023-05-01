@@ -28,6 +28,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import { SyncBlock } from './SyncBlock'
 import Verifier from '../abi/Verifier.json'
+import { ethers } from 'ethers'
 
 export const Section = styled(Box)({
   backgroundColor: 'rgba(237, 237, 237)',
@@ -397,7 +398,6 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                       data: mainCalldata,
                     },
                   ])
-                  console.log({ verifyContractAddress })
 
                   const payload = [
                     storedBlockInfo?.state_hash,
@@ -416,7 +416,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                   const tx = await provider.send('eth_call', [
                     {
                       from: account,
-                      to: verifyContractAddress,
+                      to: ethers.utils.hexStripZeros(verifyContractAddress),
                       data: calldata,
                     },
                   ])
