@@ -366,91 +366,92 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
             })}
             variant="body1"
           >
-            <Button
-              sx={{
-                fontSize: 16,
-                textTransform: 'none',
-                pt: 0,
-                pb: 0,
-              }}
-              color="primary"
-              variant="text"
-              onClick={async () => {
-                try {
-                  if (
-                    !provider ||
-                    !contracts ||
-                    !currentChain ||
-                    !proofInfo?.proof_info ||
-                    verifyPending
-                  ) {
-                    return
-                  }
-                  setVerifyPending(true)
+            {window.localStorage.getItem('test_verify') ? (
+              <Button
+                sx={{
+                  fontSize: 16,
+                  textTransform: 'none',
+                  pt: 0,
+                  pb: 0,
+                }}
+                color="primary"
+                variant="text"
+                onClick={async () => {
+                  try {
+                    if (
+                      !provider ||
+                      !contracts ||
+                      !currentChain ||
+                      !proofInfo?.proof_info ||
+                      verifyPending
+                    ) {
+                      return
+                    }
+                    setVerifyPending(true)
 
-                  const mainIface = new Interface(MainContract.abi)
-                  const mainFragment = mainIface.getFunction('verifier')
-                  const mainCalldata = mainIface.encodeFunctionData(mainFragment, [])
-                  const verifyContractAddress = await provider.send('eth_call', [
-                    {
-                      from: account,
-                      to: contracts[currentChain.layerTwoChainId],
-                      data: mainCalldata,
-                    },
-                  ])
-                  if (verifyContractAddress.length !== 66) {
-                    throw new Error('Invalid verifier contract address.')
-                  }
-                  const payload = [
-                    storedBlockInfo?.state_hash,
-                    proofInfo.exit_info.chain_id,
-                    proofInfo.exit_info.account_id,
-                    proofInfo.exit_info.sub_account_id,
-                    account,
-                    proofInfo.exit_info.l1_target_token,
-                    proofInfo.exit_info.l2_source_token,
-                    proofInfo.proof_info.amount,
-                    proofInfo.proof_info.proof?.proof,
-                  ]
-                  const iface = new Interface(Verifier.abi)
-                  const fragment = iface.getFunction('verifyExitProof')
-                  const calldata = iface.encodeFunctionData(fragment, payload)
-                  const tx = await provider.send('eth_call', [
-                    {
-                      from: account,
-                      to: '0x' + verifyContractAddress.substr(-40),
-                      data: calldata,
-                    },
-                  ])
-                  console.log(tx)
-
-                  if (tx) {
-                    toast.success(
-                      (t) => (
-                        <Stack>
-                          <Typography sx={{ wordBreak: 'break-all' }}>{tx}</Typography>
-                        </Stack>
-                      ),
+                    const mainIface = new Interface(MainContract.abi)
+                    const mainFragment = mainIface.getFunction('verifier')
+                    const mainCalldata = mainIface.encodeFunctionData(mainFragment, [])
+                    const verifyContractAddress = await provider.send('eth_call', [
                       {
-                        duration: 5000,
-                      }
-                    )
+                        from: account,
+                        to: contracts[currentChain.layerTwoChainId],
+                        data: mainCalldata,
+                      },
+                    ])
+                    if (verifyContractAddress.length !== 66) {
+                      throw new Error('Invalid verifier contract address.')
+                    }
+                    const payload = [
+                      storedBlockInfo?.state_hash,
+                      proofInfo.exit_info.chain_id,
+                      proofInfo.exit_info.account_id,
+                      proofInfo.exit_info.sub_account_id,
+                      account,
+                      proofInfo.exit_info.l1_target_token,
+                      proofInfo.exit_info.l2_source_token,
+                      proofInfo.proof_info.amount,
+                      proofInfo.proof_info.proof?.proof,
+                    ]
+                    const iface = new Interface(Verifier.abi)
+                    const fragment = iface.getFunction('verifyExitProof')
+                    const calldata = iface.encodeFunctionData(fragment, payload)
+                    const tx = await provider.send('eth_call', [
+                      {
+                        from: account,
+                        to: '0x' + verifyContractAddress.substr(-40),
+                        data: calldata,
+                      },
+                    ])
+
+                    if (tx) {
+                      toast.success(
+                        (t) => (
+                          <Stack>
+                            <Typography sx={{ wordBreak: 'break-all' }}>{tx}</Typography>
+                          </Stack>
+                        ),
+                        {
+                          duration: 5000,
+                        }
+                      )
+                    }
+                  } catch (e: any) {
+                    if (e?.code === -32603) {
+                    } else {
+                      toast.error(e?.message)
+                    }
+                    console.log(e)
                   }
-                } catch (e: any) {
-                  if (e?.code === -32603) {
-                  } else {
-                    toast.error(e?.message)
-                  }
-                  console.log(e)
-                }
-                setVerifyPending(false)
-              }}
-            >
-              {verifyPending ? (
-                <CircularProgress sx={{ mr: 0.5 }} color="primary" size={14} />
-              ) : null}
-              Verify
-            </Button>
+                  setVerifyPending(false)
+                }}
+              >
+                {verifyPending ? (
+                  <CircularProgress sx={{ mr: 0.5 }} color="primary" size={14} />
+                ) : null}
+                Verify
+              </Button>
+            ) : null}
             <Button
               sx={{
                 fontSize: 16,
