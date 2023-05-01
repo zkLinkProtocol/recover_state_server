@@ -27,6 +27,7 @@ import * as mathjs from 'mathjs'
 import CircularProgress from '@mui/material/CircularProgress'
 import Button from '@mui/material/Button'
 import { SyncBlock } from './SyncBlock'
+import Verifier from '../abi/Verifier.json'
 
 export const Section = styled(Box)({
   backgroundColor: 'rgba(237, 237, 237)',
@@ -385,6 +386,17 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     return
                   }
                   setVerifyPending(true)
+
+                  const mainIface = new Interface(MainContract.abi)
+                  const mainFragment = mainIface.getFunction('verifier')
+                  const mainCalldata = mainIface.encodeFunctionData(mainFragment, [])
+                  const verifyContractAddress = await provider.send('eth_call', [
+                    {
+                      from: account,
+                      to: contracts[currentChain.layerTwoChainId],
+                      data: mainCalldata,
+                    },
+                  ])
                   const payload = [
                     storedBlockInfo?.state_hash,
                     proofInfo.exit_info.chain_id,
@@ -396,15 +408,13 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     proofInfo.proof_info.amount,
                     proofInfo.proof_info.proof?.proof,
                   ]
-                  const iface = new Interface([
-                    'function verifyExitProof(bytes32 _rootHash, uint8 _chainId, uint32 _accountId, uint8 _subAccountId, address _owner, uint16 _tokenId, uint16 _srcTokenId, uint128 _amount, uint256[] calldata _proof) external virtual view returns (bool)',
-                  ])
+                  const iface = new Interface(Verifier.abi)
                   const fragment = iface.getFunction('verifyExitProof')
                   const calldata = iface.encodeFunctionData(fragment, payload)
                   const tx = await provider.send('eth_call', [
                     {
                       from: account,
-                      to: contracts[currentChain.layerTwoChainId],
+                      to: verifyContractAddress,
                       data: calldata,
                     },
                   ])
