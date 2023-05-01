@@ -141,11 +141,7 @@ where
 
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
-        for (chain_id, updating_event) in self
-            .update_token_events
-            .iter_mut()
-            .filter(|c| c.0 != ChainId(3))
-        {
+        for (chain_id, updating_event) in self.update_token_events.iter_mut() {
             let mut updating_event = updating_event.take().unwrap();
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
