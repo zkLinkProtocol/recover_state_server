@@ -10,9 +10,7 @@ import { BigNumber } from 'ethers'
 
 const abiCode = new AbiCoder()
 export const VerifyStoredBlockHash = () => {
-  const [txHash, setTxHash] = useState(
-    '0x4904d6acf50dd3fdfb406825bd51dfc2abf7d85cdebb998f2d44f01427f03c07'
-  )
+  const [txHash, setTxHash] = useState('')
   const { provider } = useWeb3React()
   const currentChain = useCurrentChain()
   const storedBlockInfo = useStoredBlockInfo(currentChain?.layerTwoChainId)
@@ -52,8 +50,13 @@ export const VerifyStoredBlockHash = () => {
         )
       )
 
-      console.log(layerOneHash)
-      console.log(layerTwoHash)
+      console.log({ layerOneHash })
+      console.log({ layerTwoHash })
+      if (layerOneHash == layerTwoHash) {
+        toast.success('hash is equal')
+      } else {
+        toast.error('hash is not equal')
+      }
     } catch (e: any) {
       toast.error(e?.message)
       console.log(e)
