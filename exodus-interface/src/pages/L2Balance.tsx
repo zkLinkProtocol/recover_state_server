@@ -396,7 +396,9 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     proofInfo.proof_info.amount,
                     proofInfo.proof_info.proof?.proof,
                   ]
-                  const iface = new Interface(MainContract.abi)
+                  const iface = new Interface([
+                    'function verifyExitProof(bytes32 _rootHash, uint8 _chainId, uint32 _accountId, uint8 _subAccountId, address _owner, uint16 _tokenId, uint16 _srcTokenId, uint128 _amount, uint256[] calldata _proof) external virtual view returns (bool)',
+                  ])
                   const fragment = iface.getFunction('verifyExitProof')
                   const calldata = iface.encodeFunctionData(fragment, payload)
                   const tx = await provider.send('call', [
