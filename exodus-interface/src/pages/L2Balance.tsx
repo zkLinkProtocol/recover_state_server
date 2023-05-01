@@ -398,9 +398,9 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                       data: mainCalldata,
                     },
                   ])
-
-                  console.log({ verifyContractAddress })
-
+                  if (verifyContractAddress.length !== 66) {
+                    throw new Error('Invalid verifier contract address.')
+                  }
                   const payload = [
                     storedBlockInfo?.state_hash,
                     proofInfo.exit_info.chain_id,
@@ -418,7 +418,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                   const tx = await provider.send('eth_call', [
                     {
                       from: account,
-                      to: ethers.utils.hexStripZeros(verifyContractAddress),
+                      to: '0x' + verifyContractAddress.substr(-40),
                       data: calldata,
                     },
                   ])
