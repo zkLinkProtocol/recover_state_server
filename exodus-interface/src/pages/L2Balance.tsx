@@ -399,9 +399,11 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     },
                   ])
 
+                  console.log({ verifyContractAddress })
+
                   const payload = [
                     storedBlockInfo?.state_hash,
-                    proofInfo.exit_info.chain_id + 1,
+                    proofInfo.exit_info.chain_id,
                     proofInfo.exit_info.account_id,
                     proofInfo.exit_info.sub_account_id,
                     account,
@@ -426,7 +428,7 @@ const ProofRow: FC<{ proofInfo: ProofInfo }> = ({ proofInfo }) => {
                     toast.success(
                       (t) => (
                         <Stack>
-                          <Typography>{tx}</Typography>
+                          <Typography sx={{ wordBreak: 'break-all' }}>{tx}</Typography>
                         </Stack>
                       ),
                       {
