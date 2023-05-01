@@ -83,27 +83,6 @@ impl TreeState {
         &mut self,
         ops_block: &RollupOpsBlock,
     ) -> Result<BlockAndUpdates, anyhow::Error> {
-        self.state.token_by_id.insert(
-            149.into(),
-            zklink_types::Token {
-                id: 149.into(),
-                chains: vec![3.into()],
-            },
-        );
-        self.state.token_by_id.insert(
-            141.into(),
-            zklink_types::Token {
-                id: 149.into(),
-                chains: vec![3.into(), 1.into(), 2.into(), 4.into(), 6.into(), 7.into()],
-            },
-        );
-        self.state.token_by_id.insert(
-            18.into(),
-            zklink_types::Token {
-                id: 18.into(),
-                chains: vec![3.into(), 1.into(), 2.into(), 4.into(), 6.into(), 7.into()],
-            },
-        );
         info!("Applying layer2 block[{:?}]", ops_block.block_num);
         assert_eq!(self.state.block_number + 1, ops_block.block_num);
         assert_eq!(
