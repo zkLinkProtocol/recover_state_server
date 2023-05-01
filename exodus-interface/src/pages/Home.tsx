@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router'
 import { createHashRouter } from 'react-router-dom'
 import { History } from './History'
 import { SectionPendingBalance } from './PendingBalance'
+import { VerifyStoredBlockHash } from './VerifyStoredBlockHash'
 
 const router = createHashRouter([
   {
@@ -21,6 +22,10 @@ const router = createHashRouter([
   {
     path: 'history',
     element: <History />,
+  },
+  {
+    path: 'verify_stored_block_hash',
+    element: <VerifyStoredBlockHash />,
   },
 ])
 
