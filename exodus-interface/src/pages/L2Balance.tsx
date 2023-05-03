@@ -102,7 +102,8 @@ export const SectionL2Balance = () => {
           <br />
           Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. Once the
           proof is verified on-chain, a list of withdrawable balances will appear in the
-          PendingBalance. Note that you'll need to have the destination blockchain gas token here.
+          PendingBalance. You’ll need to have the gas token of the destination blockchain to proceed.
+          Also, please note that you only need to submit once, as the smart contract does not accept duplicate submissions.
           <br />
           Step 4: Now, click on "Withdraw", sign with your wallet to send the withdraw request
           on-chain.
