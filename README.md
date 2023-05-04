@@ -17,9 +17,9 @@ We recommend using the Ubuntu OS, and below are three recommended configurations
 
 | AWS EC2 Instance | Price     | Prove Performance |
 |------------------|-----------|-------------------|
-| c5a.4xlarge      | $0.768/hr | 1.6 proofs/min    |
-| c5a.12xlarge     | $2.304/hr | 4 proofs/min      |
-| c5a.24xlarge     | $4.608/hr | 5.5 proofs/min    |
+| c5a.4xlarge      | $0.768/hr | 0.3 proofs/min    |
+| c5a.12xlarge     | $2.304/hr | 1 proofs/min      |
+| c5a.24xlarge     | $4.608/hr | 2 proofs/min    |
 
 Before you begin, you will need to have the following software installed:
 - `PostgreSQL`, [How to install PostgreSQL](https://www.postgresql.org/download/linux/ubuntu/)
