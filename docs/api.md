@@ -7,6 +7,7 @@
     - [tokens(after completed state)](#tokens)
     - [recover_progress](#recover_progress)
     - [running_max_task_id(after completed state)](#running_max_task_id)
+    - [pending_tasks_count(after completed state)](#pending_tasks_count)
     - [get_token(after completed state)](#get_token)
     - [get_stored_block_info(after completed state)](#get_stored_block_info)
     - [get_balances(after completed state)](#get_balances)
@@ -260,6 +261,21 @@ Request to get max running task id.
   "code": 0,
   "data": {
     "id": 0
+  },
+  "err_msg": null
+}
+```
+On success, it returns the max id of task running. On failure, it returns an error description.
+
+### pending_tasks_count
+Request to get pending tasks count.
+#### GET Request
+#### Response
+```json
+{
+  "code": 0,
+  "data": {
+    "count": 0
   },
   "err_msg": null
 }

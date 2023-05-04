@@ -22,6 +22,11 @@ pub struct UnprocessedPriorityOp {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct PendingTasksCount {
+    pub(crate) count: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TaskId {
     id: ProofId,
 }

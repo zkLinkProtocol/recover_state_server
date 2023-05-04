@@ -52,6 +52,15 @@ async fn running_max_task_id(data: web::Data<Arc<AppData>>) -> actix_web::Result
     Ok(HttpResponse::Ok().json(response))
 }
 
+/// Request to get pending tasks count.
+async fn pending_tasks_count(data: web::Data<Arc<AppData>>) -> actix_web::Result<HttpResponse> {
+    let response = match data.pending_tasks_count().await {
+        Ok(pending_tasks_count) => ExodusResponse::Ok().data(pending_tasks_count),
+        Err(err) => err.into(),
+    };
+    Ok(HttpResponse::Ok().json(response))
+}
+
 /// Get token info(supported chains, token's contract addresses) by token_id
 async fn get_token(
     token_request: web::Json<TokenRequest>,
@@ -250,6 +259,7 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
         .route("/tokens", web::get().to(get_tokens))
         .route(RECOVER_PROGRESS_PATH, web::get().to(recover_progress))
         .route("/running_max_task_id", web::get().to(running_max_task_id))
+        .route("/pending_tasks_count", web::get().to(pending_tasks_count))
         .route(
             "/get_unprocessed_priority_ops",
             web::post().to(get_unprocessed_priority_ops),

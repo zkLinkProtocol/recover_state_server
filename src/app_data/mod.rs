@@ -28,8 +28,8 @@ use zklink_types::{AccountId, ChainId, SubAccountId, TokenId, ZkLinkAddress, ZkL
 
 use crate::request::BatchExitRequest;
 use crate::response::{
-    ExodusResponse, ExodusStatus, Proofs, PublicData, SubAccountBalances, TaskId,
-    UnprocessedPriorityOp,
+    ExodusResponse, ExodusStatus, PendingTasksCount, Proofs, PublicData, SubAccountBalances,
+    TaskId, UnprocessedPriorityOp,
 };
 
 const GET_PROOFS_NUM_LIMIT: u32 = 100;
@@ -325,6 +325,14 @@ impl AppData {
         let mut storage = self.access_storage().await;
         let running_task_id = storage.prover_schema().get_running_max_task_id().await?;
         Ok(running_task_id.into())
+    }
+
+    pub(crate) async fn pending_tasks_count(&self) -> Result<PendingTasksCount, ExodusStatus> {
+        let mut storage = self.access_storage().await;
+        let pending_tasks_count = storage.prover_schema().get_pending_tasks_count().await?;
+        Ok(PendingTasksCount {
+            count: pending_tasks_count as u32,
+        })
     }
 
     pub(crate) async fn get_proofs_by_page(

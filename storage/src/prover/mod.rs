@@ -208,6 +208,22 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(running_task_id)
     }
 
+    /// Query the number of tasks to be processed.
+    pub async fn get_pending_tasks_count(&mut self) -> QueryResult<i64> {
+        let start = Instant::now();
+
+        let tasks_count = sqlx::query!(
+            "SELECT count(id) FROM exit_proofs WHERE created_at IS NULL AND finished_at IS NULL",
+        )
+        .fetch_one(self.0.conn())
+        .await?
+        .count
+        .unwrap_or_default();
+
+        metrics::histogram!("sql.recover_state.get_pending_tasks_count", start.elapsed());
+        Ok(tasks_count)
+    }
+
     /// Count the number of tasks running
     pub async fn count_running_tasks(&mut self) -> QueryResult<i64> {
         let start = Instant::now();
