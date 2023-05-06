@@ -14,9 +14,12 @@ fi
   
 
 if [ "$1" == "start" ]; then
+  rm log/*
+
   cd storage
   diesel database reset
   cd ..
+
   cargo build --release
   nohup ./target/release/recover_state --genesis >> log/recover_state.log 2>&1 &
   echo "start recovering state"
@@ -24,6 +27,7 @@ if [ "$1" == "start" ]; then
   echo "start exodus server"
   nohup ./target/release/exodus_prover tasks -w 1 >> log/prover.log 2>&1 &
   echo "start exodus prover"
+
   cd exodus-interface
   npm install
   npm run build
@@ -37,6 +41,7 @@ elif [ "$1" == "continue" ]; then
   echo "Continue exodus server"
   nohup ./target/release/exodus_prover tasks -w 1 >> log/prover.log 2>&1 &
   echo "Continue exodus prover"
+
   cd exodus-interface
   npm run build
   npm run serve
@@ -57,7 +62,7 @@ elif [ "$1" == "clean" ]; then
   cd storage
   diesel database reset
 else
-  echo "Usage: $0 {recover|continue|server|prover|stop}"
+  echo "Usage: $0 {start|continue|server|prover|stop|clean}"
   exit 1
 fi
 
