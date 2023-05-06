@@ -121,6 +121,10 @@ impl StorageInteractor for InMemoryStorageInteractor {
         Ok(())
     }
 
+    async fn replace_block_event(&mut self, _block_events: &[BlockEvent]) -> anyhow::Result<()> {
+        todo!()
+    }
+
     async fn save_genesis_tree_state(
         &mut self,
         genesis_updates: &[(AccountId, AccountUpdate, H256)],

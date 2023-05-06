@@ -93,7 +93,7 @@ pub trait StorageInteractor {
     ///
     /// # Arguments
     ///
-    /// * `eveblock_eventsnts` - Rollup contract block events descriptions
+    /// * `block_events` - Rollup contract block events descriptions
     /// * `tokens` - Tokens that had been added to system
     /// * `last_watched_block_number` - Last watched layer1 block
     ///
@@ -102,6 +102,17 @@ pub trait StorageInteractor {
         chain_id: ChainId,
         block_events: &[BlockEvent],
         last_watched_block_number: u64,
+    ) -> anyhow::Result<()>;
+
+    /// Replace the event of the same transaction hash with two split events of the same transaction hash
+    ///
+    /// # Arguments
+    ///
+    /// * `block_events` - Rollup contract block events descriptions
+    ///
+    async fn replace_block_event(
+        &mut self,
+        block_events: &[BlockEvent],
     ) -> anyhow::Result<()>;
 
     /// Saves genesis accounts state in storage

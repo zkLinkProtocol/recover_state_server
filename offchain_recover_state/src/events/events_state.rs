@@ -200,7 +200,7 @@ impl RollUpEvents {
     }
 
     /// Returns only verified committed blocks from verified
-    pub fn get_only_verified_committed_events(&mut self) -> Vec<&BlockEvent> {
+    pub fn get_only_verified_committed_events(&mut self) -> (Vec<BlockEvent>, Vec<&BlockEvent>) {
         let verified_block_checkpoint = self
             .verified_events
             .iter()
@@ -208,7 +208,7 @@ impl RollUpEvents {
             .max();
 
         if let Some(checkpoint) = verified_block_checkpoint {
-            if let Some((index, first_event)) = self
+            let split_events = if let Some((index, first_event)) = self
                 .committed_events
                 .iter_mut()
                 .enumerate()
@@ -219,14 +219,18 @@ impl RollUpEvents {
                 // Use checkpoint to split an event into two event(start -> checkpoint, checkpoint + 1 -> end)
                 first_event.end_block_num = checkpoint;
                 second_event.start_block_num = checkpoint + 1;
+
+                let split_events = vec![*first_event, second_event];
                 self.committed_events.insert(index + 1, second_event);
-            }
-            self.committed_events
+                split_events
+            } else { vec![] };
+            let event = self.committed_events
                 .iter()
                 .filter(|event| event.end_block_num <= checkpoint)
-                .collect()
+                .collect();
+            (split_events, event)
         } else {
-            vec![]
+            (vec![], vec![])
         }
     }
 }

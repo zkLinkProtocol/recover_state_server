@@ -252,6 +252,18 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         Ok(())
     }
 
+    async fn replace_block_event(&mut self, block_events: &[BlockEvent]) -> anyhow::Result<()> {
+        let block_events = block_events
+            .iter()
+            .map(block_event_into_stored_block_event)
+            .collect::<Vec<_>>();
+        self.storage
+            .recover_schema()
+            .replace_block_event(&block_events)
+            .await?;
+        Ok(())
+    }
+
     async fn save_genesis_tree_state(
         &mut self,
         genesis_updates: &[(AccountId, AccountUpdate, H256)],

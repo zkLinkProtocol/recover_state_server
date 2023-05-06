@@ -495,7 +495,7 @@ where
     /// Gets new operations blocks from events, updates rollup operations stored state.
     /// Returns new rollup operations blocks
     async fn load_op_from_events_and_save_op(&mut self, interactor: &mut I) -> Vec<RollupOpsBlock> {
-        let new_blocks = self.get_new_operation_blocks_from_events().await;
+        let new_blocks = self.get_new_operation_blocks_from_events(interactor).await;
 
         interactor.save_rollup_ops(&new_blocks).await;
 
@@ -505,11 +505,16 @@ where
     }
 
     /// Returns verified committed operations blocks from verified op blocks events
-    pub async fn get_new_operation_blocks_from_events(&mut self) -> Vec<RollupOpsBlock> {
+    pub async fn get_new_operation_blocks_from_events(&mut self, interactor: &mut I) -> Vec<RollupOpsBlock> {
         let mut blocks = Vec::new();
 
         let mut last_event_tx_hash = None;
-        let events = self.rollup_events.get_only_verified_committed_events();
+        let (split_events, events) = self.rollup_events.get_only_verified_committed_events();
+        if !split_events.is_empty() {
+            interactor.replace_block_event(&split_events).await.expect("Failed to replace block event");
+            info!("Replaced unaligned(verified-committed) block event!");
+        }
+
         for event in events {
             // We use an aggregated block in contracts, which means that several BlockEvent can include the same tx_hash,
             // but for correct restore we need to generate RollupBlocks from this tx only once.
@@ -536,6 +541,7 @@ where
             };
 
             if event.blocks_num() != rollup_blocks.len() {
+                info!("Handling unaligned(verified-committed) rollup block!");
                 rollup_blocks.retain(|block| {
                     event.start_block_num <= block.block_num
                         && block.block_num <= event.end_block_num

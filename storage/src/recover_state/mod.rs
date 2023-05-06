@@ -345,4 +345,30 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         metrics::histogram!("sql.recover_state.update_block_events", start.elapsed());
         Ok(())
     }
+
+    pub async fn replace_block_event(
+        &mut self,
+        events: &[NewBlockEvent],
+    ) -> QueryResult<()> {
+        let start = Instant::now();
+        let mut transaction = self.0.start_transaction().await?;
+        let tx_hash = &events[0].transaction_hash;
+        assert!(events.iter().all(|event| &event.transaction_hash == tx_hash));
+        sqlx::query!("DELETE FROM recover_state_events_state WHERE transaction_hash = $1", tx_hash)
+            .execute(transaction.conn())
+            .await?;
+
+        for event in events.iter() {
+            sqlx::query!(
+                "INSERT INTO recover_state_events_state (block_type, transaction_hash, start_block_num, end_block_num, contract_version) \
+                VALUES ($1, $2, $3, $4, $5)",
+                event.block_type, event.transaction_hash, event.start_block_num, event.end_block_num, event.contract_version,
+            )
+            .execute(transaction.conn())
+            .await?;
+        }
+        transaction.commit().await?;
+        metrics::histogram!("sql.recover_state.update_block_events", start.elapsed());
+        Ok(())
+    }
 }
