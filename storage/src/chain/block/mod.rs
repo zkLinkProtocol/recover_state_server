@@ -22,7 +22,6 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use parity_crypto::Keccak256;
-use zklink_types::block::FailedExecutedTx;
 
 mod conversion;
 pub mod records;
@@ -41,14 +40,15 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         block_number: BlockNumber,
         operations: Vec<ExecutedTx>,
     ) -> QueryResult<()> {
+        let mut transaction = self.0.start_transaction().await?;
         for tx in operations {
-            if tx.get_executed_op().is_priority_operation(){
+            let is_priority_operation = tx.get_executed_op().is_priority_operation();
+            let new_tx = NewExecutedTransaction::prepare_stored_tx(tx, block_number);
+            if is_priority_operation{
                 // Store the executed priority operation in the corresponding schema.
-                let new_tx = NewExecutedTransaction::prepare_stored_priority_tx(tx, block_number);
-                OperationsSchema(self.0).update_executed_tx(new_tx).await?;
+                OperationsSchema(&mut transaction).update_priority_tx(new_tx).await?;
             } else {
                 // Store the executed operation in the corresponding schema.
-                let new_tx = NewExecutedTransaction::prepare_stored_tx(tx, block_number);
                 let new_tx = StoredSubmitTransaction{
                     id: 0,
                     chain_id: new_tx.chain_id,
@@ -65,9 +65,10 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
                     operation: Some(new_tx.operation),
                     ..Default::default()
                 };
-                OperationsSchema(self.0).add_new_submit_tx(new_tx).await?;
+                OperationsSchema(&mut transaction).add_new_submit_tx(new_tx).await?;
             }
         }
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -248,8 +249,6 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
     }
 
     pub async fn save_block(&mut self, block: Block) -> QueryResult<()> {
-        let mut transaction = self.0.start_transaction().await?;
-
         let number = i64::from(*block.block_number);
         let root_hash = block.new_root_hash.to_bytes();
         let fee_account_id = i64::from(*block.fee_account);
@@ -264,6 +263,8 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         let d = UNIX_EPOCH + Duration::from_secs(block.timestamp);
         // Create DateTime from SystemTime
         let created_at = DateTime::<Utc>::from(d);
+
+        let mut transaction = self.0.start_transaction().await?;
         BlockSchema(&mut transaction)
             .update_block_transactions(block.block_number, block.block_transactions)
             .await?;

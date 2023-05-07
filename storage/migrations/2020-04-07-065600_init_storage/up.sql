@@ -413,14 +413,3 @@ CREATE TABLE exit_proofs
 );
 
 CREATE INDEX idx_account_query ON exit_proofs (account_id, l2_source_token);
-
--- Because of the instability of the scroll and linea rpc nodes, the token is added temporarily and manually
-INSERT INTO public.token_price (token_id, symbol, price_id, usd_price, last_update_time) VALUES (18, 'USDC', '', 0, '1970-01-01 00:00:00.000000 +00:00');
-INSERT INTO public.token_price (token_id, symbol, price_id, usd_price, last_update_time) VALUES (141, 'wETH', '', 0, '1970-01-01 00:00:00.000000 +00:00');
-INSERT INTO public.token_price (token_id, symbol, price_id, usd_price, last_update_time) VALUES (150, 'USDT', '', 0, '1970-01-01 00:00:00.000000 +00:00');
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (18, 6, E'\\x671473C9743FDA0D3E7F489708C34E52A56FFEA4', 18, false);
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (141, 6, E'\\xCFD6F51B247021D2737CB4862FD5F87032F39724', 18, false);
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (150, 6, E'\\xD4E2B83D2696ED0E05818DB08F95416AAC8D7E2F', 18, false);
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (18, 7, '0xc9639Ca358A78d10497373A7a795B48e629A14A6', 18, false);
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (141, 7, '0x457E705C8552f79ae70Bec19DF5CD46f05384FCA', 18, false);
-INSERT INTO public.tokens (id, chain_id, address, decimals, fast_withdraw) VALUES (150, 7, '0x18CD805E441C906D13d339842Bb95c321b352A7D', 18, false);

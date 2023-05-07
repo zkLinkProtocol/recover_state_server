@@ -110,10 +110,7 @@ pub trait StorageInteractor {
     ///
     /// * `block_events` - Rollup contract block events descriptions
     ///
-    async fn replace_block_event(
-        &mut self,
-        block_events: &[BlockEvent],
-    ) -> anyhow::Result<()>;
+    async fn replace_block_event(&mut self, block_events: &[BlockEvent]) -> anyhow::Result<()>;
 
     /// Saves genesis accounts state in storage
     ///

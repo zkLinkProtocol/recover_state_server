@@ -165,8 +165,8 @@ impl ZkLinkTx {
             ZkLinkTx::ChangePubKey(tx) => tx.nonce,
             ZkLinkTx::ForcedExit(tx) => tx.nonce,
             ZkLinkTx::OrderMatching(_tx) => Nonce(u32::MAX),
-            ZkLinkTx::FullExit(tx) => Nonce((tx.serial_id & 0xffffffff) as u32),
-            ZkLinkTx::Deposit(tx) => Nonce((tx.serial_id & 0xffffffff) as u32),
+            ZkLinkTx::FullExit(tx) => Nonce(tx.serial_id as u32),
+            ZkLinkTx::Deposit(tx) => Nonce(tx.serial_id as u32),
         }
     }
 
