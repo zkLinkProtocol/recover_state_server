@@ -388,9 +388,9 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
     ) -> QueryResult<()> {
         let start = Instant::now();
         sqlx::query!(
-            r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3, executed = true,
-            executed_timestamp = current_timestamp, success = $4, fail_reason = $5, nonce = $6, amount=$7
-            WHERE tx_hash = $8"#,
+            r#"INSERT INTO submit_txs (chain_id, block_number, block_index, operation, executed, executed_timestamp, success, fail_reason, nonce, amount, tx_hash)
+               VALUES ($1, $2, $3, $4, true, current_timestamp, $5, $6, $7, $8, $9)"#,
+            operation.chain_id,
             operation.block_number,
             operation.block_index,
             operation.operation,

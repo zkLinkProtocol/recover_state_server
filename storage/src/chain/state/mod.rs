@@ -17,7 +17,6 @@ use crate::chain::{
 };
 use crate::diff::StorageAccountDiff;
 use crate::{QueryResult, StorageProcessor};
-use zklink_types::block::FailedExecutedTx;
 
 /// State schema is capable of managing... well, the state of the chain.
 ///
@@ -178,30 +177,6 @@ impl<'a, 'c> StateSchema<'a, 'c> {
         transaction.commit().await?;
 
         metrics::histogram!("sql.chain.state.commit_state_update", start.elapsed());
-        Ok(())
-    }
-
-    pub async fn commit_failed_txs(
-        &mut self,
-        block_number: BlockNumber,
-        failed_txs: Vec<FailedExecutedTx>,
-    ) -> QueryResult<()> {
-        let mut transaction = self
-            .0
-            .start_transaction()
-            .await
-            .expect("Failed initializing a DB transaction");
-        transaction
-            .chain()
-            .block_schema()
-            .save_block_failed_transactions(block_number, failed_txs)
-            .await
-            .expect("worker must commit the op into db");
-
-        transaction
-            .commit()
-            .await
-            .expect("Unable to commit DB transaction");
         Ok(())
     }
 

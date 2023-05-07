@@ -356,12 +356,6 @@ where
 
         // Loads the tokens of all chain.
         self.tree_state.state.token_by_id = interactor.load_tokens().await;
-        // Because of the instability of the scroll and linea rpc nodes, the token is added temporarily and manually
-        let scroll_and_linea_chain_ids: [ChainId; 2] = [6.into(), 7.into()];
-        let scroll_and_linea_token_ids = [141.into(), 18.into(), 150.into()];
-        for token_id in scroll_and_linea_token_ids {
-            self.tree_state.state.token_by_id.entry(token_id).or_default().chains.extend(scroll_and_linea_chain_ids);
-        }
 
         loop {
             info!("Last watched layer1 block: {:?}", last_watched_block);

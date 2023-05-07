@@ -29,7 +29,7 @@ impl StoredExecutedTransaction {
 }
 
 impl NewExecutedTransaction {
-    pub fn prepare_stored_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
+    pub fn prepare_stored_priority_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
         let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
         let op = exec_tx.op;
         let op_type = op.op_code() as i16;
@@ -43,6 +43,36 @@ impl NewExecutedTransaction {
         } else {
             *exec_tx.tx.nonce() as i64
         };
+        let amount = match op {
+            ZkLinkOp::Deposit(op) => op.tx.amount,
+            ZkLinkOp::FullExit(op) => op.exit_amount,
+            _ => unreachable!()
+        };
+
+        let amount = BigDecimal::from(amount.to_bigint().unwrap());
+        let mut block_index = exec_tx.block_index.map(|idx| idx as i32);
+        if block_index.is_none() {
+            block_index = Some(0);
+        }
+        Self {
+            op_type,
+            chain_id,
+            block_number: i64::from(*block),
+            tx_hash: exec_tx.tx.hash().as_ref().to_vec(),
+            operation,
+            success: exec_tx.success,
+            fail_reason: exec_tx.fail_reason,
+            block_index,
+            nonce,
+            amount,
+        }
+    }
+
+    pub fn prepare_stored_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
+        let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
+        let op = exec_tx.op;
+        let op_type = op.op_code() as i16;
+        let chain_id = op.get_onchain_operation_chain_id() as i16;
         let amount = match op {
             ZkLinkOp::Deposit(op) => op.tx.amount,
             ZkLinkOp::Transfer(op) => op.tx.amount,
@@ -69,7 +99,7 @@ impl NewExecutedTransaction {
             success: exec_tx.success,
             fail_reason: exec_tx.fail_reason,
             block_index,
-            nonce,
+            nonce: *exec_tx.tx.nonce() as i64,
             amount,
         }
     }
