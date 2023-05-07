@@ -49,6 +49,8 @@ export const VerifyStoredBlockHash = () => {
           layerTwoStoredBlockInfo
         )
       )
+      console.log({ layerOneStoredBlockInfo: data.storedBlock })
+      console.log({ layerTwoStoredBlockInfo })
 
       console.log({ layerOneHash })
       console.log({ layerTwoHash })
