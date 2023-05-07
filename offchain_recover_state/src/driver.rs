@@ -99,6 +99,7 @@ where
         finite_mode: bool,
         final_hash: Option<Fr>,
         deploy_block_number: u64,
+        view_block_step: u64,
         connection_pool: ConnectionPool,
     ) -> Self {
         let mut storage = connection_pool.access_storage().await.unwrap();
@@ -132,7 +133,7 @@ where
             zklink_contract,
             rollup_events: events_state,
             tree_state: TreeState::default(),
-            view_block_step: config.view_block_step,
+            view_block_step,
             finite_mode,
             final_hash,
             phantom_data: Default::default(),

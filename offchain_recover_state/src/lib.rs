@@ -22,7 +22,7 @@ pub const PRC_REQUEST_FREQUENT_ERROR_SETS: [&str; 1] = ["429 Too Many Requests"]
 
 pub fn get_fully_on_chain_zklink_contract(
     config: &RecoverStateConfig,
-) -> (u64, impl ZkLinkContract) {
+) -> (u64, u64, impl ZkLinkContract) {
     let uncompress_chain_config = config
         .layer1
         .chain_configs
@@ -30,7 +30,9 @@ pub fn get_fully_on_chain_zklink_contract(
         .find(|chain| !chain.chain.is_commit_compressed_blocks)
         .unwrap();
     let deploy_block_number = uncompress_chain_config.contract.deployment_block;
+    let view_block_step = uncompress_chain_config.client.view_block_step;
     (
+        view_block_step,
         deploy_block_number,
         match uncompress_chain_config.chain.chain_type {
             ChainType::EVM => ZkLinkEvmContract::new(uncompress_chain_config.clone()),

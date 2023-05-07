@@ -50,13 +50,15 @@ async fn main() {
 
     info!("Restoring ZkLink state from the contract");
     // Init RecoverStateDriver
-    let (deploy_block_number, zklink_contract) = get_fully_on_chain_zklink_contract(&config);
+    let (view_block_step, deploy_block_number, zklink_contract) =
+        get_fully_on_chain_zklink_contract(&config);
     let mut driver = RecoverStateDriver::new(
         zklink_contract,
         &config,
         opt.finite,
         final_hash,
         deploy_block_number,
+        view_block_step,
         connection_pool.clone(),
     )
     .await;

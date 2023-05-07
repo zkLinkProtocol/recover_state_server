@@ -26,7 +26,7 @@ impl RecoverProgress {
             .await
             .expect("Failed to get last verified block number from database");
 
-        let (_, zklink_contract) = get_fully_on_chain_zklink_contract(config);
+        let (_, _, zklink_contract) = get_fully_on_chain_zklink_contract(config);
         let total_verified_block = zklink_contract
             .get_total_verified_blocks()
             .await

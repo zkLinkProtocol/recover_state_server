@@ -14,7 +14,9 @@ use crate::chain::account::records::{
     StorageAccountUpdate, StorageStateUpdates,
 };
 use crate::chain::block::records::{NewZkLinkTx, StorageBlockOnChainState};
-use crate::chain::operations::records::{AggType, StorageTxHash, StorageTxHashData, StoredSubmitTransaction};
+use crate::chain::operations::records::{
+    AggType, StorageTxHash, StorageTxHashData, StoredSubmitTransaction,
+};
 use crate::chain::operations::OperationsSchema;
 use crate::{
     chain::operations::records::{NewExecutedTransaction, StoredExecutedTransaction},
@@ -44,12 +46,14 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         for tx in operations {
             let is_priority_operation = tx.get_executed_op().is_priority_operation();
             let new_tx = NewExecutedTransaction::prepare_stored_tx(tx, block_number);
-            if is_priority_operation{
+            if is_priority_operation {
                 // Store the executed priority operation in the corresponding schema.
-                OperationsSchema(&mut transaction).update_priority_tx(new_tx).await?;
+                OperationsSchema(&mut transaction)
+                    .update_priority_tx(new_tx)
+                    .await?;
             } else {
                 // Store the executed operation in the corresponding schema.
-                let new_tx = StoredSubmitTransaction{
+                let new_tx = StoredSubmitTransaction {
                     id: 0,
                     chain_id: new_tx.chain_id,
                     op_type: new_tx.op_type,
@@ -65,7 +69,9 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
                     operation: Some(new_tx.operation),
                     ..Default::default()
                 };
-                OperationsSchema(&mut transaction).add_new_submit_tx(new_tx).await?;
+                OperationsSchema(&mut transaction)
+                    .add_new_submit_tx(new_tx)
+                    .await?;
             }
         }
         transaction.commit().await?;

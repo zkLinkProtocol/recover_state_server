@@ -14,9 +14,9 @@ use crate::chain::operations::records::{NewExecutedTransaction, StoredExecutedTr
 impl StoredExecutedTransaction {
     pub fn into_executed_tx(self) -> Result<ExecutedTx, anyhow::Error> {
         let tx: ZkLinkTx = serde_json::from_value(self.tx_data).expect("Unparsable tx in tx_data");
-        let franklin_op: Option<ZkLinkOp> = self.operation.map(|op|
-           serde_json::from_value(op).expect("Unparsable ZkLinkOp in db")
-        );
+        let franklin_op: Option<ZkLinkOp> = self
+            .operation
+            .map(|op| serde_json::from_value(op).expect("Unparsable ZkLinkOp in db"));
         Ok(ExecutedTx {
             tx,
             success: self.success,

@@ -2,7 +2,6 @@ use std::collections::HashMap;
 // Built-in deps
 use serde_json::Value;
 use std::time::Instant;
-use zklink_crypto::ff::hex;
 // Workspace imports
 use zklink_types::{
     BlockNumber, ChainId, DepositOp, FullExitOp, TransferOp, TransferToNewOp, WithdrawOp,
@@ -403,9 +402,9 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             operation.op_type,
             operation.nonce,
         )
-            .execute(self.0.conn())
-            .await?
-            .rows_affected();
+        .execute(self.0.conn())
+        .await?
+        .rows_affected();
 
         if updated_rows == 0 {
             let created_at = chrono::Utc::now();
@@ -433,7 +432,10 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
                 .execute(self.0.conn())
                 .await?;
         } else if updated_rows != 1 {
-            panic!("Must be unique serial id in chain_id[{}]", operation.chain_id);
+            panic!(
+                "Must be unique serial id in chain_id[{}]",
+                operation.chain_id
+            );
         }
 
         metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
