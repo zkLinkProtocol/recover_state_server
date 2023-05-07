@@ -30,6 +30,7 @@ impl StoredExecutedTransaction {
 
 impl NewExecutedTransaction {
     pub fn prepare_stored_priority_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
+        let tx_data = serde_json::to_value(exec_tx.tx.clone()).unwrap();
         let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
         let op = exec_tx.op;
         let op_type = op.op_code() as i16;
@@ -65,10 +66,12 @@ impl NewExecutedTransaction {
             block_index,
             nonce,
             amount,
+            tx_data,
         }
     }
 
     pub fn prepare_stored_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
+        let tx_data = serde_json::to_value(exec_tx.tx.clone()).unwrap();
         let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
         let op = exec_tx.op;
         let op_type = op.op_code() as i16;
@@ -101,12 +104,14 @@ impl NewExecutedTransaction {
             block_index,
             nonce: *exec_tx.tx.nonce() as i64,
             amount,
+            tx_data,
         }
     }
 
     pub fn prepare_stored_failed_tx(exec_tx: FailedExecutedTx, block: BlockNumber) -> Self {
         let amount: BigDecimal = Default::default();
         let op: Option<ZkLinkOp> = None;
+        let tx_data = serde_json::to_value(exec_tx.tx.clone()).unwrap();
         let operation = serde_json::to_value(op).unwrap();
 
         let block_index = Some(0);
@@ -121,6 +126,7 @@ impl NewExecutedTransaction {
             block_index,
             nonce: *exec_tx.tx.nonce() as i64,
             amount,
+            tx_data,
         }
     }
 }

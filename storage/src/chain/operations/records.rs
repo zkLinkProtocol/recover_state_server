@@ -173,6 +173,7 @@ pub struct NewExecutedTransaction {
     pub chain_id: i16,
     pub block_number: i64,
     pub block_index: Option<i32>,
+    pub tx_data: Value,
     pub operation: Value,
     pub tx_hash: Vec<u8>,
     pub success: bool,

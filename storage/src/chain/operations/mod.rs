@@ -381,30 +381,6 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         Ok(())
     }
 
-    /// Stores the executed transaction in the database.
-    pub(crate) async fn store_executed_tx(
-        &mut self,
-        operation: NewExecutedTransaction,
-    ) -> QueryResult<()> {
-        let start = Instant::now();
-        sqlx::query!(
-            r#"INSERT INTO submit_txs (chain_id, block_number, block_index, operation, executed, executed_timestamp, success, fail_reason, nonce, amount, tx_hash)
-               VALUES ($1, $2, $3, $4, true, current_timestamp, $5, $6, $7, $8, $9)"#,
-            operation.chain_id,
-            operation.block_number,
-            operation.block_index,
-            operation.operation,
-            operation.success,
-            operation.fail_reason,
-            operation.nonce,
-            operation.amount,
-            operation.tx_hash,
-        )
-            .execute(self.0.conn())
-            .await?;
-        metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
-        Ok(())
-    }
 
     /// Update the priority executed transaction in the database.
     pub(crate) async fn update_executed_tx(
@@ -414,11 +390,12 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         let start = Instant::now();
         sqlx::query!(
             r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3,
-            executed = true, executed_timestamp = current_timestamp, success = true
-            WHERE chain_id = $4 AND op_type=$5 AND nonce=$6"#,
+            executed = true, executed_timestamp = current_timestamp, success = true, tx_data = $4
+            WHERE chain_id = $5 AND op_type=$6 AND nonce=$7"#,
             operation.block_number,
             operation.block_index,
             operation.operation,
+            operation.tx_data,
             operation.chain_id,
             operation.op_type,
             operation.nonce,
