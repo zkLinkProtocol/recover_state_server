@@ -65,7 +65,7 @@ impl RecoverProgress {
 
     pub(crate) fn is_completed(&self) -> bool {
         let current_height = self.current_sync_height.load(Ordering::Relaxed);
-        current_height == *self.total_verified_block
+        current_height >= *self.total_verified_block
     }
 
     pub(crate) fn get_progress(&self) -> Progress {
