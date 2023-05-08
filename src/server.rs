@@ -200,20 +200,23 @@ async fn get_proof_task_id(
 
 const RECOVER_PROGRESS_PATH: &str = "/recover_progress";
 const CONTRACTS_PATH: &str = "/contracts";
+const GENERATE_PROOF_TASKS_BY_TOKEN: &str = "/generate_proof_tasks_by_token";
 
 pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let addrs = config.api.bind_addr();
     let num = config.api.workers_num;
     let enable_http_cors = config.api.enable_http_cors;
     let contracts = config.layer1.get_contracts();
+    let clean_interval = config.clean_interval;
 
     let recover_progress = RecoverProgress::from_config(&config).await;
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
     let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
     let app_data =
         Arc::new(AppData::new(conn_pool.clone(), contracts, proofs_cache, recover_progress).await);
-    let app_data_clone = app_data.clone();
-    tokio::spawn(app_data.sync_recover_progress());
+
+    tokio::spawn(app_data.clone().black_list_escaping(clean_interval));
+    tokio::spawn(app_data.clone().sync_recover_progress());
 
     HttpServer::new(move || {
         let cors = if enable_http_cors {
@@ -227,6 +230,11 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
 
                 let fut: Pin<Box<dyn Future<Output = Result<_, _>>>> = match req.path() {
                     RECOVER_PROGRESS_PATH | CONTRACTS_PATH => Box::pin(srv.call(req)),
+                    GENERATE_PROOF_TASKS_BY_TOKEN => Box::pin(async move {
+                        let response: ExodusResponse<()> =
+                            ExodusStatus::ApiClosedTemporarily.into();
+                        Ok(req.into_response(HttpResponse::Ok().json(response)))
+                    }),
                     _ => {
                         if data.is_not_sync_completed() {
                             Box::pin(async move {
@@ -245,7 +253,7 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
                 }
             })
             .wrap(cors)
-            .app_data(web::Data::new(app_data_clone.clone()))
+            .app_data(web::Data::new(app_data.clone()))
             .configure(exodus_config)
     })
     .bind(addrs)?
@@ -278,7 +286,7 @@ pub fn exodus_config(cfg: &mut web::ServiceConfig) {
             web::post().to(generate_proof_task_by_info),
         )
         .route(
-            "/generate_proof_tasks_by_token",
+            GENERATE_PROOF_TASKS_BY_TOKEN,
             web::post().to(generate_proof_tasks_by_token),
         )
         .route("/get_proof_task_id", web::post().to(get_proof_task_id));

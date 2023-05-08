@@ -411,5 +411,12 @@ CREATE TABLE exit_proofs
 
     PRIMARY KEY (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token)
 );
-
 CREATE INDEX idx_account_query ON exit_proofs (account_id, l2_source_token);
+
+CREATE TABLE three_hours_black_list
+(
+    address bytea NOT NULL, -- user address
+    start_at timestamp with time zone,
+
+    PRIMARY KEY (address)
+);

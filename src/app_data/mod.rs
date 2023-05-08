@@ -12,10 +12,11 @@ pub use recovered_state::RecoveredState;
 use bigdecimal::num_bigint::ToBigInt;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use tokio::sync::OnceCell;
-use tracing::{debug, info};
+use tokio::time::interval;
+use tracing::{debug, info, warn};
 
 use zklink_crypto::params::USD_TOKEN_ID;
 use zklink_prover::exit_type::{ProofId, ProofInfo};
@@ -74,6 +75,23 @@ impl AppData {
 
     pub fn acquired_tokens(&self) -> &AcquiredTokens {
         self.acquired_tokens.get().unwrap()
+    }
+
+    // Periodically clean up blacklisted users (to prevent users from requesting too many proof tasks)
+    pub async fn black_list_escaping(self: Arc<Self>, clean_interval: u32){
+        let mut storage = self.access_storage().await;
+        let mut ticker = interval(Duration::from_secs(10));
+        loop{
+            if let Err(err) = storage
+                .recover_schema()
+                .clean_escaped_user(clean_interval)
+                .await
+            {
+                warn!("Failed to clean escaped user, err: {}", err);
+            }
+
+            ticker.tick().await;
+        }
     }
 
     pub(crate) async fn sync_recover_progress(self: Arc<Self>) {
@@ -235,8 +253,16 @@ impl AppData {
             return Err(ExodusStatus::ProofTaskAlreadyExists);
         }
 
-        // Update to database
+
         let mut storage = self.access_storage().await;
+        // Check for black list
+        let exist_address = storage.recover_schema()
+            .check_and_insert_user(exit_info.account_address.as_bytes())
+            .await?;
+        if exist_address {
+            return Err(ExodusStatus::ExistTaskWithinThreeHour);
+        }
+        // Update to database
         let task_id = storage
             .prover_schema()
             .insert_exit_task((&exit_info).into())
