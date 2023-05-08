@@ -111,9 +111,11 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         let start = Instant::now();
 
         sqlx::query!(
-            r#"INSERT INTO submit_txs
-            (chain_id, op_type, from_account, to_account, nonce, amount, tx_data, eth_signature, tx_hash, created_at, executed, success, block_number, block_index)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)"#,
+            r#"
+            INSERT INTO submit_txs
+            (chain_id, op_type, from_account, to_account, nonce, amount, tx_data, operation, eth_signature, tx_hash, created_at, executed, success, block_number, block_index)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            "#,
             tx.chain_id,
             tx.op_type,
             tx.from_account,
@@ -121,13 +123,14 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
             tx.nonce,
             tx.amount,
             tx.tx_data,
+            tx.operation,
             tx.eth_signature,
             tx.tx_hash,
             tx.created_at,
-            false,
-            false,
-            0,
-            0,
+            tx.executed,
+            tx.success,
+            tx.block_number,
+            tx.block_index,
         )
             .execute(self.0.conn())
             .await?;
@@ -243,7 +246,7 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         let start = Instant::now();
 
         let tx_data = sqlx::query!(
-            "SELECT max(nonce) FROM submit_txs WHERE chain_id = $1 and (op_type = $2 or op_type = $3)",
+            "SELECT max(nonce) FROM submit_txs WHERE chain_id = $1 and (op_type = $2 or op_type = $3) and executed = true",
             chain_id,
             DepositOp::OP_CODE as i16,
             FullExitOp::OP_CODE as i16
@@ -381,50 +384,60 @@ impl<'a, 'c> OperationsSchema<'a, 'c> {
         Ok(())
     }
 
-    /// Stores the executed transaction in the database.
-    pub(crate) async fn store_executed_tx(
-        &mut self,
-        operation: NewExecutedTransaction,
-    ) -> QueryResult<()> {
-        let start = Instant::now();
-        sqlx::query!(
-            r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3, executed = true,
-            executed_timestamp = current_timestamp, success = $4, fail_reason = $5, nonce = $6, amount=$7
-            WHERE tx_hash = $8"#,
-            operation.block_number,
-            operation.block_index,
-            operation.operation,
-            operation.success,
-            operation.fail_reason,
-            operation.nonce,
-            operation.amount,
-            operation.tx_hash,
-        )
-            .execute(self.0.conn())
-            .await?;
-        metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
-        Ok(())
-    }
-
     /// Update the priority executed transaction in the database.
-    pub(crate) async fn update_executed_tx(
+    pub(crate) async fn update_priority_tx(
         &mut self,
         operation: NewExecutedTransaction,
     ) -> QueryResult<()> {
         let start = Instant::now();
-        sqlx::query!(
+        let updated_rows = sqlx::query!(
             r#"UPDATE submit_txs SET block_number = $1, block_index = $2, operation = $3,
-            executed = true, executed_timestamp = current_timestamp, success = true
-            WHERE chain_id = $4 AND op_type=$5 AND nonce=$6"#,
+            executed = true, executed_timestamp = current_timestamp, success = true, tx_data = $4
+            WHERE chain_id = $5 AND op_type=$6 AND nonce=$7"#,
             operation.block_number,
             operation.block_index,
             operation.operation,
+            operation.tx_data,
             operation.chain_id,
             operation.op_type,
             operation.nonce,
         )
         .execute(self.0.conn())
-        .await?;
+        .await?
+        .rows_affected();
+
+        if updated_rows == 0 {
+            let created_at = chrono::Utc::now();
+            sqlx::query!(
+                r#"
+                INSERT INTO submit_txs
+                (chain_id, op_type, from_account, to_account, nonce, amount, tx_data, tx_hash, created_at, executed, success, block_number, block_index, operation)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                "#,
+                operation.chain_id,
+                operation.op_type,
+                vec![0; 20],
+                vec![0; 20],
+                operation.nonce,
+                operation.amount,
+                operation.tx_data,
+                operation.tx_hash,
+                created_at,
+                true,
+                operation.success,
+                operation.block_number,
+                operation.block_index,
+                operation.operation,
+            )
+                .execute(self.0.conn())
+                .await?;
+        } else if updated_rows != 1 {
+            panic!(
+                "Must be unique serial id in chain_id[{}]",
+                operation.chain_id
+            );
+        }
+
         metrics::histogram!("sql.chain.operations.store_executed_tx", start.elapsed());
         Ok(())
     }

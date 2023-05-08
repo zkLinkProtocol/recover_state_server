@@ -223,8 +223,11 @@ impl RollUpEvents {
                 let split_events = vec![*first_event, second_event];
                 self.committed_events.insert(index + 1, second_event);
                 split_events
-            } else { vec![] };
-            let event = self.committed_events
+            } else {
+                vec![]
+            };
+            let event = self
+                .committed_events
                 .iter()
                 .filter(|event| event.end_block_num <= checkpoint)
                 .collect();

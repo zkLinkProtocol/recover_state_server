@@ -129,16 +129,16 @@ impl<'a, 'c> TokensSchema<'a, 'c> {
         let mut transaction = self.0.start_transaction().await.unwrap();
         for token in tokens {
             sqlx::query!(
-            r#"
-            INSERT INTO tokens (id, chain_id, address, decimals, fast_withdraw) values ($1, $2, $3, $4, $5)
-            ON CONFLICT (id, chain_id) DO UPDATE set address = $3, decimals = $4, fast_withdraw = $5
-            "#,
-                token.id,
-                token.chain_id,
-                token.address,
-                token.decimals,
-                token.fast_withdraw
-        )
+                r#"
+                INSERT INTO tokens (id, chain_id, address, decimals, fast_withdraw) values ($1, $2, $3, $4, $5)
+                ON CONFLICT (id, chain_id) DO UPDATE set address = $3, decimals = $4, fast_withdraw = $5
+                "#,
+                    token.id,
+                    token.chain_id,
+                    token.address,
+                    token.decimals,
+                    token.fast_withdraw
+            )
                 .execute(transaction.conn())
                 .await?;
         }

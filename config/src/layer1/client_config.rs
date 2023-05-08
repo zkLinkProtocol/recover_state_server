@@ -11,6 +11,8 @@ pub struct ClientConfig {
     pub chain_id: u32,
     /// Address of the Ethereum node API.
     pub web3_url: Vec<String>,
+    /// The step of every view blocks.
+    pub view_block_step: u64,
     /// As `infura` may limit the requests, and then we need to delay sending the request for some time.
     /// Wait this amount of time if we hit rate limit on infura https://infura.io/docs/ethereum/json-rpc/ratelimits
     pub request_rate_limit_delay: u64,
@@ -46,6 +48,7 @@ mod tests {
                 "http://127.0.0.1:8545".into(),
                 "http://127.0.0.1:8546".into(),
             ],
+            view_block_step: 1000,
             request_rate_limit_delay: 30,
         }
     }
@@ -55,6 +58,7 @@ mod tests {
         let config = r#"
         CHAIN_1_CLIENT_CHAIN_ID="9"
         CHAIN_1_CLIENT_WEB3_URL="http://127.0.0.1:8545,http://127.0.0.1:8546"
+        CHAIN_1_CLIENT_VIEW_BLOCK_STEP=1000
         CHAIN_1_CLIENT_REQUEST_RATE_LIMIT_DELAY=30
         "#;
         set_env(config);

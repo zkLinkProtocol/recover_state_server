@@ -14,7 +14,9 @@ use crate::chain::account::records::{
     StorageAccountUpdate, StorageStateUpdates,
 };
 use crate::chain::block::records::{NewZkLinkTx, StorageBlockOnChainState};
-use crate::chain::operations::records::{AggType, StorageTxHash, StorageTxHashData};
+use crate::chain::operations::records::{
+    AggType, StorageTxHash, StorageTxHashData, StoredSubmitTransaction,
+};
 use crate::chain::operations::OperationsSchema;
 use crate::{
     chain::operations::records::{NewExecutedTransaction, StoredExecutedTransaction},
@@ -22,7 +24,6 @@ use crate::{
 };
 use chrono::{DateTime, Utc};
 use parity_crypto::Keccak256;
-use zklink_types::block::FailedExecutedTx;
 
 mod conversion;
 pub mod records;
@@ -35,44 +36,45 @@ pub mod records;
 pub struct BlockSchema<'a, 'c>(pub &'a mut StorageProcessor<'c>);
 
 impl<'a, 'c> BlockSchema<'a, 'c> {
-    /// Given a block, stores its transactions in the database.
-    pub async fn save_block_transactions(
-        &mut self,
-        block_number: BlockNumber,
-        operations: Vec<ExecutedTx>,
-    ) -> QueryResult<()> {
-        for tx in &operations {
-            // Store the executed operation in the corresponding schema.
-            let new_tx = NewExecutedTransaction::prepare_stored_tx(tx.clone(), block_number);
-            OperationsSchema(self.0).store_executed_tx(new_tx).await?;
-        }
-        Ok(())
-    }
-
     /// Given a block, update its priority transactions in the database.
-    pub async fn update_block_priority_transactions(
+    pub async fn update_block_transactions(
         &mut self,
         block_number: BlockNumber,
         operations: Vec<ExecutedTx>,
     ) -> QueryResult<()> {
-        for tx in &operations {
-            // Store the executed priority operation in the corresponding schema.
-            let new_tx = NewExecutedTransaction::prepare_stored_tx(tx.clone(), block_number);
-            OperationsSchema(self.0).update_executed_tx(new_tx).await?;
+        let mut transaction = self.0.start_transaction().await?;
+        for tx in operations {
+            let is_priority_operation = tx.get_executed_op().is_priority_operation();
+            let new_tx = NewExecutedTransaction::prepare_stored_tx(tx, block_number);
+            if is_priority_operation {
+                // Store the executed priority operation in the corresponding schema.
+                OperationsSchema(&mut transaction)
+                    .update_priority_tx(new_tx)
+                    .await?;
+            } else {
+                // Store the executed operation in the corresponding schema.
+                let new_tx = StoredSubmitTransaction {
+                    id: 0,
+                    chain_id: new_tx.chain_id,
+                    op_type: new_tx.op_type,
+                    nonce: new_tx.nonce,
+                    amount: new_tx.amount,
+                    tx_data: new_tx.tx_data,
+                    eth_signature: None,
+                    tx_hash: new_tx.tx_hash.clone(),
+                    executed: true,
+                    success: true,
+                    block_number: new_tx.block_number,
+                    block_index: new_tx.block_index.unwrap(),
+                    operation: Some(new_tx.operation),
+                    ..Default::default()
+                };
+                OperationsSchema(&mut transaction)
+                    .add_new_submit_tx(new_tx)
+                    .await?;
+            }
         }
-        Ok(())
-    }
-
-    pub async fn save_block_failed_transactions(
-        &mut self,
-        block_number: BlockNumber,
-        operations: Vec<FailedExecutedTx>,
-    ) -> QueryResult<()> {
-        for tx in &operations {
-            // Store the executed operation in the corresponding schema.
-            let new_tx = NewExecutedTransaction::prepare_stored_failed_tx(tx.clone(), block_number);
-            OperationsSchema(self.0).store_executed_tx(new_tx).await?;
-        }
+        transaction.commit().await?;
         Ok(())
     }
 
@@ -253,8 +255,6 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
     }
 
     pub async fn save_block(&mut self, block: Block) -> QueryResult<()> {
-        let mut transaction = self.0.start_transaction().await?;
-
         let number = i64::from(*block.block_number);
         let root_hash = block.new_root_hash.to_bytes();
         let fee_account_id = i64::from(*block.fee_account);
@@ -269,8 +269,10 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         let d = UNIX_EPOCH + Duration::from_secs(block.timestamp);
         // Create DateTime from SystemTime
         let created_at = DateTime::<Utc>::from(d);
+
+        let mut transaction = self.0.start_transaction().await?;
         BlockSchema(&mut transaction)
-            .update_block_priority_transactions(block.block_number, block.block_transactions)
+            .update_block_transactions(block.block_number, block.block_transactions)
             .await?;
 
         let new_block = StorageBlock {

@@ -346,12 +346,6 @@ impl TreeState {
             mut executed_op,
             ..
         } = tx_result;
-        let tx_hash = executed_op.try_get_tx().unwrap().hash();
-        let mut updates = updates
-            .into_iter()
-            .map(|update| (update.0, update.1, H256::from_slice(tx_hash.as_ref())))
-            .collect::<Vec<_>>();
-        accounts_updated.append(&mut updates);
         match &mut executed_op {
             ZkLinkOp::Deposit(op) => {
                 *self.last_serial_ids.get_mut(&op.tx.from_chain_id).unwrap() += 1;
@@ -364,9 +358,17 @@ impl TreeState {
             _ => {}
         }
 
+        let tx = executed_op.try_get_tx().unwrap();
+        let tx_hash = tx.hash();
+        let mut updates = updates
+            .into_iter()
+            .map(|update| (update.0, update.1, H256::from_slice(tx_hash.as_ref())))
+            .collect::<Vec<_>>();
+        accounts_updated.append(&mut updates);
+
         let block_index = current_op_block_index;
         let exec_result = ExecutedTx {
-            tx: executed_op.try_get_tx().unwrap(),
+            tx,
             success: true,
             op: executed_op,
             fail_reason: None,

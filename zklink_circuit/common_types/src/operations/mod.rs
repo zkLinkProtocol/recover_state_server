@@ -231,6 +231,10 @@ impl ZkLinkOp {
         )
     }
 
+    pub fn is_priority_operation(&self) -> bool {
+        matches!(self, &ZkLinkOp::Deposit(_) | &ZkLinkOp::FullExit(_))
+    }
+
     /// Keep same with `checkOnchainOp` in ZkLink.sol
     pub fn is_local_onchain_operation(&self, chain_id: ChainId) -> bool {
         match self {

@@ -99,6 +99,7 @@ where
         finite_mode: bool,
         final_hash: Option<Fr>,
         deploy_block_number: u64,
+        view_block_step: u64,
         connection_pool: ConnectionPool,
     ) -> Self {
         let mut storage = connection_pool.access_storage().await.unwrap();
@@ -132,7 +133,7 @@ where
             zklink_contract,
             rollup_events: events_state,
             tree_state: TreeState::default(),
-            view_block_step: config.view_block_step,
+            view_block_step,
             finite_mode,
             final_hash,
             phantom_data: Default::default(),
@@ -142,10 +143,7 @@ where
     pub async fn download_registered_tokens(&mut self) {
         let mut updates = Vec::new();
         // Because of the instability of the scroll and linea rpc nodes, the token synchronization is temporarily skipped
-        let scroll_and_linea_chain_ids: [ChainId; 2] = [6.into(), 7.into()];
-        for (chain_id, updating_event) in self.update_token_events.iter_mut()
-            .filter(|u| !scroll_and_linea_chain_ids.contains(&u.0))
-        {
+        for (chain_id, updating_event) in self.update_token_events.iter_mut() {
             let mut updating_event = updating_event.take().unwrap();
             let chain_id = *chain_id;
             updates.push(tokio::spawn(async move {
@@ -356,12 +354,6 @@ where
 
         // Loads the tokens of all chain.
         self.tree_state.state.token_by_id = interactor.load_tokens().await;
-        // Because of the instability of the scroll and linea rpc nodes, the token is added temporarily and manually
-        let scroll_and_linea_chain_ids: [ChainId; 2] = [6.into(), 7.into()];
-        let scroll_and_linea_token_ids = [141.into(), 18.into(), 150.into()];
-        for token_id in scroll_and_linea_token_ids {
-            self.tree_state.state.token_by_id.entry(token_id).or_default().chains.extend(scroll_and_linea_chain_ids);
-        }
 
         loop {
             info!("Last watched layer1 block: {:?}", last_watched_block);
@@ -515,13 +507,19 @@ where
     }
 
     /// Returns verified committed operations blocks from verified op blocks events
-    pub async fn get_new_operation_blocks_from_events(&mut self, interactor: &mut I) -> Vec<RollupOpsBlock> {
+    pub async fn get_new_operation_blocks_from_events(
+        &mut self,
+        interactor: &mut I,
+    ) -> Vec<RollupOpsBlock> {
         let mut blocks = Vec::new();
 
         let mut last_event_tx_hash = None;
         let (split_events, events) = self.rollup_events.get_only_verified_committed_events();
         if !split_events.is_empty() {
-            interactor.replace_block_event(&split_events).await.expect("Failed to replace block event");
+            interactor
+                .replace_block_event(&split_events)
+                .await
+                .expect("Failed to replace block event");
             info!("Replaced unaligned(verified-committed) block event!");
         }
 

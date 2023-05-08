@@ -12,8 +12,6 @@ RUST_LOG="info,sqlx::query=error"
 RUNTIME_CONFIG_ZKLINK_HOME="/home/user/zklink/recover_state_server"
 # Directory for circuit keys
 RUNTIME_CONFIG_KEY_DIR="zklink_keys"
-# How many blocks we will process at once.
-VIEW_BLOCK_STEP=1000
 
 # [api]
 API_CONFIG_SERVER_HTTP_PORT=8080
@@ -66,6 +64,8 @@ CHAIN_1_CONTRACT_GENESIS_TX_HASH="0x55df09af604606e03193f8483bcbfe72aa351e437388
 CHAIN_1_CLIENT_CHAIN_ID=80001
 # RPC Server url of blockchain1.
 CHAIN_1_CLIENT_WEB3_URL="https://rpc.ankr.com/polygon_mumbai"
+# The step of every view blocks.
+CHAIN_1_CLIENT_VIEW_BLOCK_STEP=3000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -95,6 +95,8 @@ CHAIN_2_CONTRACT_GENESIS_TX_HASH="0xa5e208014e89174bffed377d04b1a9e24190616598fd
 CHAIN_2_CLIENT_CHAIN_ID=43113
 # RPC Server url of blockchain1.
 CHAIN_2_CLIENT_WEB3_URL="https://rpc.ankr.com/avalanche_fuji"
+# The step of every view blocks.
+CHAIN_2_CLIENT_VIEW_BLOCK_STEP=3000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -124,7 +126,9 @@ CHAIN_3_CONTRACT_GENESIS_TX_HASH="0x547d16698a2de3d63def0683ee7cddb091744a9993e4
 # Chain id defined in layer one
 CHAIN_3_CLIENT_CHAIN_ID=97
 # RPC Server url of blockchain1.
-CHAIN_3_CLIENT_WEB3_URL="https://data-seed-prebsc-1-s3.binance.org:8545"
+CHAIN_3_CLIENT_WEB3_URL="https://rpc-forward.zk.link/rpc?chain=bsc"
+# The step of every view blocks.
+CHAIN_3_CLIENT_VIEW_BLOCK_STEP=2000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -155,6 +159,8 @@ CHAIN_4_CONTRACT_GENESIS_TX_HASH="0x95004489ce3bebeac824d20f48da267292c5725aaef5
 CHAIN_4_CLIENT_CHAIN_ID=5
 # RPC Server url of blockchain1.
 CHAIN_4_CLIENT_WEB3_URL="https://rpc.ankr.com/eth_goerli"
+# The step of every view blocks.
+CHAIN_4_CLIENT_VIEW_BLOCK_STEP=2000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -185,6 +191,8 @@ CHAIN_5_CONTRACT_GENESIS_TX_HASH="0x00000000000000000000000000000000000000000000
 CHAIN_5_CLIENT_CHAIN_ID=280
 # RPC Server url of blockchain1.
 CHAIN_5_CLIENT_WEB3_URL="https://testnet.era.zksync.dev"
+# The step of every view blocks.
+CHAIN_5_CLIENT_VIEW_BLOCK_STEP=2000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -214,7 +222,9 @@ CHAIN_6_CONTRACT_GENESIS_TX_HASH="0x5d240af705735ef317990ffa610e8803358f97fe3a16
 # Chain id defined in layer one
 CHAIN_6_CLIENT_CHAIN_ID=534353
 # RPC Server url of blockchain1.
-CHAIN_6_CLIENT_WEB3_URL="https://scroll-testnet.blockpi.network/v1/rpc/public"
+CHAIN_6_CLIENT_WEB3_URL="https://rpc-forward.zk.link/rpc?chain=scroll"
+# The step of every view blocks.
+CHAIN_6_CLIENT_VIEW_BLOCK_STEP=1000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).
@@ -244,7 +254,9 @@ CHAIN_7_CONTRACT_GENESIS_TX_HASH="0xe84d641b0d9baff69fa3e3d5046f2a69e7bd965213c7
 # Chain id defined in layer one
 CHAIN_7_CLIENT_CHAIN_ID=59140
 # RPC Server url of blockchain1.
-CHAIN_7_CLIENT_WEB3_URL="https://rpc.goerli.linea.build"
+CHAIN_7_CLIENT_WEB3_URL="https://rpc-forward.zk.link/rpc?chain=linea"
+# The step of every view blocks.
+CHAIN_7_CLIENT_VIEW_BLOCK_STEP=2000
 # The rpc service provider asked for a delay in the request because the number of requests was too frequent.
 # It is configured according to the documentation of the rpc service
 # The default configuration comes from the Infura docs(https://docs.infura.io/infura/networks/ethereum/how-to/avoid-rate-limiting).

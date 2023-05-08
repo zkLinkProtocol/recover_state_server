@@ -58,7 +58,7 @@ async fn wait_recovered_state(config: &RecoverStateConfig) {
     let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
     let mut storage = conn_pool.access_storage_with_retry().await;
 
-    let (_, zklink_contract) = get_fully_on_chain_zklink_contract(config);
+    let (_, _, zklink_contract) = get_fully_on_chain_zklink_contract(config);
     let total_verified_block = zklink_contract
         .get_total_verified_blocks()
         .await

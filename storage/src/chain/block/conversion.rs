@@ -14,8 +14,9 @@ use crate::chain::operations::records::{NewExecutedTransaction, StoredExecutedTr
 impl StoredExecutedTransaction {
     pub fn into_executed_tx(self) -> Result<ExecutedTx, anyhow::Error> {
         let tx: ZkLinkTx = serde_json::from_value(self.tx_data).expect("Unparsable tx in tx_data");
-        let franklin_op: Option<ZkLinkOp> =
-            serde_json::from_value(self.operation.unwrap()).expect("Unparsable ZkLinkOp in db");
+        let franklin_op: Option<ZkLinkOp> = self
+            .operation
+            .map(|op| serde_json::from_value(op).expect("Unparsable ZkLinkOp in db"));
         Ok(ExecutedTx {
             tx,
             success: self.success,
@@ -30,19 +31,11 @@ impl StoredExecutedTransaction {
 
 impl NewExecutedTransaction {
     pub fn prepare_stored_tx(exec_tx: ExecutedTx, block: BlockNumber) -> Self {
-        let operation = serde_json::to_value(exec_tx.op.clone()).unwrap();
+        let tx_data = serde_json::to_value(&exec_tx.tx).unwrap();
+        let operation = serde_json::to_value(&exec_tx.op).unwrap();
         let op = exec_tx.op;
         let op_type = op.op_code() as i16;
         let chain_id = op.get_onchain_operation_chain_id() as i16;
-        let nonce = if matches!(op, ZkLinkOp::Deposit(_) | ZkLinkOp::FullExit(_)) {
-            match &op {
-                ZkLinkOp::Deposit(op) => op.tx.serial_id as i64,
-                ZkLinkOp::FullExit(op) => op.tx.serial_id as i64,
-                _ => unreachable!(),
-            }
-        } else {
-            *exec_tx.tx.nonce() as i64
-        };
         let amount = match op {
             ZkLinkOp::Deposit(op) => op.tx.amount,
             ZkLinkOp::Transfer(op) => op.tx.amount,
@@ -54,6 +47,7 @@ impl NewExecutedTransaction {
             ZkLinkOp::OrderMatching(op) => op.tx.expect_base_amount,
             ZkLinkOp::Noop(_) => Default::default(),
         };
+        let nonce = *exec_tx.tx.nonce() as i64;
 
         let amount = BigDecimal::from(amount.to_bigint().unwrap());
         let mut block_index = exec_tx.block_index.map(|idx| idx as i32);
@@ -71,12 +65,14 @@ impl NewExecutedTransaction {
             block_index,
             nonce,
             amount,
+            tx_data,
         }
     }
 
     pub fn prepare_stored_failed_tx(exec_tx: FailedExecutedTx, block: BlockNumber) -> Self {
         let amount: BigDecimal = Default::default();
         let op: Option<ZkLinkOp> = None;
+        let tx_data = serde_json::to_value(&exec_tx.tx).unwrap();
         let operation = serde_json::to_value(op).unwrap();
 
         let block_index = Some(0);
@@ -91,6 +87,7 @@ impl NewExecutedTransaction {
             block_index,
             nonce: *exec_tx.tx.nonce() as i64,
             amount,
+            tx_data,
         }
     }
 }

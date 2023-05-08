@@ -26,7 +26,7 @@ impl RecoverProgress {
             .await
             .expect("Failed to get last verified block number from database");
 
-        let (_, zklink_contract) = get_fully_on_chain_zklink_contract(config);
+        let (_, _, zklink_contract) = get_fully_on_chain_zklink_contract(config);
         let total_verified_block = zklink_contract
             .get_total_verified_blocks()
             .await
@@ -65,7 +65,7 @@ impl RecoverProgress {
 
     pub(crate) fn is_completed(&self) -> bool {
         let current_height = self.current_sync_height.load(Ordering::Relaxed);
-        current_height == *self.total_verified_block
+        current_height >= *self.total_verified_block
     }
 
     pub(crate) fn get_progress(&self) -> Progress {

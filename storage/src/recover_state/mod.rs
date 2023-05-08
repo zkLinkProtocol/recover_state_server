@@ -346,17 +346,19 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         Ok(())
     }
 
-    pub async fn replace_block_event(
-        &mut self,
-        events: &[NewBlockEvent],
-    ) -> QueryResult<()> {
+    pub async fn replace_block_event(&mut self, events: &[NewBlockEvent]) -> QueryResult<()> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
         let tx_hash = &events[0].transaction_hash;
-        assert!(events.iter().all(|event| &event.transaction_hash == tx_hash));
-        sqlx::query!("DELETE FROM recover_state_events_state WHERE transaction_hash = $1", tx_hash)
-            .execute(transaction.conn())
-            .await?;
+        assert!(events
+            .iter()
+            .all(|event| &event.transaction_hash == tx_hash));
+        sqlx::query!(
+            "DELETE FROM recover_state_events_state WHERE transaction_hash = $1",
+            tx_hash
+        )
+        .execute(transaction.conn())
+        .await?;
 
         for event in events.iter() {
             sqlx::query!(
