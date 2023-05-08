@@ -17,7 +17,11 @@ import {
 import { ChainId, L2ChainId, SubAccountId, TokenId } from '../../types/global'
 import { Web3Provider } from '@ethersproject/providers'
 import { Address } from 'zklink-js-sdk/build/types'
+import { TESTER } from '../../config'
 
+export function isStableCoin(tokenId: number) {
+  return tokenId >= 17 && tokenId <= 31
+}
 export const useCurrentAccount = () => {
   return useSelector<RootState, Address>((state) => state.home.account)
 }
@@ -27,13 +31,39 @@ export const useNetworks = () => {
 export const useCurrentChain = () => {
   return useSelector<RootState, NetworkInfo | undefined>((state) => state.home.currentChain)
 }
+export const useExodusMode = (chainId?: L2ChainId) => {
+  const exodusMode = useSelector<RootState, { [x: L2ChainId]: number }>(
+    (state) => state.home.exodusMode
+  )
+  if (!chainId) {
+    return undefined
+  }
+  return exodusMode[chainId]
+}
+export const useTotalBlocksExecuted = (chainId?: L2ChainId) => {
+  const useTotalBlocksExecuted = useSelector<RootState, { [x: L2ChainId]: number }>(
+    (state) => state.home.totalBlocksExecuted
+  )
+  if (!chainId) {
+    return undefined
+  }
+  return useTotalBlocksExecuted[chainId]
+}
 export const useRecoverProgress = () => {
   return useSelector<RootState, RecoverProgress | undefined>((state) => state.home.recoverProgress)
 }
+export const useRecoverMaxBlock = () => {
+  const progress = useRecoverProgress()
+  const currentChain = useCurrentChain()
+  const totalBlocksExecuted = useTotalBlocksExecuted(currentChain?.layerTwoChainId)
+  return TESTER ? progress?.total_verified_block : totalBlocksExecuted
+}
 export const useRecoverProgressCompleted = () => {
   const progress = useRecoverProgress()
-  if (progress) {
-    return progress.current_block >= progress.total_verified_block
+  const maxBlock = useRecoverMaxBlock()
+
+  if (progress && maxBlock) {
+    return progress.current_block >= maxBlock
   } else {
     return undefined
   }
@@ -43,6 +73,23 @@ export const useRunningTaskId = () => {
 }
 export const useTokens = () => {
   return useSelector<RootState, Tokens>((state) => state.home.tokens)
+}
+export const useProofTokens = (tokenId: TokenId) => {
+  const tokens = useTokens()
+
+  return useMemo(() => {
+    const r = []
+    if (tokenId === 1) {
+      for (let i in tokens) {
+        if (isStableCoin(Number(i))) {
+          r.push(tokens[i])
+        }
+      }
+    } else {
+      r.push(tokens[tokenId])
+    }
+    return r
+  }, [tokens, tokenId])
 }
 export const useContracts = () => {
   return useSelector<RootState, Contracts | undefined>((state) => state.home.contracts)
@@ -75,13 +122,29 @@ export const useStoredBlockInfo = (chainId?: L2ChainId) => {
   }
   return storedBlockInfos[chainId]
 }
-export const useProofs = (subAccountId: SubAccountId, tokenId: TokenId) => {
+export const useProofByToken = (args: {
+  chainId: L2ChainId
+  accountAddress: Address
+  subAccountId: SubAccountId
+  l2SourceToken: TokenId
+  l1TargetToken: TokenId
+}) => {
   const proofs = useSelector<RootState, HomeState['proofs']>((state) => state.home.proofs)
-  if (proofs[subAccountId]) {
-    return proofs[subAccountId][tokenId]
-  }
-  return undefined
+
+  return proofs?.find(
+    (v) =>
+      v.chainId === args.chainId &&
+      v.accountAddress === args.accountAddress &&
+      v.subAccountId === args.subAccountId &&
+      v.l2SourceToken === args.l2SourceToken &&
+      v.l1TargetToken === args.l1TargetToken
+  )?.proof
 }
+// export const useCurrentChainProofs = (subAccountId: SubAccountId, tokenId: TokenId) => {
+//   const proofs = useProofs(subAccountId, tokenId)
+//   const currentChain = useCurrentChain()
+//   return proofs?.filter((v) => v.exit_info.chain_id === currentChain?.layerTwoChainId)
+// }
 
 export const useConnectWallet = () => {
   const dispatch = useDispatch()

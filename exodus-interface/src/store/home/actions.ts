@@ -9,8 +9,9 @@ import {
   ProofHistory,
   NetworkInfo,
   PendingBalance,
+  ProofInfoWithToken,
 } from './types'
-import { Address, L2ChainId, SubAccountId, TokenId, Wei } from '../../types/global'
+import { Address, ChainId, L2ChainId, SubAccountId, TokenId, Wei } from '../../types/global'
 import { DunkirkResponse, http } from '../../api'
 import axios, { AxiosResponse } from 'axios'
 import { STATIC_HOST } from '../../config'
@@ -41,30 +42,30 @@ export const fetchNetworks = createAsyncThunk<NetworkInfo[]>('home/fetchNetworks
   return r.data
 })
 interface ProofsArgs {
-  address: Address
+  chain_id: L2ChainId
+  account_address: Address
   sub_account_id: number
-  token_id: number
+  l2_source_token: TokenId
+  l1_target_token: TokenId
 }
-export const fetchProofs = createAsyncThunk<
-  {
-    subAccountId: SubAccountId
-    tokenId: TokenId
-    data: ProofInfo[]
-  },
-  ProofsArgs
->('home/fetchProofs', async (args) => {
-  const r = await http.post('/get_proofs_by_token', {
-    address: args.address,
-    sub_account_id: args.sub_account_id,
-    token_id: args.token_id,
-  })
+export const fetchProofs = createAsyncThunk<ProofInfoWithToken, ProofsArgs>(
+  'home/fetchProofs',
+  async (args) => {
+    const r = await http.post('/get_proof_by_info', {
+      ...args,
+      account_id: 0,
+    })
 
-  return {
-    subAccountId: args.sub_account_id,
-    tokenId: args.token_id,
-    data: r.data.data,
+    return {
+      chainId: args.chain_id,
+      accountAddress: args.account_address,
+      subAccountId: args.sub_account_id,
+      l2SourceToken: args.l2_source_token,
+      l1TargetToken: args.l1_target_token,
+      proof: r.data.data,
+    }
   }
-})
+)
 export const fetchRecoverProgress = createAsyncThunk<RecoverProgress>(
   'home/fetchRecoverProgress',
   async () => {
@@ -143,3 +144,75 @@ export const updatePendingBalances = createAction<{
   account: Address
   balances: PendingBalance[] | undefined
 }>('home/updatePendingBalances')
+
+export const fetchExodusMode = createAsyncThunk<
+  {
+    chainId: L2ChainId
+    exodusMode: number
+  },
+  {
+    provider: Web3Provider
+  },
+  {
+    state: RootState
+  }
+>('home/fetchExodusMode', async ({ provider }, { getState }) => {
+  const state = getState()
+  const { contracts, currentChain } = state.home
+
+  if (!contracts || !currentChain) {
+    return Promise.reject()
+  }
+
+  const iface = new Interface(MainContract.abi)
+  const fragment = iface.getFunction('exodusMode')
+  const calldata = iface.encodeFunctionData(fragment, [])
+
+  const r = await provider.send('eth_call', [
+    {
+      to: contracts[currentChain.layerTwoChainId],
+      data: calldata,
+    },
+  ])
+
+  return {
+    chainId: currentChain.layerTwoChainId,
+    exodusMode: Number(r), // 0 | 1
+  }
+})
+
+export const fetchTotalBlocksExecuted = createAsyncThunk<
+  {
+    chainId: L2ChainId
+    totalBlocksExecuted: number
+  },
+  {
+    provider: Web3Provider
+  },
+  {
+    state: RootState
+  }
+>('home/fetchTotalBlocksExecuted', async ({ provider }, { getState }) => {
+  const state = getState()
+  const { contracts, currentChain } = state.home
+
+  if (!contracts || !currentChain) {
+    return Promise.reject()
+  }
+
+  const iface = new Interface(MainContract.abi)
+  const fragment = iface.getFunction('totalBlocksExecuted')
+  const calldata = iface.encodeFunctionData(fragment, [])
+
+  const r = await provider.send('eth_call', [
+    {
+      to: contracts[currentChain.layerTwoChainId],
+      data: calldata,
+    },
+  ])
+
+  return {
+    chainId: currentChain.layerTwoChainId,
+    totalBlocksExecuted: Number(r),
+  }
+})

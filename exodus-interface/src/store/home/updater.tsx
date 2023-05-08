@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import {
+  fetchExodusMode,
   fetchNetworks,
   fetchRecoverProgress,
   fetchRunningTaskId,
+  fetchTotalBlocksExecuted,
   updateBalances,
   updateContracts,
-  updateCurrentAccount,
   updateCurrentChain,
   updatePendingBalances,
   updateStoredBlockInfo,
@@ -14,12 +15,7 @@ import {
 import { useWeb3React } from '@web3-react/core'
 import { connectorByName, ConnectorNames } from '../../connectors'
 import { http } from '../../api'
-import {
-  useCurrentAccount,
-  useCurrentChain,
-  useNetworks,
-  useRecoverProgressCompleted,
-} from './hooks'
+import { useContracts, useCurrentChain, useNetworks, useRecoverProgressCompleted } from './hooks'
 import { useEffectOnce, useInterval } from 'usehooks-ts'
 import { useAppDispatch } from '..'
 import { RECOVER_PROGRESS_DELAY, RUNNING_TASK_ID_DELAY } from '../../config'
@@ -65,6 +61,7 @@ export const Updater = () => {
   const networks = useNetworks()
   const recoverProgressCompleted = useRecoverProgressCompleted()
   const currentChain = useCurrentChain()
+  const contracts = useContracts()
 
   useFetchRecoverProgress()
 
@@ -154,6 +151,14 @@ export const Updater = () => {
       })
     )
   }, [chainId, account])
+
+  useEffect(() => {
+    if (!provider || !currentChain || !contracts) {
+      return
+    }
+    dispatch(fetchExodusMode({ provider }))
+    dispatch(fetchTotalBlocksExecuted({ provider }))
+  }, [currentChain, contracts, provider])
 
   return null
 }

@@ -1,7 +1,7 @@
 import { Typography, Stack } from '@mui/material'
 import { styled } from '@mui/system'
 import LinearProgress, { linearProgressClasses } from '@mui/material/LinearProgress'
-import { useRecoverProgress } from '../store/home/hooks'
+import { useRecoverMaxBlock, useRecoverProgress } from '../store/home/hooks'
 import * as mathjs from 'mathjs'
 
 const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
@@ -18,7 +18,8 @@ const BorderLinearProgress = styled(LinearProgress)(({ theme }) => ({
 
 export const SyncBlock = () => {
   const recoverProgress = useRecoverProgress()
-  if (!recoverProgress) {
+  const recoverMaxBlock = useRecoverMaxBlock()
+  if (recoverProgress === undefined || recoverMaxBlock === undefined) {
     return <Typography>Loading...</Typography>
   }
   return (
@@ -32,13 +33,10 @@ export const SyncBlock = () => {
     >
       <BorderLinearProgress
         variant="determinate"
-        value={mathjs.multiply(
-          mathjs.divide(recoverProgress!.current_block, recoverProgress!.total_verified_block),
-          100
-        )}
+        value={mathjs.multiply(mathjs.divide(recoverProgress!.current_block, recoverMaxBlock), 100)}
       />
       <Typography sx={{ fontSize: 18 }}>
-        {recoverProgress?.current_block} / {recoverProgress?.total_verified_block}
+        {recoverProgress?.current_block} / {recoverMaxBlock}
       </Typography>
       <Typography sx={{ fontSize: 18 }} color="gray">
         Waiting for the block to finish syncing.

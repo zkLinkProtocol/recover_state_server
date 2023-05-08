@@ -73,11 +73,26 @@ export interface ProofHistory {
 export interface PendingBalance extends TokenInfo {
   balance: Wei
 }
+
+export interface ProofInfoWithToken {
+  chainId: L2ChainId
+  accountAddress: Address
+  subAccountId: SubAccountId
+  l2SourceToken: TokenId
+  l1TargetToken: TokenId
+  proof: ProofInfo
+}
 export interface HomeState {
   account: Address
   networks: NetworkInfo[]
   currentChain?: NetworkInfo
   contracts?: Contracts
+  exodusMode: {
+    [x: L2ChainId]: number
+  }
+  totalBlocksExecuted: {
+    [x: L2ChainId]: number
+  }
   recoverProgress?: RecoverProgress
   runningTaskId: number
   connectorName?: ConnectorNames
@@ -86,11 +101,7 @@ export interface HomeState {
   storedBlockInfos: {
     [x: L2ChainId]: StoredBlockInfo
   }
-  proofs: {
-    [a: SubAccountId]: {
-      [x: TokenId]: ProofInfo[]
-    }
-  }
+  proofs: ProofInfoWithToken[]
   multicallContracts?: Address[]
   proofHistory?: ProofHistory
   pendingBalance: {
