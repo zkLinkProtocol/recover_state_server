@@ -77,7 +77,9 @@ impl ToString for ExodusStatus {
             ExodusStatus::ProofGenerating => "The proof task is running",
             ExodusStatus::ProofCompleted => "The task has been completed",
             ExodusStatus::NonBalance => "The token of the account is no balance",
-            ExodusStatus::ExistTaskWithinThreeHour => "The task has been generated within three hours",
+            ExodusStatus::ExistTaskWithinThreeHour => {
+                "The task has been generated within three hours"
+            }
             ExodusStatus::RecoverStateUnfinished => "Recovering state is unfinished",
             ExodusStatus::ApiClosedTemporarily => "The api closed temporarily",
 

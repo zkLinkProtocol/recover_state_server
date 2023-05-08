@@ -78,10 +78,10 @@ impl AppData {
     }
 
     // Periodically clean up blacklisted users (to prevent users from requesting too many proof tasks)
-    pub async fn black_list_escaping(self: Arc<Self>, clean_interval: u32){
+    pub async fn black_list_escaping(self: Arc<Self>, clean_interval: u32) {
         let mut storage = self.access_storage().await;
         let mut ticker = interval(Duration::from_secs(10));
-        loop{
+        loop {
             if let Err(err) = storage
                 .recover_schema()
                 .clean_escaped_user(clean_interval)
@@ -253,11 +253,11 @@ impl AppData {
             return Err(ExodusStatus::ProofTaskAlreadyExists);
         }
 
-
         let mut storage = self.access_storage().await;
         // Check for black list
-        let exist_address = storage.recover_schema()
-            .check_and_insert_user(exit_info.account_address.as_bytes())
+        let exist_address = storage
+            .recover_schema()
+            .exist_or_insert_user(exit_info.account_address.as_bytes())
             .await?;
         if exist_address {
             return Err(ExodusStatus::ExistTaskWithinThreeHour);

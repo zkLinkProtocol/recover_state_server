@@ -381,15 +381,13 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             "DELETE FROM three_hours_black_list WHERE start_at < NOW() - INTERVAL '{} minutes'",
             clean_interval
         );
-        sqlx::query(&sql)
-            .execute(self.0.conn())
-            .await?;
+        sqlx::query(&sql).execute(self.0.conn()).await?;
 
         metrics::histogram!("sql.recover_state.clean_escaped_user", start.elapsed());
         Ok(())
     }
 
-    pub async fn check_and_insert_user(&mut self, address: &[u8]) -> QueryResult<bool> {
+    pub async fn exist_or_insert_user(&mut self, address: &[u8]) -> QueryResult<bool> {
         let start = Instant::now();
         let rows_affected = sqlx::query!(
             r#"
@@ -400,9 +398,9 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
             "#,
             address
         )
-            .execute(self.0.conn())
-            .await?
-            .rows_affected();
+        .execute(self.0.conn())
+        .await?
+        .rows_affected();
 
         metrics::histogram!("sql.recover_state.insert_user", start.elapsed());
         Ok(rows_affected == 0)
