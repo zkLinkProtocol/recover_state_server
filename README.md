@@ -45,6 +45,15 @@ Note: For the first time, you need to set the password. Please refer to [psql.md
 ```bash
 export DATABASE_URL=postgres://postgres:password@localhost/plasma
 ```
+
+To ensure the Web service can handle a large number of requests, you should edit the `/etc/security/limits.conf` file and add the following line to the end of the file:
+
+```
+* soft nofile 1048576
+```
+
+To ensure that the changes take effect, you should log out and log back in to the current shell session.
+
 ## Getting Started
 ### Clone the git repository and download the setup file:
 

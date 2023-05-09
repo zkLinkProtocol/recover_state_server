@@ -38,6 +38,8 @@ const GET_PROOFS_NUM_LIMIT: u32 = 100;
 pub struct AppData {
     conn_pool: ConnectionPool,
     enable_black_list: bool,
+    enable_sync_mode: bool,
+    pub black_list_time: u32,
 
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
     pub(crate) recover_progress: RecoverProgress,
@@ -50,6 +52,8 @@ pub struct AppData {
 impl AppData {
     pub async fn new(
         enable_black_list: bool,
+        enable_sync_mode: bool,
+        black_list_time: u32,
         conn_pool: ConnectionPool,
         contracts: HashMap<ChainId, ZkLinkAddress>,
         proofs_cache: ProofsCache,
@@ -58,6 +62,8 @@ impl AppData {
         Self {
             conn_pool,
             enable_black_list,
+            enable_sync_mode: false,
+            black_list_time,
             contracts,
             recover_progress,
             proofs_cache,
@@ -67,9 +73,9 @@ impl AppData {
     }
 
     pub fn is_not_sync_completed(&self) -> bool {
-        !self.acquired_tokens.initialized()
+        !self.recovered_state.initialized()
             || !self.acquired_tokens.initialized()
-            || !self.recover_progress.is_completed()
+            || (self.enable_sync_mode && !self.recover_progress.is_completed())
     }
 
     pub fn recovered_state(&self) -> &RecoveredState {
@@ -81,13 +87,13 @@ impl AppData {
     }
 
     // Periodically clean up blacklisted users (to prevent users from requesting too many proof tasks)
-    pub async fn black_list_escaping(self: Arc<Self>, clean_interval: u32) {
+    pub async fn black_list_escaping(self: Arc<Self>, black_list_time: u32) {
         let mut storage = self.access_storage().await;
         let mut ticker = interval(Duration::from_secs(10));
         loop {
             if let Err(err) = storage
                 .recover_schema()
-                .clean_escaped_user(clean_interval)
+                .clean_escaped_user(black_list_time)
                 .await
             {
                 warn!("Failed to clean escaped user, err: {}", err);
@@ -98,9 +104,11 @@ impl AppData {
     }
 
     pub(crate) async fn sync_recover_progress(self: Arc<Self>) {
-        self.recover_progress
-            .sync_from_database(&self.conn_pool)
-            .await;
+        if self.enable_sync_mode {
+            self.recover_progress
+                .sync_from_database(&self.conn_pool)
+                .await;
+        }
 
         self.recovered_state
             .get_or_init(|| async {

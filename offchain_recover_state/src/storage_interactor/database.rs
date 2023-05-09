@@ -152,6 +152,14 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 created_at: Utc::now(),
                 confirmed: true,
             };
+            let execute_aggregated_operation = StoredAggregatedOperation {
+                id: 0,
+                action_type: AggType::ExecuteBlocks,
+                from_block: block_number.into(),
+                to_block: block_number.into(),
+                created_at: Utc::now(),
+                confirmed: true,
+            };
 
             self.storage
                 .chain()
@@ -162,7 +170,7 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
 
             self.storage
                 .recover_schema()
-                .save_block_operations(&commit_aggregated_operation)
+                .save_block_operations(&commit_aggregated_operation, &execute_aggregated_operation)
                 .await
                 .expect("Cant execute verify operation");
 

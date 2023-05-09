@@ -29,7 +29,9 @@ pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<u
     let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
     tokio::spawn(clean_old_task(conn_pool));
     // And then wait completed recovered state.
-    wait_recovered_state(&config).await;
+    if config.enable_sync_mode {
+        wait_recovered_state(&config).await;
+    }
 
     let prover = Arc::new(ExodusProver::from_config(config, proving_cache).await);
     let core_num = num_cpus::get();
