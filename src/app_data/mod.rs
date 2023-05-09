@@ -38,6 +38,7 @@ const GET_PROOFS_NUM_LIMIT: u32 = 100;
 pub struct AppData {
     conn_pool: ConnectionPool,
     enable_black_list: bool,
+    pub black_list_time: u32,
 
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
     pub(crate) recover_progress: RecoverProgress,
@@ -50,6 +51,7 @@ pub struct AppData {
 impl AppData {
     pub async fn new(
         enable_black_list: bool,
+        black_list_time: u32,
         conn_pool: ConnectionPool,
         contracts: HashMap<ChainId, ZkLinkAddress>,
         proofs_cache: ProofsCache,
@@ -58,6 +60,7 @@ impl AppData {
         Self {
             conn_pool,
             enable_black_list,
+            black_list_time,
             contracts,
             recover_progress,
             proofs_cache,
@@ -81,13 +84,13 @@ impl AppData {
     }
 
     // Periodically clean up blacklisted users (to prevent users from requesting too many proof tasks)
-    pub async fn black_list_escaping(self: Arc<Self>, clean_interval: u32) {
+    pub async fn black_list_escaping(self: Arc<Self>, black_list_time: u32) {
         let mut storage = self.access_storage().await;
         let mut ticker = interval(Duration::from_secs(10));
         loop {
             if let Err(err) = storage
                 .recover_schema()
-                .clean_escaped_user(clean_interval)
+                .clean_escaped_user(black_list_time)
                 .await
             {
                 warn!("Failed to clean escaped user, err: {}", err);

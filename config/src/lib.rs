@@ -19,7 +19,7 @@ pub struct RecoverStateConfig {
     pub db: DBConfig,
     pub layer1: MultiChainConfigs,
     pub upgrade_layer2_blocks: Vec<u32>,
-    pub clean_interval: Option<u32>,
+    pub black_list_time: Option<u32>,
 }
 
 impl RecoverStateConfig {
@@ -31,7 +31,7 @@ impl RecoverStateConfig {
             layer1: MultiChainConfigs::from_env(),
             upgrade_layer2_blocks: parse_env_to_vec_if_exists("UPGRADED_LAYER2_BLOCKS")
                 .unwrap_or_default(),
-            clean_interval: parse_env_if_exists("CLEAN_INTERVAL"),
+            black_list_time: parse_env_if_exists("CLEAN_INTERVAL"),
         }
     }
 }
