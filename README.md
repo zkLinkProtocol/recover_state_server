@@ -73,7 +73,9 @@ To accommodate a high volume of requests on the Web service, append the followin
 
 ```
 * soft nofile 1048576
+```
 
+```bash
 # To ensure that the changes take effect, you should log out and log back in to the current shell session.
 exit 
 ```
