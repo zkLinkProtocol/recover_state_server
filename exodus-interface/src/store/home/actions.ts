@@ -69,7 +69,7 @@ export const fetchProofs = createAsyncThunk<ProofInfoWithToken, ProofsArgs>(
 export const fetchRecoverProgress = createAsyncThunk<RecoverProgress>(
   'home/fetchRecoverProgress',
   async () => {
-    const r: AxiosResponse<DunkirkResponse<RecoverProgress>> = await http.get('/recover_progress')
+    const r: AxiosResponse<DunkirkResponse<RecoverProgress>> = await axios.get('/server/blocks')
     return r.data.data
   }
 )

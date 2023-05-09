@@ -33,10 +33,10 @@ export const SyncBlock = () => {
     >
       <BorderLinearProgress
         variant="determinate"
-        value={mathjs.multiply(mathjs.divide(recoverProgress!.current_block, recoverMaxBlock), 100)}
+        value={mathjs.multiply(mathjs.divide(recoverProgress!.blocks, recoverMaxBlock), 100)}
       />
       <Typography sx={{ fontSize: 18 }}>
-        {recoverProgress?.current_block} / {recoverMaxBlock}
+        {recoverProgress?.blocks} / {recoverMaxBlock}
       </Typography>
       <Typography sx={{ fontSize: 18 }} color="gray">
         Waiting for the block to finish syncing.

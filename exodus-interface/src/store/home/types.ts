@@ -33,8 +33,7 @@ export interface Balance {
 }
 
 export interface RecoverProgress {
-  current_block: number
-  total_verified_block: number
+  blocks: number
 }
 
 export interface ProofInfo {
