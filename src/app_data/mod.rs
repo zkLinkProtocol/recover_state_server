@@ -62,7 +62,7 @@ impl AppData {
         Self {
             conn_pool,
             enable_black_list,
-            enable_sync_mode: false,
+            enable_sync_mode,
             black_list_time,
             contracts,
             recover_progress,
