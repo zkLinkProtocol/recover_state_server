@@ -24,9 +24,19 @@ We recommend using the Ubuntu OS, and below are three recommended configurations
 Before you begin, you will need to have the following software installed:
 - `PostgreSQL`, [How to install PostgreSQL](https://www.postgresql.org/download/linux/ubuntu/)
 
+```bash
+
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
+sudo apt-get update
+
+sudo apt-get -y install postgresql
+
+````
 You also need to install the following dependencies:
 ```shell
-sudo apt-get update
 
 sudo apt-get install libpq-dev libssl-dev pkg-config axel
 
@@ -41,7 +51,17 @@ sudo apt install build-essential
 cargo install diesel_cli --no-default-features --features postgres
 
 ```
-Note: For the first time, you need to set the password. Please refer to [psql.md](docs/psql.md) for the steps.
+Note: For the first time, you need to set the psql password.
+
+```bash
+sudo su - postgres
+
+#connect to postgresql
+psql
+
+#modify password
+\password
+```
 
 ```bash
 echo 'export DATABASE_URL=postgres://postgres:password@localhost/plasma' >> ~/.bashrc
