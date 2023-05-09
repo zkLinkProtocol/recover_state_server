@@ -1,8 +1,8 @@
 // Built-in deps
-use chrono::Utc;
 use std::time::Instant;
-use tracing::info;
 // External imports
+use chrono::Utc;
+use tracing::info;
 // Workspace imports
 // Local imports
 use crate::{QueryResult, StorageProcessor};
@@ -149,6 +149,41 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
         Ok(())
     }
 
+    /// update created_at by proof id(for created_at as heartbeat update time).
+    pub async fn update_heartbeat_time(&mut self, proof_id: i64) -> QueryResult<()> {
+        let start = Instant::now();
+
+        sqlx::query!(
+            r#"
+            UPDATE exit_proofs SET created_at = current_timestamp
+            WHERE id = $1
+            "#,
+            proof_id
+        )
+        .execute(self.0.conn())
+        .await?;
+
+        metrics::histogram!("sql.recover_state.update_heartbeat_time", start.elapsed());
+        Ok(())
+    }
+
+    /// update created_at by proof id(for created_at as heartbeat update time).
+    pub async fn clean_old_task(&mut self) -> QueryResult<()> {
+        let start = Instant::now();
+
+        sqlx::query!(
+            r#"
+            UPDATE exit_proofs SET created_at = NULL
+            WHERE created_at IS NOT NULL AND finished_at IS NULL AND created_at < current_timestamp - INTERVAL '3 minutes'
+            "#,
+        )
+            .execute(self.0.conn())
+            .await?;
+
+        metrics::histogram!("sql.recover_state.clean_old_task", start.elapsed());
+        Ok(())
+    }
+
     /// Loads the tasks that have never been started.
     pub async fn load_exit_proof_task(&mut self) -> QueryResult<Option<StoredExitProof>> {
         let start = Instant::now();
@@ -156,7 +191,7 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
         let stored_exit_proof = sqlx::query_as!(
             StoredExitProof,
-            "SELECT * FROM exit_proofs WHERE created_at IS NULL ORDER BY id ASC LIMIT 1",
+            "SELECT * FROM exit_proofs WHERE created_at IS NULL ORDER BY id ASC LIMIT 1 FOR UPDATE SKIP LOCKED",
         )
         .fetch_optional(transaction.conn())
         .await?;

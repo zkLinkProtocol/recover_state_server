@@ -3,7 +3,10 @@ use crate::exit_type::{ExitProofData, ProofInfo};
 use crate::proving_cache::ProvingCache;
 use crate::ExitInfo;
 use recover_state_config::RecoverStateConfig;
-use tracing::info;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::time::interval;
+use tracing::{info, warn};
 use zklink_crypto::circuit::account::CircuitAccount;
 use zklink_crypto::circuit::CircuitAccountTree;
 use zklink_crypto::params::account_tree_depth;
@@ -23,12 +26,6 @@ impl ExodusProver {
         let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
         let mut storage = conn_pool
             .access_storage()
-            .await
-            .expect("Storage access failed");
-        // Process unfinished tasks before the last shutdown.
-        storage
-            .prover_schema()
-            .process_unfinished_tasks()
             .await
             .expect("Storage access failed");
         // loads circuit account tree
@@ -81,7 +78,7 @@ impl ExodusProver {
         Ok(running_task_num as u32)
     }
 
-    pub async fn load_new_task(&self, index: usize) -> anyhow::Result<Option<ExitInfo>> {
+    pub async fn load_new_task(&self, index: usize) -> anyhow::Result<Option<(i64, ExitInfo)>> {
         let mut storage = self.conn_pool.access_storage_with_retry().await;
         let task = storage
             .prover_schema()
@@ -95,7 +92,7 @@ impl ExodusProver {
                         && t.proof.is_none()
                         && t.amount.is_none()
                 );
-                (&t).into()
+                (t.id, ExitInfo::from(&t))
             });
         Ok(task)
     }
@@ -162,6 +159,22 @@ impl ExodusProver {
             },
         };
         Ok(proof_data)
+    }
+
+    pub async fn update_task_heartbeat(self: Arc<Self>, proof_id: i64) {
+        let mut storage = self.conn_pool.access_storage_with_retry().await;
+        let mut heartbeat_ticker = interval(Duration::from_secs(10));
+        loop {
+            heartbeat_ticker.tick().await;
+
+            if let Err(err) = storage
+                .prover_schema()
+                .update_heartbeat_time(proof_id)
+                .await
+            {
+                warn!("Failed to update heartbeat time: {}", err);
+            };
+        }
     }
 
     pub(crate) async fn store_exit_proof(&self, proof: &ExitProofData) -> anyhow::Result<()> {

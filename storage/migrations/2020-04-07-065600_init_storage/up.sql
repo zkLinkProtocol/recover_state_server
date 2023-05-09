@@ -196,15 +196,6 @@ CREATE TABLE submit_txs (
     PRIMARY KEY (id),
     UNIQUE (tx_hash)
 );
-CREATE INDEX submit_txs_chain_id_index ON submit_txs USING btree (chain_id);
-CREATE INDEX submit_txs_op_type_index ON submit_txs USING btree (op_type);
-CREATE INDEX submit_txs_from_account_index ON submit_txs USING btree (from_account);
-CREATE INDEX submit_txs_to_account_index ON submit_txs USING btree (to_account);
-CREATE INDEX submit_txs_nonce_index ON submit_txs USING btree (nonce);
-CREATE INDEX submit_txs_executed_index ON submit_txs USING btree (executed);
-CREATE INDEX submit_txs_success_index ON submit_txs USING btree (success);
-CREATE INDEX submit_txs_block_number_index ON submit_txs USING btree (block_number);
-CREATE INDEX submit_txs_block_index ON submit_txs USING btree (block_index);
 
 -- layer 2 blocks，only successful tx will be include in block
 CREATE TABLE blocks (
@@ -221,7 +212,6 @@ CREATE TABLE blocks (
 
     PRIMARY KEY(number)
 );
-CREATE INDEX blocks_root_hash_index ON blocks USING btree (root_hash);
 
 -- the proof of block，we can delete proof info after block verified in layer 1
 -- the creation of block, witness and proof are async progress
@@ -272,10 +262,6 @@ CREATE TABLE aggregate_operations (
 
     PRIMARY KEY (id)
 );
-CREATE INDEX aggregate_ops_action_type ON aggregate_operations USING btree (action_type);
-CREATE INDEX aggregate_operations_from_block ON aggregate_operations USING btree (from_block);
-CREATE INDEX aggregate_operations_to_block ON aggregate_operations USING btree (to_block);
-CREATE INDEX aggregate_ops_confirmed ON aggregate_operations USING btree (confirmed);
 
 -- proof for CreateProof, CreateProof can be set to confirmed when proof is committed
 -- and we can not create new PublishProof if proof is not exist
@@ -411,5 +397,12 @@ CREATE TABLE exit_proofs
 
     PRIMARY KEY (chain_id, account_id, sub_account_id, l1_target_token, l2_source_token)
 );
-
 CREATE INDEX idx_account_query ON exit_proofs (account_id, l2_source_token);
+
+CREATE TABLE three_hours_black_list
+(
+    address bytea NOT NULL, -- user address
+    start_at timestamp with time zone,
+
+    PRIMARY KEY (address)
+);

@@ -22,7 +22,7 @@ API_CONFIG_ENABLE_HTTP_CORS=true
 # Replace `USER_NAME` and `HOST` in the database URL with your PostgreSQL username
 DATABASE_URL="postgres://postgres:password@localhost/plasma"
 # Number of open connections to the database
-DATABASE_POOL_SIZE=10
+DATABASE_POOL_SIZE=100
 
 # Core application settings
 # [prover.core]
@@ -30,6 +30,10 @@ DATABASE_POOL_SIZE=10
 PROVER_CORE_GONE_TIMEOUT=60000
 # Number of provers in the cluster when there are no pending jobs
 PROVER_CORE_IDLE_PROVERS=1
+
+# [special]
+# Periodically(in minutes) clean up blacklisted users (to prevent users from requesting too many proof tasks)
+CLEAN_INTERVAL=180
 
 # [chains]
 # Chains that supported, the chain id is defined by zkLink

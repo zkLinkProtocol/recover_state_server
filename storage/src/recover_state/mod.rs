@@ -10,7 +10,6 @@ use self::records::{
     StoredStorageState,
 };
 use crate::chain::operations::records::StoredAggregatedOperation;
-use crate::chain::operations::OperationsSchema;
 use crate::chain::state::StateSchema;
 use crate::{QueryResult, StorageProcessor};
 
@@ -27,17 +26,9 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
     pub async fn save_block_operations(
         &mut self,
         commit_op: &StoredAggregatedOperation,
-        execute_op: &StoredAggregatedOperation,
     ) -> QueryResult<()> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
-
-        OperationsSchema(&mut transaction)
-            .store_aggregated_action(commit_op)
-            .await?;
-        OperationsSchema(&mut transaction)
-            .store_aggregated_action(execute_op)
-            .await?;
         // The state is expected to be updated, so it's necessary
         // to do it here.
         for block_number in commit_op.from_block..commit_op.to_block + 1 {
@@ -372,5 +363,37 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
         transaction.commit().await?;
         metrics::histogram!("sql.recover_state.update_block_events", start.elapsed());
         Ok(())
+    }
+
+    /// Clear out users with more than 3 hours
+    pub async fn clean_escaped_user(&mut self, clean_interval: u32) -> QueryResult<()> {
+        let start = Instant::now();
+        let sql = format!(
+            "DELETE FROM three_hours_black_list WHERE start_at < NOW() - INTERVAL '{} minutes'",
+            clean_interval
+        );
+        sqlx::query(&sql).execute(self.0.conn()).await?;
+
+        metrics::histogram!("sql.recover_state.clean_escaped_user", start.elapsed());
+        Ok(())
+    }
+
+    pub async fn exist_or_insert_user(&mut self, address: &[u8]) -> QueryResult<bool> {
+        let start = Instant::now();
+        let rows_affected = sqlx::query!(
+            r#"
+            INSERT INTO three_hours_black_list (address, start_at)
+            VALUES ($1, current_timestamp)
+            ON CONFLICT (address)
+            DO NOTHING;
+            "#,
+            address
+        )
+        .execute(self.0.conn())
+        .await?
+        .rows_affected();
+
+        metrics::histogram!("sql.recover_state.insert_user", start.elapsed());
+        Ok(rows_affected == 0)
     }
 }

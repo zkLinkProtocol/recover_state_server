@@ -45,7 +45,10 @@ pub enum ExodusStatus {
     ProofGenerating = 51,
     ProofCompleted = 52,
     NonBalance = 60,
+    ExistTaskWithinThreeHour = 61,
     RecoverStateUnfinished = 70,
+
+    ApiClosedTemporarily = 90,
 
     TokenNotExist = 101,
     AccountNotExist = 102,
@@ -74,7 +77,11 @@ impl ToString for ExodusStatus {
             ExodusStatus::ProofGenerating => "The proof task is running",
             ExodusStatus::ProofCompleted => "The task has been completed",
             ExodusStatus::NonBalance => "The token of the account is no balance",
+            ExodusStatus::ExistTaskWithinThreeHour => {
+                "The task has been generated within three hours"
+            }
             ExodusStatus::RecoverStateUnfinished => "Recovering state is unfinished",
+            ExodusStatus::ApiClosedTemporarily => "The api closed temporarily",
 
             // Not exist info
             ExodusStatus::TokenNotExist => "The token not exist",

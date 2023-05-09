@@ -42,15 +42,12 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
         block_number: BlockNumber,
         operations: Vec<ExecutedTx>,
     ) -> QueryResult<()> {
-        let mut transaction = self.0.start_transaction().await?;
         for tx in operations {
             let is_priority_operation = tx.get_executed_op().is_priority_operation();
             let new_tx = NewExecutedTransaction::prepare_stored_tx(tx, block_number);
             if is_priority_operation {
                 // Store the executed priority operation in the corresponding schema.
-                OperationsSchema(&mut transaction)
-                    .update_priority_tx(new_tx)
-                    .await?;
+                OperationsSchema(self.0).update_priority_tx(new_tx).await?;
             } else {
                 // Store the executed operation in the corresponding schema.
                 let new_tx = StoredSubmitTransaction {
@@ -69,12 +66,9 @@ impl<'a, 'c> BlockSchema<'a, 'c> {
                     operation: Some(new_tx.operation),
                     ..Default::default()
                 };
-                OperationsSchema(&mut transaction)
-                    .add_new_submit_tx(new_tx)
-                    .await?;
+                OperationsSchema(self.0).add_new_submit_tx(new_tx).await?;
             }
         }
-        transaction.commit().await?;
         Ok(())
     }
 

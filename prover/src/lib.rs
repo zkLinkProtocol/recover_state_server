@@ -2,6 +2,7 @@ use crate::proving_cache::ProvingCache;
 use crate::retries::with_retries;
 pub use exit_type::{ExitInfo, ExitProofData};
 pub use exodus_prover::ExodusProver;
+use futures::FutureExt;
 use offchain_recover_state::{contract::ZkLinkContract, get_fully_on_chain_zklink_contract};
 use recover_state_config::RecoverStateConfig;
 use std::sync::Arc;
@@ -24,6 +25,9 @@ pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<u
     // Priority generate cache.
     let proving_cache =
         ProvingCache::from_config(&config).expect("Failed to generate proving cache");
+    // clean old tasks
+    let conn_pool = ConnectionPool::new(config.db.url.clone(), config.db.pool_size);
+    tokio::spawn(clean_old_task(conn_pool));
     // And then wait completed recovered state.
     wait_recovered_state(&config).await;
 
@@ -39,8 +43,8 @@ pub async fn run_exodus_prover(config: RecoverStateConfig, workers_num: Option<u
             loop {
                 match prover.load_new_task(i).await {
                     Ok(task) => {
-                        if let Some(exit_info) = task {
-                            process_task(prover.clone(), exit_info).await;
+                        if let Some((proof_id, exit_info)) = task {
+                            process_task(prover.clone(), proof_id, exit_info).await;
                         } else {
                             info!("[Worker{}] is waiting for the new exit proof task......", i);
                             sleep(Duration::from_secs(5)).await;
@@ -86,30 +90,54 @@ async fn wait_recovered_state(config: &RecoverStateConfig) {
     }
 }
 
-async fn process_task(prover: Arc<ExodusProver>, exit_info: ExitInfo) {
-    let exit_info = prover.check_exit_info(exit_info).await;
-    let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
-    let after_prover = prover.clone();
+async fn process_task(prover: Arc<ExodusProver>, proof_id: i64, exit_info: ExitInfo) {
     let exit_info_clone = exit_info.clone();
-    std::thread::spawn(move || {
-        let prover_with_proof = prover.create_exit_proof(exit_info);
-        result_sender.send(prover_with_proof).unwrap();
-    });
+    let after_prover = prover.clone();
 
-    let result = result_receiver.await.unwrap();
-    // Ensure that the tasks being run have a result(store or cancel)
-    let op = || async {
-        match result.as_ref() {
-            Ok(exit_proof_data) => {
-                after_prover.store_exit_proof(exit_proof_data).await?;
-                info!("Stored exit proof");
-            }
-            Err(error) => {
-                error!("Failed to compute proof:{}", error);
-                after_prover.cancel_this_task(&exit_info_clone).await?;
-            }
-        }
-        Ok(())
-    };
-    with_retries(op).await.expect("Failed to process this task");
+    let heartbeat_future = prover.clone().update_task_heartbeat(proof_id).fuse();
+    let compute_future = async move {
+        let exit_info = prover.check_exit_info(exit_info).await;
+        let (result_sender, result_receiver) = tokio::sync::oneshot::channel();
+        std::thread::spawn(move || {
+            let prover_with_proof = prover.create_exit_proof(exit_info);
+            result_sender.send(prover_with_proof).unwrap();
+        });
+
+        result_receiver.await.unwrap()
+    }
+    .fuse();
+    futures::pin_mut!(compute_future, heartbeat_future);
+
+    futures::select! {
+        result = compute_future => {
+            // Ensure that the tasks being run have a result(store or cancel)
+            let op = || async {
+                match result.as_ref() {
+                    Ok(exit_proof_data) => {
+                        after_prover.store_exit_proof(exit_proof_data).await?;
+                        info!("Stored exit proof");
+                    }
+                    Err(error) => {
+                        error!("Failed to compute proof:{}", error);
+                        after_prover.cancel_this_task(&exit_info_clone).await?;
+                    }
+                }
+                Ok(())
+            };
+            with_retries(op).await.expect("Failed to process this task");
+        },
+        _ = heartbeat_future => unreachable!(),
+    }
+}
+
+async fn clean_old_task(conn_pool: ConnectionPool) {
+    let mut storage = conn_pool.access_storage_with_retry().await;
+    let mut clean_ticker = interval(Duration::from_secs(10));
+    loop {
+        if let Err(err) = storage.prover_schema().clean_old_task().await {
+            warn!("Failed to update heartbeat time: {}", err);
+        };
+
+        clean_ticker.tick().await;
+    }
 }
