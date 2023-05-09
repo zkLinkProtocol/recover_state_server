@@ -42,8 +42,11 @@ cargo install diesel_cli --no-default-features --features postgres
 
 ```
 Note: For the first time, you need to set the password. Please refer to [psql.md](docs/psql.md) for the steps.
+
 ```bash
-export DATABASE_URL=postgres://postgres:password@localhost/plasma
+echo 'export DATABASE_URL=postgres://postgres:password@localhost/plasma' >> ~/.bashrc
+
+source ~/.bashrc
 ```
 
 To accommodate a high volume of requests on the Web service, append the following line to the `/etc/security/limits.conf` file:
