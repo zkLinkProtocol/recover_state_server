@@ -75,6 +75,10 @@ There is a `.env.e.g` file in the root path of our project, copy and rename it t
 cp .env.e.g .env
 
 # Must configure `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` based on your environment
+sed -i "s|/home/user/zklink/recover_state_server|$(pwd)|g" .env
+
+sed -i "s|postgres://postgres:password@localhost/plasma|${DATABASE_URL}|g" .en
+
 ```
 
 
