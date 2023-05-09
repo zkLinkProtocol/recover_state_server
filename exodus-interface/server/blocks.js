@@ -1,23 +1,37 @@
 const { Client } = require('pg');
-
+const { CronJob } = require('cron')
 const connectionString = process.env.DATABASE_URL
 
-async function getBlocksRowCount() {
-  const client = new Client({ connectionString });
+let blocks
+
+async function queryRecoverBlocks() {
+  const client = new Client({ connectionString })
   try {
-    await client.connect();
-    const result = await client.query('SELECT COUNT(*) FROM blocks;');
-    const rowCount = parseInt(result.rows[0].count - 1, 10);
-    console.log('Total rows in blocks table:', rowCount);
-    return rowCount;
+    await client.connect()
+    const result = await client.query('SELECT COUNT(*) FROM blocks;')
+    const rowCount = parseInt(result.rows[0].count - 1, 10)
+    blocks = rowCount
   } catch (error) {
-    console.error('Error while fetching row count:', error);
-    return Promise.reject(error)
+    console.log(error)
   } finally {
-    await client.end();
+    await client.end()
   }
 }
 
+const cron = new CronJob('*/10 * * * * *', async function () {
+  await queryRecoverBlocks()
+})
+
+async function initRecoverBlocks() {
+  cron.fireOnTick()
+  cron.start()
+}
+
+function getRecoverBlocks() {
+  return blocks
+}
+
 module.exports = {
-  getBlocksRowCount
+  initRecoverBlocks,
+  getRecoverBlocks
 }
