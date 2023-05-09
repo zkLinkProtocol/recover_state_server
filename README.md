@@ -100,7 +100,7 @@ cp .env.e.g .env
 # Must configure `RUNTIME_CONFIG_ZKLINK_HOME` and `DATABASE_URL` based on your environment
 sed -i "s|/home/user/zklink/recover_state_server|$(pwd)|g" .env
 
-sed -i "s|postgres://postgres:password@localhost/plasma|${DATABASE_URL}|g" .en
+sed -i "s|postgres://postgres:password@localhost/plasma|${DATABASE_URL}|g" .env
 
 ```
 
