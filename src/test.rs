@@ -18,7 +18,7 @@ async fn create_app_data() -> AppData {
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
     let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
     let contracts = config.layer1.get_contracts();
-    AppData::new(conn_pool, contracts, proofs_cache, recover_progress).await
+    AppData::new(false, conn_pool, contracts, proofs_cache, recover_progress).await
 }
 
 // Initialize an instance of Recover Progress for testing

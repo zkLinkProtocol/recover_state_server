@@ -37,6 +37,7 @@ const GET_PROOFS_NUM_LIMIT: u32 = 100;
 
 pub struct AppData {
     conn_pool: ConnectionPool,
+    enable_black_list: bool,
 
     pub contracts: HashMap<ChainId, ZkLinkAddress>,
     pub(crate) recover_progress: RecoverProgress,
@@ -48,6 +49,7 @@ pub struct AppData {
 
 impl AppData {
     pub async fn new(
+        enable_black_list: bool,
         conn_pool: ConnectionPool,
         contracts: HashMap<ChainId, ZkLinkAddress>,
         proofs_cache: ProofsCache,
@@ -55,6 +57,7 @@ impl AppData {
     ) -> AppData {
         Self {
             conn_pool,
+            enable_black_list,
             contracts,
             recover_progress,
             proofs_cache,
@@ -255,12 +258,14 @@ impl AppData {
 
         let mut storage = self.access_storage().await;
         // Check for black list
-        let exist_address = storage
-            .recover_schema()
-            .exist_or_insert_user(exit_info.account_address.as_bytes())
-            .await?;
-        if exist_address {
-            return Err(ExodusStatus::ExistTaskWithinThreeHour);
+        if self.enable_black_list {
+            let exist_address = storage
+                .recover_schema()
+                .exist_or_insert_user(exit_info.account_address.as_bytes())
+                .await?;
+            if exist_address {
+                return Err(ExodusStatus::ExistTaskWithinThreeHour);
+            }
         }
         // Update to database
         let task_id = storage

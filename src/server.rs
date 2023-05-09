@@ -208,14 +208,27 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let enable_http_cors = config.api.enable_http_cors;
     let contracts = config.layer1.get_contracts();
     let clean_interval = config.clean_interval;
+    let enable_black_list = clean_interval.is_some();
 
     let recover_progress = RecoverProgress::from_config(&config).await;
     let conn_pool = ConnectionPool::new(config.db.url, config.db.pool_size);
     let proofs_cache = ProofsCache::from_database(conn_pool.clone()).await;
-    let app_data =
-        Arc::new(AppData::new(conn_pool.clone(), contracts, proofs_cache, recover_progress).await);
+    let app_data = Arc::new(
+        AppData::new(
+            enable_black_list,
+            conn_pool.clone(),
+            contracts,
+            proofs_cache,
+            recover_progress,
+        )
+        .await,
+    );
 
-    tokio::spawn(app_data.clone().black_list_escaping(clean_interval));
+    tokio::spawn(
+        app_data
+            .clone()
+            .black_list_escaping(clean_interval.unwrap_or(0)),
+    );
     tokio::spawn(app_data.clone().sync_recover_progress());
 
     HttpServer::new(move || {
