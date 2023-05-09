@@ -13,6 +13,9 @@ if [ "$PORT" = "" ]; then
 fi
 
 if [ "$1" == "start" ]; then
+  if [ -f script.pid ]; then
+    return
+  fi
   rm log/*
 
   cd storage
@@ -30,12 +33,8 @@ elif [ "$1" == "prover" ]; then
   # Please refer to prover [README.md](prover/README.md) for detailed command details
   nohup ./target/release/exodus_prover tasks -w 1 >> log/prover.log 2>&1 &
 elif [ "$1" == "stop" ]; then
-  if [ -f script.pid ]; then
-    kill "$(cat script.pid)" 2>/dev/null
-    rm script.pid
-  fi
 
-  pkill -f recover_state
+  # pkill -f recover_state
   pkill -f exodus_server
   pkill -f exodus_prover
 
@@ -45,7 +44,7 @@ elif [ "$1" == "clean" ]; then
   cd storage
   diesel database reset
 else
-  echo "Usage: $0 {start|continue|server|prover|stop|clean}"
+  echo "Usage: $0 {start|server|prover|stop|clean}"
   exit 1
 fi
 
