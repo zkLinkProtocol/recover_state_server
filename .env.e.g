@@ -33,7 +33,7 @@ PROVER_CORE_IDLE_PROVERS=1
 
 # [special]
 # Periodically(in minutes) clean up blacklisted users (to prevent users from requesting too many proof tasks)
-CLEAN_INTERVAL=180
+CLEAN_INTERVAL=720
 
 # [chains]
 # Chains that supported, the chain id is defined by zkLink
