@@ -32,6 +32,7 @@ import { SyncBlock } from './SyncBlock'
 import Verifier from '../abi/Verifier.json'
 import { ethers } from 'ethers'
 import { TESTER } from '../config'
+import Swal from 'sweetalert2'
 
 export const Section = styled(Box)({
   backgroundColor: 'rgba(237, 237, 237)',
@@ -112,7 +113,7 @@ export const SectionL2Balance = () => {
           <br />
           Step 3: Click on "Submit", sign with your wallet to send the proof on-chain. Once the
           proof is verified on-chain, a list of withdrawable balances will appear in the
-          PendingBalance. You’ll need to have the gas token of the destination blockchain to
+          PendingBalance. You'll need to have the gas token of the destination blockchain to
           proceed. Also, please note that you only need to submit once, as the smart contract does
           not accept duplicate submissions.
           <br />
@@ -420,12 +421,21 @@ const TokenProofAction: FC<{
               })
               setPending(false)
 
-              if (tasks.data?.err_msg) {
-                throw new Error(tasks.data?.err_msg)
-              } else if (tasks.data?.code === 0) {
-                toast.success('Request sent successfully, waiting for generation')
+              if (tasks.data?.code === 61) {
+                Swal.fire({
+                  width: '40em',
+                  title: 'You Are in the 12-Hour Freeze Period',
+                  text: 'Dear zkLinker, please note that generating just one proof (recover one asset on one chain) is sufficient to claim your Galxe OAT. There is a 12-hour freeze period between each proof generation to ensure the prover computing resource is available for every user.',
+                  confirmButtonText: 'OK',
+                })
+              } else {
+                if (tasks.data?.err_msg) {
+                  throw new Error(tasks.data?.err_msg)
+                } else if (tasks.data?.code === 0) {
+                  toast.success('Request sent successfully, waiting for generation')
 
-                getProofs()
+                  getProofs()
+                }
               }
             } catch (e: any) {
               if (e?.message) {
