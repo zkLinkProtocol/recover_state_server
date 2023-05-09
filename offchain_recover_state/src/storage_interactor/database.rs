@@ -142,11 +142,6 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
         blocks_and_updates: Vec<(Block, Vec<(AccountId, AccountUpdate, H256)>)>,
     ) {
         let new_state = self.storage.recover_schema().new_storage_state("None");
-        let mut transaction = self
-            .storage
-            .start_transaction()
-            .await
-            .expect("Failed initializing a DB transaction");
         for (block, accounts_updated) in blocks_and_updates {
             let block_number = *block.block_number;
             let commit_aggregated_operation = StoredAggregatedOperation {
@@ -157,44 +152,32 @@ impl StorageInteractor for DatabaseStorageInteractor<'_> {
                 created_at: Utc::now(),
                 confirmed: true,
             };
-            let execute_aggregated_operation = StoredAggregatedOperation {
-                id: 0,
-                action_type: AggType::ExecuteBlocks,
-                from_block: block_number.into(),
-                to_block: block_number.into(),
-                created_at: Utc::now(),
-                confirmed: true,
-            };
 
-            transaction
+            self.storage
                 .chain()
                 .state_schema()
                 .commit_state_update(block.block_number, &accounts_updated)
                 .await
                 .expect("Cant execute verify operation");
 
-            transaction
+            self.storage
                 .recover_schema()
-                .save_block_operations(&commit_aggregated_operation, &execute_aggregated_operation)
+                .save_block_operations(&commit_aggregated_operation)
                 .await
                 .expect("Cant execute verify operation");
 
-            transaction
+            self.storage
                 .chain()
                 .block_schema()
                 .save_block(block)
                 .await
                 .expect("Unable to save block");
         }
-        transaction
+        self.storage
             .recover_schema()
             .update_storage_state(new_state)
             .await
             .expect("Unable to update storage state");
-        transaction
-            .commit()
-            .await
-            .expect("Unable to commit DB transaction");
     }
 
     async fn init_token_event_progress(

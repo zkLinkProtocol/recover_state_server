@@ -10,7 +10,6 @@ use self::records::{
     StoredStorageState,
 };
 use crate::chain::operations::records::StoredAggregatedOperation;
-use crate::chain::operations::OperationsSchema;
 use crate::chain::state::StateSchema;
 use crate::{QueryResult, StorageProcessor};
 
@@ -27,17 +26,9 @@ impl<'a, 'c> RecoverSchema<'a, 'c> {
     pub async fn save_block_operations(
         &mut self,
         commit_op: &StoredAggregatedOperation,
-        execute_op: &StoredAggregatedOperation,
     ) -> QueryResult<()> {
         let start = Instant::now();
         let mut transaction = self.0.start_transaction().await?;
-
-        OperationsSchema(&mut transaction)
-            .store_aggregated_action(commit_op)
-            .await?;
-        OperationsSchema(&mut transaction)
-            .store_aggregated_action(execute_op)
-            .await?;
         // The state is expected to be updated, so it's necessary
         // to do it here.
         for block_number in commit_op.from_block..commit_op.to_block + 1 {

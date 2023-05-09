@@ -461,7 +461,8 @@ where
                 last_watched_eth_block_number,
             )
             .await?;
-        info!("Updating block events: {:?}", block_events);
+        info!("Updated block events");
+        debug!("Updating block events: {:?}", block_events);
 
         Ok(!block_events.is_empty())
     }
