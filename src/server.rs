@@ -208,6 +208,7 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let enable_http_cors = config.api.enable_http_cors;
     let contracts = config.layer1.get_contracts();
     let enable_black_list = config.black_list_time.is_some();
+    let enable_sync_mode = config.enable_sync_mode;
     let black_list_time = config.black_list_time.unwrap_or(0);
 
     let recover_progress = RecoverProgress::from_config(&config).await;
@@ -216,6 +217,7 @@ pub async fn run_server(config: RecoverStateConfig) -> std::io::Result<()> {
     let app_data = Arc::new(
         AppData::new(
             enable_black_list,
+            enable_sync_mode,
             black_list_time,
             conn_pool.clone(),
             contracts,

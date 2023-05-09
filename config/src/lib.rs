@@ -20,6 +20,7 @@ pub struct RecoverStateConfig {
     pub layer1: MultiChainConfigs,
     pub upgrade_layer2_blocks: Vec<u32>,
     pub black_list_time: Option<u32>,
+    pub enable_sync_mode: bool,
 }
 
 impl RecoverStateConfig {
@@ -32,6 +33,7 @@ impl RecoverStateConfig {
             upgrade_layer2_blocks: parse_env_to_vec_if_exists("UPGRADED_LAYER2_BLOCKS")
                 .unwrap_or_default(),
             black_list_time: parse_env_if_exists("CLEAN_INTERVAL"),
+            enable_sync_mode: parse_env_if_exists("ENABLE_SYNC_MODE").unwrap_or_default(),
         }
     }
 }
