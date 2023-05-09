@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 
-const connectionString = 'postgres://postgres:postgres@localhost/plasma'
+const connectionString = process.env.DATABASE_URL
 
 async function getBlocksRowCount() {
   const client = new Client({ connectionString });
