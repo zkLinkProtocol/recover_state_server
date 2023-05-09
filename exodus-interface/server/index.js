@@ -4,7 +4,7 @@ const koaMount = require('koa-mount')
 const path = require('path')
 const proxy = require('koa-proxies')
 const Router = require('koa-router')
-const { initRecoverBlocks, getBlocksRowCount } = require('./blocks')
+const { initRecoverBlocks, getRecoverBlocks } = require('./blocks')
 
 const app = new Koa()
 const router = new Router();
@@ -23,7 +23,7 @@ async function main() {
 
   router.get('/server/blocks', async (ctx, next) => {
     try {
-      const blocks = getBlocksRowCount()
+      const blocks = getRecoverBlocks()
       if (blocks === undefined) {
         throw new Error('Blocks synchronization failed')
       }
