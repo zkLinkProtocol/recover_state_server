@@ -73,9 +73,10 @@ To accommodate a high volume of requests on the Web service, append the followin
 
 ```
 * soft nofile 1048576
-```
 
-To ensure that the changes take effect, you should log out and log back in to the current shell session.
+# To ensure that the changes take effect, you should log out and log back in to the current shell session.
+exit 
+```
 
 ## Getting Started
 ### Clone the git repository and download the setup file:
@@ -103,10 +104,6 @@ sed -i "s|postgres://postgres:password@localhost/plasma|${DATABASE_URL}|g" .en
 
 
 Explanation of .env Configuration Items: [env.md](docs/env.md)
-
-**NOTE**
-Before "dunkerque," a link will be published here that will display contract and chain configurations. if test, only use default.
-
 -----
 
 ### Starting the recovery program, prover program, and web service server
