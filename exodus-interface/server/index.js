@@ -4,6 +4,7 @@ const koaMount = require('koa-mount')
 const path = require('path')
 const proxy = require('koa-proxies')
 const Router = require('koa-router')
+const cors = require('@koa/cors')
 const { initRecoverBlocks, getRecoverBlocks } = require('./blocks')
 const { initContracts, getContracts } = require('./contracts')
 
@@ -12,6 +13,7 @@ const router = new Router();
 const port = process.env.PORT || 80
 
 async function main() {
+
   app.use(
     proxy('/api', {
       target: 'http://127.0.0.1:8080',
@@ -63,6 +65,7 @@ async function main() {
     }
   })
 
+  app.use(cors())
 
   app.use(router.routes())
 
