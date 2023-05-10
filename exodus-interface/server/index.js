@@ -7,6 +7,7 @@ const Router = require('koa-router')
 const cors = require('@koa/cors')
 const { initRecoverBlocks, getRecoverBlocks } = require('./blocks')
 const { initContracts, getContracts } = require('./contracts')
+const { initQueueCount, getQueueCount } = require('./queue')
 
 const app = new Koa()
 const router = new Router();
@@ -26,6 +27,7 @@ async function main() {
 
   await initContracts()
   await initRecoverBlocks()
+  await initQueueCount()
 
   router.get('/server/blocks', async (ctx, next) => {
     try {
@@ -37,6 +39,25 @@ async function main() {
         code: 0,
         data: {
           blocks
+        }
+      }
+    }
+    catch (e) {
+      ctx.body = {
+        code: 100,
+        err_msg: e?.message
+      }
+    }
+  })
+
+  router.get('/server/queue', async (ctx, next) => {
+    try {
+      const count = getQueueCount()
+
+      ctx.body = {
+        code: 0,
+        data: {
+          count
         }
       }
     }
