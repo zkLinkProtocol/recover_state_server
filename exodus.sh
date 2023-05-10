@@ -24,7 +24,7 @@ if [ "$1" == "start" ]; then
   cd ..
   
   echo "Start recovering state"
-  nohup ./run_recover.sh >> log/run_recover.log 2>&1 &
+  nohup ./run_recover.sh genesis >> log/run_recover.log 2>&1 &
 
 elif [ "$1" == "server" ]; then
   cargo build --release
