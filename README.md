@@ -104,8 +104,12 @@ sed -i "s|postgres://postgres:password@localhost/plasma|${DATABASE_URL}|g" .env
 
 ```
 
-
 Explanation of .env Configuration Items: [env.md](docs/env.md)
+
+
+We recommend displaying your `NAME` and `LOGO` on the recovery page, as it can help with the branding of the recovery node operator. Please refer to the [exodus-interface/README.md](exodus-interface/README.md) for more information.
+
+
 -----
 
 ### Starting the recovery program, prover program, and web service server
