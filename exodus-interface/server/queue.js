@@ -9,7 +9,8 @@ async function queryQueueCount() {
   try {
     await client.connect()
     const result = await client.query('select count(*) from exit_proofs where created_at is null and finished_at is null;')
-    queueCount = result
+    const rowCount = parseInt(result.rows[0].count, 10)
+    queueCount = rowCount
   } catch (error) {
     console.log(error)
   } finally {
