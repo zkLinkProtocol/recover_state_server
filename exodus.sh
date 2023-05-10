@@ -14,7 +14,8 @@ fi
 
 if [ "$1" == "start" ]; then
   if [ -f script.pid ]; then
-    return
+    echo "recover already exist."
+    exit 0;
   fi
   rm log/*
 
@@ -31,9 +32,11 @@ elif [ "$1" == "server" ]; then
 elif [ "$1" == "prover" ]; then
   cargo build --release
   # Please refer to prover [README.md](prover/README.md) for detailed command details
+  # "-w 1" means only one proof task will be started, and the minimum requirement for server memory is 32GB.
   nohup ./target/release/exodus_prover tasks -w 1 >> log/prover.log 2>&1 &
 elif [ "$1" == "stop" ]; then
 
+  # Never force shut down the recover program, otherwise data needs to be resynchronized.
   # pkill -f recover_state
   pkill -f exodus_server
   pkill -f exodus_prover
