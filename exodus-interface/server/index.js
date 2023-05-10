@@ -5,6 +5,7 @@ const path = require('path')
 const proxy = require('koa-proxies')
 const Router = require('koa-router')
 const { initRecoverBlocks, getRecoverBlocks } = require('./blocks')
+const { initContracts, getContracts } = require('./contracts')
 
 const app = new Koa()
 const router = new Router();
@@ -20,6 +21,9 @@ async function main() {
   )
 
   app.use(koaMount('/', koaStatic(path.resolve(__dirname, '../build'))))
+
+  await initContracts()
+  await initRecoverBlocks()
 
   router.get('/server/blocks', async (ctx, next) => {
     try {
@@ -42,7 +46,23 @@ async function main() {
     }
   })
 
-  await initRecoverBlocks()
+  router.get('/server/contracts', async (ctx, next) => {
+    try {
+      const contracts = await getContracts()
+
+      ctx.body = {
+        code: 0,
+        data: contracts
+      }
+    }
+    catch (e) {
+      ctx.body = {
+        code: 100,
+        err_msg: e?.message
+      }
+    }
+  })
+
 
   app.use(router.routes())
 

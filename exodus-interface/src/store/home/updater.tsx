@@ -19,6 +19,7 @@ import { useContracts, useCurrentChain, useNetworks, useRecoverProgressCompleted
 import { useEffectOnce, useInterval } from 'usehooks-ts'
 import { useAppDispatch } from '..'
 import { RECOVER_PROGRESS_DELAY, RUNNING_TASK_ID_DELAY } from '../../config'
+import axios from 'axios'
 
 export const useFetchRecoverProgress = () => {
   const recoverProgressCompleted = useRecoverProgressCompleted()
@@ -72,7 +73,7 @@ export const Updater = () => {
   })
 
   useEffectOnce(() => {
-    http.get('/contracts').then((r) => {
+    axios.get('/server/contracts').then((r) => {
       const { data } = r.data
       dispatch(updateContracts(data))
     })
