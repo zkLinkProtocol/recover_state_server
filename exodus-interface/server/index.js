@@ -45,7 +45,7 @@ async function main() {
     catch (e) {
       ctx.body = {
         code: 100,
-        err_msg: e?.message
+        err_msg: e.message
       }
     }
   })
@@ -64,7 +64,7 @@ async function main() {
     catch (e) {
       ctx.body = {
         code: 100,
-        err_msg: e?.message
+        err_msg: e.message
       }
     }
   })
@@ -81,7 +81,7 @@ async function main() {
     catch (e) {
       ctx.body = {
         code: 100,
-        err_msg: e?.message
+        err_msg: e.message
       }
     }
   })
