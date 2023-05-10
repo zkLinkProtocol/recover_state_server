@@ -22,7 +22,7 @@ if [ "$1" == "start" ]; then
   cd storage
   diesel database reset
   cd ..
-
+  
   echo "Start recovering state"
   nohup ./run_recover.sh >> log/run_recover.log 2>&1 &
 

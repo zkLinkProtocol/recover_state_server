@@ -3,8 +3,9 @@
     exit 0;
   fi
   
+  cargo build --release
   echo $$ > script.pid
-
+  # Never force shut down the recover program, otherwise data needs to be resynchronized.
   ./target/release/recover_state --genesis >> log/recover_state.log 2>&1 &
   recover_state_pid=$!
 
