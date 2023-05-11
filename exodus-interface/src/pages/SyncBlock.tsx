@@ -39,7 +39,7 @@ export const SyncBlock = () => {
         {recoverProgress?.blocks} / {recoverMaxBlock}
       </Typography>
       <Typography sx={{ fontSize: 18 }} color="gray">
-        Waiting for the block to finish syncing.
+        Syncing in progress...
       </Typography>
     </Stack>
   )
