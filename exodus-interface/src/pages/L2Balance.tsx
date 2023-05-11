@@ -407,9 +407,6 @@ const TokenProofAction: FC<{
               if (pending) {
                 throw new Error('')
               }
-              if (TESTER === false && exodusMode !== 1) {
-                throw new Error('Not exodus time')
-              }
               setPending(true)
               const tasks = await http.post('/generate_proof_task_by_info', {
                 chain_id: currentChain?.layerTwoChainId,
