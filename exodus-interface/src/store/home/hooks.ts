@@ -53,9 +53,7 @@ export const useRecoverProgress = () => {
   return useSelector<RootState, RecoverProgress | undefined>((state) => state.home.recoverProgress)
 }
 export const useRecoverMaxBlock = () => {
-  const currentChain = useCurrentChain()
-  const totalBlocksExecuted = useTotalBlocksExecuted(currentChain?.layerTwoChainId)
-  return totalBlocksExecuted
+  return 24516
 }
 export const useRecoverProgressCompleted = () => {
   const progress = useRecoverProgress()
