@@ -181,7 +181,7 @@ export const Header = () => {
               setShowOptions(!showOptions)
             }}
           >
-            {currentChain?.name ?? 'Unknown Network'}
+            {currentChain?.name ?? 'Please switch to supported networks'}
           </Button>
           {chains?.length && showOptions ? (
             <NetworkOptions sx={{ border: 1 }}>
