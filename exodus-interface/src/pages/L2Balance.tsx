@@ -619,34 +619,28 @@ const TokenProofAction: FC<{
         Submit
       </Button>
     </Typography>
+  ) : mathjs.subtract(proofInfo.proof_info.id, runningTaskId ?? 0) > 0 ? (
+    <Typography sx={{ fontSize: 14 }} color="gray">
+      Queue Position: {mathjs.subtract(proofInfo.proof_info.id, runningTaskId ?? 0)}
+    </Typography>
   ) : (
-    <>
-      {runningTaskId ? (
-        mathjs.subtract(proofInfo.proof_info.id, runningTaskId) > 0 ? (
-          <Typography sx={{ fontSize: 14 }} color="gray">
-            Queue Position: {mathjs.subtract(proofInfo.proof_info.id, runningTaskId)}
-          </Typography>
-        ) : (
-          <Typography
-            sx={(theme) => ({
-              color: theme.palette.info.main,
-            })}
-          >
-            <Button
-              sx={{
-                fontSize: 16,
-                textTransform: 'none',
-                pt: 0,
-                pb: 0,
-              }}
-              variant="text"
-            >
-              <CircularProgress sx={{ mr: 0.5 }} size={14} />
-              <span>Generating</span>
-            </Button>
-          </Typography>
-        )
-      ) : null}
-    </>
+    <Typography
+      sx={(theme) => ({
+        color: theme.palette.info.main,
+      })}
+    >
+      <Button
+        sx={{
+          fontSize: 16,
+          textTransform: 'none',
+          pt: 0,
+          pb: 0,
+        }}
+        variant="text"
+      >
+        <CircularProgress sx={{ mr: 0.5 }} size={14} />
+        <span>Generating</span>
+      </Button>
+    </Typography>
   )
 })
