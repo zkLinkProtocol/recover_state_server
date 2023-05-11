@@ -181,7 +181,7 @@ export const Header = () => {
               setShowOptions(!showOptions)
             }}
           >
-            {currentChain?.name ?? 'Known Network'}
+            {currentChain?.name ?? 'Unknown Network'}
           </Button>
           {chains?.length && showOptions ? (
             <NetworkOptions sx={{ border: 1 }}>
