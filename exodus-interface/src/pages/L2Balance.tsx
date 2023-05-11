@@ -99,7 +99,7 @@ interface L2TokenItem {
 
 export const SectionL2Balance = () => {
   const recoverProgressCompleted = useRecoverProgressCompleted()
-
+  const { isActive } = useWeb3React()
   return (
     <>
       <Section>
@@ -122,7 +122,15 @@ export const SectionL2Balance = () => {
           <br />
           Step 5: Switch network and repeat the above steps.
         </Typography>
-        {recoverProgressCompleted ? <BalanceList /> : <SyncBlock />}
+        {isActive === false ? (
+          <Box sx={{ padding: '40px 0', textAlign: 'center' }}>
+            <Typography fontSize={18}>Please connect your wallet</Typography>
+          </Box>
+        ) : recoverProgressCompleted ? (
+          <BalanceList />
+        ) : (
+          <SyncBlock />
+        )}
       </Section>
     </>
   )
@@ -421,8 +429,8 @@ const TokenProofAction: FC<{
               if (tasks.data?.code === 61) {
                 Swal.fire({
                   width: '40em',
-                  title: 'You Are in the 12-Hour Freeze Period',
-                  text: 'Dear zkLinker, please note that generating just one proof (recover one asset on one chain) is sufficient to claim your Galxe OAT. There is a 12-hour freeze period between each proof generation to ensure the prover computing resource is available for every user.',
+                  title: 'Warning',
+                  text: 'In Durkirk Demo, to ensure that a large number of users can withdraw funds quickly, we require users to withdraw only one type of token within 12 hours. The Galxe task may be completed once the one type of token withdrawal is made. (Please note: This restriction applies only to this exercise, and there are no withdrawal restrictions in real situations.)',
                   confirmButtonText: 'OK',
                 })
               } else {

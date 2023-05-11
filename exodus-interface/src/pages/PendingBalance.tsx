@@ -1,4 +1,4 @@
-import { Button, CircularProgress, Stack, Typography, styled } from '@mui/material'
+import { Box, Button, CircularProgress, Stack, Typography, styled } from '@mui/material'
 import { Section } from './L2Balance'
 import {
   useContracts,
@@ -69,7 +69,7 @@ const BalanceRowAction = styled('div')(({ theme }) => ({
 }))
 
 export const SectionPendingBalance = () => {
-  const { provider, chainId, account } = useWeb3React()
+  const { provider, chainId, account, isActive } = useWeb3React()
   const dispatch = useAppDispatch()
   const pendingBalances = usePendingBalance(account)
 
@@ -99,10 +99,11 @@ export const SectionPendingBalance = () => {
     >
       <Typography variant="h5">Pending Balance</Typography>
       <Typography sx={{ fontStyle: 'italic' }} color="gray" variant="body1">
-        Click on "Withdraw" and sign with your wallet to send the withdraw request on-chain. 
-        <br/>
-        This action can only be executed once, and once the withdraw transaction is confirmed on-chain, 
-        this record will disappear. Please check your wallet to view the changes in your balance.
+        Click on "Withdraw" and sign with your wallet to send the withdraw request on-chain.
+        <br />
+        This action can only be executed once, and once the withdraw transaction is confirmed
+        on-chain, this record will disappear. Please check your wallet to view the changes in your
+        balance.
       </Typography>
 
       {pendingBalances?.length ? (
@@ -120,29 +121,35 @@ export const SectionPendingBalance = () => {
         </BalanceRowWrap>
       ) : null}
 
-      {pendingBalances ? (
-        pendingBalances.length ? (
-          pendingBalances.map((item) => <PendingBalanceRow key={item.token_id} item={item} />)
+      {isActive ? (
+        pendingBalances ? (
+          pendingBalances.length ? (
+            pendingBalances.map((item) => <PendingBalanceRow key={item.token_id} item={item} />)
+          ) : (
+            <Typography
+              sx={{
+                textAlign: 'center',
+                p: 5,
+              }}
+            >
+              No Balance
+            </Typography>
+          )
         ) : (
-          <Typography
+          <Stack
             sx={{
-              textAlign: 'center',
+              width: '100%',
               p: 5,
             }}
+            alignItems="center"
           >
-            No Balance
-          </Typography>
+            <CircularProgress sx={{ mr: 0.5 }} color="success" size={24} />
+          </Stack>
         )
       ) : (
-        <Stack
-          sx={{
-            width: '100%',
-            p: 5,
-          }}
-          alignItems="center"
-        >
-          <CircularProgress sx={{ mr: 0.5 }} color="success" size={24} />
-        </Stack>
+        <Box sx={{ padding: '40px 0', textAlign: 'center' }}>
+          <Typography fontSize={18}>Please connect your wallet</Typography>
+        </Box>
       )}
     </Section>
   )
