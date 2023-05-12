@@ -191,7 +191,10 @@ impl<'a, 'c> ProverSchema<'a, 'c> {
 
         let stored_exit_proof = sqlx::query_as!(
             StoredExitProof,
-            "SELECT * FROM exit_proofs WHERE created_at IS NULL ORDER BY id ASC LIMIT 1 FOR UPDATE SKIP LOCKED",
+            "SELECT * FROM exit_proofs WHERE created_at IS NULL AND finished_at IS NULL \
+            ORDER BY id ASC LIMIT 1 \
+            FOR UPDATE SKIP LOCKED\
+            ",
         )
         .fetch_optional(transaction.conn())
         .await?;
